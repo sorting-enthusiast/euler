@@ -77,7 +77,8 @@ macro_rules! gen_collatz_impl {
 gen_collatz_impl!(u8, u16, u32, u64, u128, usize);
 
 const N: usize = 1_000_000;
-
+const MAX_UNDER_MILLION: usize = 837799;
+const MAX_CHAIN_LENGTH: usize = collatz_chain_length(MAX_UNDER_MILLION);
 pub fn main() {
     let mut max_start = 1;
     let mut max_chain = 1;
@@ -90,5 +91,5 @@ pub fn main() {
         }
     }
     println!("{:?}", (max_start, max_chain));
-    println!("{:?}", (837799, collatz_chain_length(837799)));
+    println!("{:?}", (MAX_UNDER_MILLION, MAX_CHAIN_LENGTH));
 }
