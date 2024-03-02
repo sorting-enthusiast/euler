@@ -1,6 +1,6 @@
 pub mod longest_collatz_chain;
 use crate::longest_collatz_chain::{collatz_chain_length, Collatz};
-const N: u32 = 1_000_000;
+const N: usize = 1_000_000_000;
 
 pub fn main() {
     let mut max_start = 1;
