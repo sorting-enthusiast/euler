@@ -1,3 +1,4 @@
+//Which starting number, under one million, produces the longest chain?
 use std::collections::HashMap;
 #[derive(Default)]
 pub struct DynamicProgrammingCollatz {
@@ -74,3 +75,20 @@ macro_rules! gen_collatz_impl {
     )+ };
 }
 gen_collatz_impl!(u8, u16, u32, u64, u128, usize);
+
+const N: usize = 1_000_000;
+
+pub fn main() {
+    let mut max_start = 1;
+    let mut max_chain = 1;
+    //chain(2k) = 1 + chain(k) > chain(k) for all k, hence we can ignore all values < N/2
+    for n in (N / 2)..N {
+        let chain = n.collatz_chain_length();
+        if chain > max_chain {
+            max_chain = chain;
+            max_start = n;
+        }
+    }
+    println!("{:?}", (max_start, max_chain));
+    println!("{:?}", (837799, collatz_chain_length(837799)));
+}
