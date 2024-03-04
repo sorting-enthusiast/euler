@@ -38,12 +38,6 @@ pub fn find_primes(n: usize) -> Vec<usize> {
             }
         }
     }
-    //dbg!(&primes);
-    /* for i in (sqrt_n..n).step_by(2) {
-        if !sieve.get(i >> 1) {
-            primes.push(i + 1);
-        }
-    } */
     primes.extend((sqrt_n..n).step_by(2).filter_map(|i| {
         if sieve.get(i >> 1) {
             None
