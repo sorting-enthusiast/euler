@@ -4,7 +4,7 @@ pub mod longest_collatz_chain;
 pub mod pandigital_products;
 pub mod squarefree_square_plus_one;
 pub mod xorprimes;
-fn modular_exponentiation(mut x: u128, mut exp: u128, modulo: u128) -> u128 {
+const fn modular_exponentiation(mut x: u128, mut exp: u128, modulo: u128) -> u128 {
     let mut r = 1;
     while exp > 1 {
         if exp & 1 == 1 {
@@ -18,7 +18,7 @@ fn modular_exponentiation(mut x: u128, mut exp: u128, modulo: u128) -> u128 {
 pub fn main() {
     //squarefree_square_plus_one::main();
     //longest_collatz_chain::main();
-    //xorprimes::main();
+    xorprimes::main();
     /* const MOD: u128 = 10_000_000_000;
     let mut sum = 0;
     for i in 1..=1000 {
@@ -26,7 +26,7 @@ pub fn main() {
         sum %= MOD;
     }
     println!("{sum}"); */
-    let to_sum = vec![
+    /* let to_sum = vec![
         135740250,
         7018260538,
         6617309629,
@@ -127,6 +127,6 @@ pub fn main() {
         2284509516,
         2804609722,
         4330331690,
-    ];
+    ]; */
     dbg!(find_primes(2_000_000).into_iter().sum::<usize>());
 }
