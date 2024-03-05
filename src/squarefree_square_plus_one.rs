@@ -3,7 +3,7 @@ let C(n) be the number of squarefree integers of the form x^2+1 such that 1 <= x
 For example, C(10) = 9 and C(1000) = 895.
 Find C(123567101113).
 */
-const N: usize = 123_567_101_113;
+//const N: usize = 123_567_101_113;
 pub struct BitArray {
     bits: Box<[u64]>,
 }
@@ -95,14 +95,6 @@ pub fn segmented_sieve(n: usize) -> Vec<usize> {
         high += limit;
     }
     primes
-}
-fn count_squarefrees(n: usize) -> usize {
-    let mut square_frees = 0;
-    let primes = find_primes((n as f64).sqrt().ceil() as usize);
-    for i in primes {
-        if i * i + 1 <= n {}
-    }
-    square_frees
 }
 use std::time::Instant;
 
