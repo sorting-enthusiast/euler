@@ -27,8 +27,7 @@ fn xor_mul(a: u64, b: u64) -> u64 {
         ) as u64
     }
 }
-#[inline(never)]
-fn xor_power(base: u64, mut exp: u64) -> u64 {
+fn xor_power(base: u64, mut exp: u128) -> u64 {
     unsafe {
         let mut x = _mm_cvtsi64_si128(base as i64);
         let mut y = _mm_cvtsi64_si128(1);
@@ -180,10 +179,13 @@ fn find_nth_xorprime(T: u64) -> u64 {
     }
 }
 pub fn main() {
-    dbg!(xor_power(11, 20));
-    dbg!(xor_product(3, 3));
-    dbg!(xor_mul(3, 3));
-    let now = Instant::now();
+    const MOD: u64 = 29; //10u64.pow(9) + 7;
+    const X: u64 = 37;
+    dbg!(xor_power(11, 4));
+    dbg!(xor_power(11, 4) % MOD);
+    dbg!(xor_mul(xor_mul(11, 11), xor_mul(11, 11)) % MOD);
+    assert_eq!(xor_product(X, X), xor_mul(X, X));
+    /* let now = Instant::now();
     dbg!(find_nth_xorprime(5_000_000));
     let elapsed = now.elapsed();
     println!("{:?}", elapsed);
@@ -191,5 +193,5 @@ pub fn main() {
     dbg!(sieve_of_eratosthenes_xor_primes(150_000_000));
     let elapsed = now.elapsed();
     println!("{:?}", elapsed);
-    dbg!((!0u64) as i64);
+    dbg!(8u128.pow(12) * 12u128.pow(8)); */
 }
