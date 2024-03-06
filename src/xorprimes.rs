@@ -179,13 +179,14 @@ fn find_nth_xorprime(T: u64) -> u64 {
     }
 }
 pub fn main() {
-    const MOD: u64 = 29; //10u64.pow(9) + 7;
+    const MOD: u64 = 1_000_000_007;
+    dbg!(deg(MOD));
     const X: u64 = 37;
-    dbg!(xor_power(11, 4));
-    dbg!(xor_power(11, 4) % MOD);
+    dbg!(xor_power(11, MOD as u128));
+    dbg!(xor_power(11, MOD as u128) % MOD);
     dbg!(xor_mul(xor_mul(11, 11), xor_mul(11, 11)) % MOD);
     assert_eq!(xor_product(X, X), xor_mul(X, X));
-    /* let now = Instant::now();
+    let now = Instant::now();
     dbg!(find_nth_xorprime(5_000_000));
     let elapsed = now.elapsed();
     println!("{:?}", elapsed);
@@ -193,5 +194,5 @@ pub fn main() {
     dbg!(sieve_of_eratosthenes_xor_primes(150_000_000));
     let elapsed = now.elapsed();
     println!("{:?}", elapsed);
-    dbg!(8u128.pow(12) * 12u128.pow(8)); */
+    dbg!(8u128.pow(12) * 12u128.pow(8));
 }

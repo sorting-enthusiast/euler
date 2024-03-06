@@ -27,7 +27,8 @@ impl BitArray {
     }
 }
 pub fn find_primes(n: usize) -> Vec<usize> {
-    let mut primes = vec![2];
+    let mut primes = Vec::with_capacity(n / (usize::BITS - 1 - n.leading_zeros()) as usize);
+    primes.push(2);
     let mut sieve = BitArray::zeroed(n / 2);
     let sqrt_n = ((n as f64).sqrt().ceil() as usize) & !1;
     for num in (3..sqrt_n).step_by(2) {
@@ -57,9 +58,10 @@ pub fn sundaram_sieve(n: usize) -> Vec<usize> {
             sieve.set(j);
         }
     }
-    let mut ret = vec![2];
-    ret.extend((0..k).filter_map(|i| if sieve.get(i) { None } else { Some(2 * i + 3) }));
-    ret
+    let mut primes = Vec::with_capacity(n / (usize::BITS - 1 - n.leading_zeros()) as usize);
+    primes.push(2);
+    primes.extend((0..k).filter_map(|i| if sieve.get(i) { None } else { Some(2 * i + 3) }));
+    primes
 }
 
 pub fn segmented_sieve(n: usize) -> Vec<usize> {
@@ -67,8 +69,8 @@ pub fn segmented_sieve(n: usize) -> Vec<usize> {
     //dbg!(limit);
     let first_primes = find_primes(limit);
     //dbg!(&first_primes);
-    let mut primes = Vec::with_capacity(limit << 7);
-    primes.extend(first_primes.iter().map(|&i| i));
+    let mut primes = Vec::with_capacity(n / (usize::BITS - 1 - n.leading_zeros()) as usize);
+    primes.extend(&first_primes);
     let mut low = limit;
     let mut high = limit << 1;
     let mut mark = BitArray::zeroed(limit + 1);
@@ -76,19 +78,16 @@ pub fn segmented_sieve(n: usize) -> Vec<usize> {
         if high >= n {
             high = n;
         }
-        for &prime in first_primes.iter() {
-            let mut lo_lim = (low / prime) * prime;
-            if lo_lim < low {
-                lo_lim += prime;
-            }
-            for j in (lo_lim..high).step_by(prime) {
-                mark.set(j - low);
+        for &prime in &first_primes {
+            let lo_lim = if low % prime == 0 {
+                low
+            } else {
+                low - low % prime + prime
+            };
+            for i in (lo_lim..high).step_by(prime) {
+                mark.set(i - low);
             }
         }
-        /* let len = (low..high)
-            .filter_map(|i| if mark.get(i - low) { None } else { Some(i) })
-            .count();
-        primes.reserve(len); */
         primes.extend((low..high).filter_map(|i| if mark.get(i - low) { None } else { Some(i) }));
         mark.zero();
         low += limit;
