@@ -21,10 +21,10 @@ const fn xor_product(x: u64, y: u64) -> u64 {
 #[inline(always)]
 fn xor_mul(a: u64, b: u64) -> u64 {
     unsafe {
-        _mm_extract_epi64(
-            _mm_clmulepi64_si128(_mm_cvtsi64_si128(a as i64), _mm_cvtsi64_si128(b as i64), 0),
-            0,
-        ) as u64
+        let a = _mm_cvtsi64_si128(a as i64);
+        let b = _mm_cvtsi64_si128(b as i64);
+        let c = _mm_clmulepi64_si128(a, b, 0);
+        _mm_extract_epi64(c, 0) as u64
     }
 }
 fn xor_power(base: u64, mut exp: u128) -> u64 {
