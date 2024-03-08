@@ -26,7 +26,6 @@ pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
     primes.extend([2, 3, 5, 7]);
     let mut sieve = BitArray::zeroed((n + 1) / 2);
-    let sqrt_n = ((n as f64).sqrt().ceil() as usize) & !1;
     'outer: for w in 0.. {
         let mut num = 210 * w;
         for incr in WHEEL_INCR_2_3_5_7 {
@@ -34,7 +33,7 @@ pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
             if num < 3 {
                 continue;
             }
-            if num > sqrt_n {
+            if num * num > n {
                 break 'outer;
             }
             if !sieve.get(num >> 1) {
@@ -52,6 +51,7 @@ pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
             }
         }
     }
+    let sqrt_n = (n as f64).sqrt() as usize;
     'outer: for w in sqrt_n / 210.. {
         let mut num = 210 * w;
         for incr in WHEEL_INCR_2_3_5_7 {
@@ -120,7 +120,6 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     primes.extend([2, 3, 5, 7]);
 
     let mut sieve = BitArray::zeroed((limit + 1) / 2);
-    let sqrt_limit = ((limit as f64).sqrt().ceil() as usize) & !1;
     'outer: for w in 0.. {
         let mut num = 210 * w;
         for incr in WHEEL_INCR_2_3_5_7 {
@@ -128,7 +127,7 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
             if num < 3 {
                 continue;
             }
-            if num > sqrt_limit {
+            if num * num > limit {
                 break 'outer;
             }
             if !sieve.get(num >> 1) {
@@ -146,6 +145,7 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
             }
         }
     }
+    let sqrt_limit = (limit as f64).sqrt() as usize;
     'outer: for w in sqrt_limit / 210.. {
         let mut num = 210 * w;
         for incr in WHEEL_INCR_2_3_5_7 {
@@ -313,11 +313,11 @@ pub fn linear_segmented_wheel_sieve(n: usize) -> Vec<usize> {
 pub fn main() {
     use std::time::Instant;
     assert_eq!(
-        sieve_of_atkin(500),
-        wheel_factorized_sieve_of_eratosthenes(500)
+        sieve_of_atkin(169),
+        wheel_factorized_sieve_of_eratosthenes(169)
     );
     dbg!(segmented_sieve_of_eratosthenes(500));
-    const N: usize = 1e9 as usize + 7;
+    const N: usize = 49; //1e9 as usize + 7;
 
     let start = Instant::now();
     dbg!(segmented_sieve_of_eratosthenes(N).len());
