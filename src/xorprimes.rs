@@ -1,4 +1,4 @@
-use crate::squarefree_square_plus_one::BitArray;
+use crate::bit_array::BitArray;
 use std::{
     arch::x86_64::{_mm_clmulepi64_si128, _mm_cvtsi64_si128, _mm_extract_epi64},
     collections::HashMap,

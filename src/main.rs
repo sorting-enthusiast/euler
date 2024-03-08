@@ -5,10 +5,10 @@ use std::{
     },
     mem::transmute,
 };
-
+pub mod bit_array;
 pub mod longest_collatz_chain;
 pub mod pandigital_products;
-pub mod squarefree_square_plus_one;
+pub mod prime_sieves;
 pub mod xorprimes;
 const fn modular_exponentiation<const MODULO: u128>(mut x: u128, mut exp: u128) -> u128 {
     let mut r = 1;
@@ -61,11 +61,13 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 }
 pub fn main() {
     dbg!(modular_exponentiation::<497>(4, 13));
-    squarefree_square_plus_one::main();
+    prime_sieves::main();
     longest_collatz_chain::main();
-    dbg!(gcd(i32::MAX - 1, i32::MIN));
-    dbg!((i32::MAX - 1) / 6);
-    dbg!(i32::MIN / 6);
+    const A: i32 = 51;
+    const B: i32 = 257;
+    dbg!(A);
+    dbg!(B);
+    dbg!(gcd(A, B));
 
     xorprimes::main();
 }
