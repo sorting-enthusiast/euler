@@ -5,13 +5,14 @@ Find C(123567101113).
 */
 //const N: usize = 123_567_101_113;
 use crate::bit_array::BitArray;
-const WHEEL_INCR_2: [u8; 1] = [1];
-const WHEEL_INCR_2_3: [u8; 2] = [1, 4];
-const WHEEL_INCR_2_3_5: [u8; 8] = [1, 6, 4, 2, 4, 2, 4, 6];
-const WHEEL_INCR_2_3_5_7: [u8; 48] = [
-    1, 10, 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 8, 6, 4, 6,
-    2, 4, 6, 2, 6, 6, 4, 2, 4, 6, 2, 6, 4, 2, 4, 2, 10,
+const WHEEL_2_3_5_7: [u8; 48] = [
+    10, 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 8, 6, 4, 6, 2,
+    4, 6, 2, 6, 6, 4, 2, 4, 6, 2, 6, 4, 2, 4, 2, 10, 2,
 ];
+const WHEEL_2_3_5: [u8; 8] = [6, 4, 2, 4, 2, 4, 6, 2];
+
+const WHEEL_2_3: [u8; 2] = [4, 2];
+
 pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     if n < 7 {
         let mut ret = vec![2];
@@ -24,49 +25,39 @@ pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
         return ret;
     }
     let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
-    primes.extend([2, 3, 5, 7]);
     let mut sieve = BitArray::zeroed((n + 1) / 2);
-    'outer: for w in 0.. {
-        let mut num = 210 * w;
-        for incr in WHEEL_INCR_2_3_5_7 {
-            num += incr as usize;
-            if num < 3 {
-                continue;
-            }
-            if num * num > n {
-                break 'outer;
-            }
-            if !sieve.get(num >> 1) {
-                primes.push(num);
-                'inner_outer: for w in num / 210.. {
-                    let mut multiple = 210 * w * num;
-                    for incr in WHEEL_INCR_2_3_5_7 {
-                        multiple += incr as usize * num;
-                        if multiple > n {
-                            break 'inner_outer;
-                        }
-                        sieve.set(multiple >> 1);
-                    }
+
+    let mut num = 1;
+    let mut wheel_incr = WHEEL_2_3_5_7.iter().cycle();
+    primes.extend([2, 3, 5, 7]);
+
+    loop {
+        num += *wheel_incr.next().unwrap() as usize;
+        if num * num > n {
+            break;
+        }
+        if !sieve.get(num >> 1) {
+            primes.push(num);
+            let mut multiple = num * num;
+            for &incr in wheel_incr.clone() {
+                if multiple > n {
+                    break;
                 }
+                sieve.set(multiple >> 1);
+                multiple += incr as usize * num;
             }
         }
     }
-    let sqrt_n = (n as f64).sqrt() as usize;
-    'outer: for w in sqrt_n / 210.. {
-        let mut num = 210 * w;
-        for incr in WHEEL_INCR_2_3_5_7 {
-            num += incr as usize;
-            if num < sqrt_n {
-                continue;
-            }
-            if num > n {
-                break 'outer;
-            }
-            if !sieve.get(num >> 1) {
-                primes.push(num);
-            }
+    for &incr in wheel_incr {
+        if num > n {
+            break;
         }
+        if !sieve.get(num >> 1) {
+            primes.push(num);
+        }
+        num += incr as usize;
     }
+
     primes
 }
 pub fn sieve_of_eratosthenes(n: usize) -> Vec<usize> {
@@ -117,49 +108,37 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     }
     let limit = (n as f64).sqrt().floor() as usize + 1;
     let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
-    primes.extend([2, 3, 5, 7]);
-
     let mut sieve = BitArray::zeroed((limit + 1) / 2);
-    'outer: for w in 0.. {
-        let mut num = 210 * w;
-        for incr in WHEEL_INCR_2_3_5_7 {
-            num += incr as usize;
-            if num < 3 {
-                continue;
-            }
-            if num * num > limit {
-                break 'outer;
-            }
-            if !sieve.get(num >> 1) {
-                primes.push(num);
-                'inner_outer: for w in num / 210.. {
-                    let mut multiple = 210 * w * num;
-                    for incr in WHEEL_INCR_2_3_5_7 {
-                        multiple += incr as usize * num;
-                        if multiple > limit {
-                            break 'inner_outer;
-                        }
-                        sieve.set(multiple >> 1);
-                    }
+
+    let mut wheel_incr = WHEEL_2_3_5_7.iter().cycle();
+    primes.extend([2, 3, 5, 7]);
+    let mut num = 1;
+    loop {
+        let incr = *wheel_incr.next().unwrap();
+        num += incr as usize;
+        if num * num > limit {
+            break;
+        }
+        if !sieve.get(num >> 1) {
+            primes.push(num);
+            let mut multiple = num * num;
+            for &incr in wheel_incr.clone() {
+                if multiple > limit {
+                    break;
                 }
+                sieve.set(multiple >> 1);
+                multiple += incr as usize * num;
             }
         }
     }
-    let sqrt_limit = (limit as f64).sqrt() as usize;
-    'outer: for w in sqrt_limit / 210.. {
-        let mut num = 210 * w;
-        for incr in WHEEL_INCR_2_3_5_7 {
-            num += incr as usize;
-            if num < sqrt_limit {
-                continue;
-            }
-            if num > limit {
-                break 'outer;
-            }
-            if !sieve.get(num >> 1) {
-                primes.push(num);
-            }
+    for &incr in wheel_incr {
+        if num > limit {
+            break;
         }
+        if !sieve.get(num >> 1) {
+            primes.push(num);
+        }
+        num += incr as usize;
     }
 
     let first_primes_count = primes.len();
@@ -173,36 +152,36 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
             high = n;
         }
         for &prime in &primes[1..first_primes_count] {
-            let tmp = low / (6 * prime);
-            'outer: for w in tmp.. {
-                let mut multiple = 6 * w * prime;
-                for incr in WHEEL_INCR_2_3 {
+            let mut multiple = low - low % (prime * 6) + prime;
+            for &incr in WHEEL_2_3.iter().cycle() {
+                if multiple < low {
                     multiple += incr as usize * prime;
-                    if multiple < low {
-                        continue;
-                    }
-                    if multiple > high {
-                        break 'outer;
-                    }
-                    sieve.set((multiple - low) >> 1);
-                }
-            }
-        }
-        'outer: for w in low / 210.. {
-            let mut num = 210 * w;
-            for incr in WHEEL_INCR_2_3_5_7 {
-                num += incr as usize;
-                if num < low {
                     continue;
                 }
-                if num > high {
-                    break 'outer;
+                if multiple > high {
+                    break;
                 }
-                if !sieve.get((num - low) >> 1) {
-                    primes.push(num);
-                }
+                sieve.set((multiple - low) >> 1);
+                multiple += incr as usize * prime;
             }
         }
+
+        let mut num = low - low % 210 + 1;
+
+        for &incr in WHEEL_2_3_5_7.iter().cycle() {
+            if num < low {
+                num += incr as usize;
+                continue;
+            }
+            if num > high {
+                break;
+            }
+            if !sieve.get((num - low) >> 1) {
+                primes.push(num);
+            }
+            num += incr as usize;
+        }
+
         low += limit;
         high += limit;
     }
@@ -222,7 +201,6 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
         | (1 << 53);
     const SET1: u64 = 0 | (1 << 7) | (1 << 19) | (1 << 31) | (1 << 43);
     const SET2: u64 = 0 | (1 << 11) | (1 << 23) | (1 << 47) | (1 << 59);
-    const WHEEL_INCR: [u8; 16] = [1, 6, 4, 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 2, 4, 6];
     let sqrt_end = ((end as f64).sqrt() + 1.01) as usize;
     for x in 1..((sqrt_end as f64 / 2.0 + 2.01) as usize) {
         let xx4 = 4 * x * x;
@@ -260,47 +238,35 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
             }
         }
     }
-    'outer: for w in 0.. {
-        let mut n = 60 * w;
-        for incr in WHEEL_INCR {
-            n += incr as usize;
-            if n < 7 {
-                continue;
-            }
-            if n > sqrt_end {
-                break 'outer;
-            }
-            if sieve.get(n >> 1) {
-                let n_squared = n * n;
-                'inner_outer: for w in 0.. {
-                    let mut c = 60 * w * n_squared;
-                    for incr in WHEEL_INCR {
-                        c += incr as usize * n_squared;
-                        if c > end {
-                            break 'inner_outer;
-                        }
-                        sieve.clear(c >> 1);
-                    }
+    let mut n = 1;
+    for &incr in WHEEL_2_3_5.iter().cycle() {
+        if n > sqrt_end {
+            break;
+        }
+        if sieve.get(n >> 1) {
+            let n_squared = n * n;
+            let mut c = n_squared;
+            for &incr in WHEEL_2_3_5.iter().cycle() {
+                if c > end {
+                    break;
                 }
+                sieve.clear(c >> 1);
+                c += incr as usize * n_squared;
             }
         }
+        n += incr as usize;
     }
     let mut primes = Vec::with_capacity((limit as f64 / (limit as f64).log(3.0)) as usize);
     primes.extend([2, 3, 5]);
-    'outer: for w in 0.. {
-        let mut n = 60 * w;
-        for incr in WHEEL_INCR {
-            n += incr as usize;
-            if n < 7 {
-                continue;
-            }
-            if n > end {
-                break 'outer;
-            }
-            if sieve.get(n >> 1) {
-                primes.push(n);
-            }
+    n = 1;
+    for &incr in WHEEL_2_3_5.iter().cycle() {
+        if n > end {
+            break;
         }
+        if sieve.get(n >> 1) {
+            primes.push(n);
+        }
+        n += incr as usize;
     }
     primes
 }
@@ -312,12 +278,13 @@ pub fn linear_segmented_wheel_sieve(n: usize) -> Vec<usize> {
 
 pub fn main() {
     use std::time::Instant;
+    const N: usize = 5e7 as usize + 7;
+
     assert_eq!(
-        sieve_of_atkin(169),
-        wheel_factorized_sieve_of_eratosthenes(169)
+        sieve_of_atkin(49),
+        wheel_factorized_sieve_of_eratosthenes(49)
     );
     dbg!(segmented_sieve_of_eratosthenes(500));
-    const N: usize = 49; //1e9 as usize + 7;
 
     let start = Instant::now();
     dbg!(segmented_sieve_of_eratosthenes(N).len());
