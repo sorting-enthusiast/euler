@@ -189,7 +189,9 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
 }
 pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
     let end = limit + 1;
-    let mut sieve = BitArray::zeroed(end / 2);
+    let mut primes = Vec::with_capacity((limit as f64 / (limit as f64).log(3.0)) as usize);
+    primes.extend([2, 3, 5]);
+    let mut sieve = BitArray::zeroed(1 + (limit / 30) << 3);
     const SET0: u64 = 0
         | (1 << 1)
         | (1 << 13)
@@ -210,7 +212,8 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
                 break;
             }
             if (SET0 >> (n % 60)) & 1 == 1 {
-                sieve.flip(n >> 1);
+                let ind = ((n / 30) << 3) + ((n % 30) << 3) / 30;
+                sieve.flip(ind);
             }
         }
     }
@@ -222,7 +225,8 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
                 break;
             }
             if (SET1 >> (n % 60)) & 1 == 1 {
-                sieve.flip(n >> 1);
+                let ind = ((n / 30) << 3) + ((n % 30) << 3) / 30;
+                sieve.flip(ind);
             }
         }
     }
@@ -234,55 +238,132 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
                 break;
             }
             if (SET2 >> (n % 60)) & 1 == 1 {
-                sieve.flip(n >> 1);
+                let ind = ((n / 30) << 3) + ((n % 30) << 3) / 30;
+                sieve.flip(ind);
             }
         }
     }
     let mut n = 1;
-    for &incr in WHEEL_2_3_5.iter().cycle() {
+    for (&incr, ind) in WHEEL_2_3_5.iter().cycle().zip(0..) {
         if n > sqrt_end {
             break;
         }
-        if sieve.get(n >> 1) {
+        if sieve.get(ind) {
             let n_squared = n * n;
             let mut c = n_squared;
             for &incr in WHEEL_2_3_5.iter().cycle() {
                 if c > end {
                     break;
                 }
-                sieve.clear(c >> 1);
+                let ind = ((c / 30) << 3) + ((c % 30) << 3) / 30;
+                sieve.clear(ind);
                 c += incr as usize * n_squared;
             }
         }
         n += incr as usize;
     }
-    let mut primes = Vec::with_capacity((limit as f64 / (limit as f64).log(3.0)) as usize);
-    primes.extend([2, 3, 5]);
     n = 1;
-    for &incr in WHEEL_2_3_5.iter().cycle() {
+    for (&incr, ind) in WHEEL_2_3_5.iter().cycle().zip(1..) {
+        n += incr as usize;
         if n > end {
             break;
         }
-        if sieve.get(n >> 1) {
+        if sieve.get(ind) {
             primes.push(n);
         }
-        n += incr as usize;
     }
     primes
 }
 
-pub fn linear_segmented_wheel_sieve(n: usize) -> Vec<usize> {
-    _ = n;
-    todo!();
-}
+pub fn sieve(n: usize) -> Vec<usize> {
+    let mut p = 2;
+    let mut sieve = BitArray::zeroed(n + 1);
+    let mut S = vec![0u64; n + 2].into_boxed_slice();
+    let mut i = 1;
+    while i < n + 1 {
+        i += 1;
+        S[i] = 1;
+    }
 
+    while p * p <= n {
+        let mut q = p;
+        while p * q <= n {
+            let mut x = p * q;
+            while x <= n {
+                sieve.set(x);
+                x *= p;
+            }
+            q = {
+                let k = q;
+                let mut t = k + S[k] as usize;
+                while sieve.get(t) {
+                    S[k] += S[t];
+                    t = k + S[k] as usize;
+                }
+                t
+            };
+        }
+        p = {
+            let k = p;
+            let mut t = k + S[k] as usize;
+            while sieve.get(t) {
+                S[k] += S[t];
+                t = k + S[k] as usize;
+            }
+            t
+        };
+    }
+    let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
+    primes.extend((2..=n).filter(|&x| !sieve.get(x)));
+    primes
+}
+pub fn _wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
+    let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
+    let mut sieve = BitArray::zeroed(1 + (n / 30) << 3);
+
+    let mut num = 1;
+    let mut wheel_incr = WHEEL_2_3_5.iter().cycle().zip(0..);
+    primes.extend([2, 3, 5]);
+
+    loop {
+        let (&incr, ind) = wheel_incr.next().unwrap();
+        num += incr as usize;
+        if num * num > n {
+            break;
+        }
+        if !sieve.get(ind) {
+            primes.push(num);
+            let mut multiple = num * num;
+            for (&incr, _) in wheel_incr.clone() {
+                if multiple > n {
+                    break;
+                }
+                let index = ((multiple / 30) << 3) + ((multiple % 30) << 3) / 30 - 1;
+
+                sieve.set(index);
+                multiple += incr as usize * num;
+            }
+        }
+    }
+    for (&incr, ind) in wheel_incr {
+        if num > n {
+            break;
+        }
+        if !sieve.get(ind - 1) {
+            primes.push(num);
+        }
+        num += incr as usize;
+    }
+
+    primes
+}
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 5e7 as usize + 7;
+    const N: usize = 1e9 as usize + 7;
 
     assert_eq!(
-        sieve_of_atkin(49),
-        wheel_factorized_sieve_of_eratosthenes(49)
+        sieve_of_atkin(N / 4),
+        _wheel_factorized_sieve_of_eratosthenes(N / 4)
     );
     dbg!(segmented_sieve_of_eratosthenes(500));
 
@@ -297,7 +378,27 @@ pub fn main() {
     println!("{:?}", end);
 
     let start = Instant::now();
+    dbg!(_wheel_factorized_sieve_of_eratosthenes(N).len());
+    let end = start.elapsed();
+    println!("{:?}", end);
+
+    let start = Instant::now();
     dbg!(sieve_of_atkin(N).len());
+    let end = start.elapsed();
+    println!("{:?}", end);
+
+    let start = Instant::now();
+    dbg!(sieve_of_eratosthenes(N).len());
+    let end = start.elapsed();
+    println!("{:?}", end);
+
+    /* let start = Instant::now();
+    dbg!(sieve(N).len());
+    let end = start.elapsed();
+    println!("{:?}", end); */
+
+    let start = Instant::now();
+    dbg!(sundaram_sieve(N).len());
     let end = start.elapsed();
     println!("{:?}", end);
 }
