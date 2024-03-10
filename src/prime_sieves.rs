@@ -60,6 +60,53 @@ pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
 
     primes
 }
+pub fn experiment(n: usize) -> Vec<usize> {
+    if n < 7 {
+        let mut ret = vec![2];
+        if n > 2 {
+            ret.push(3);
+        }
+        if n > 4 {
+            ret.push(5)
+        }
+        return ret;
+    }
+    let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
+    let mut sieve = BitArray::zeroed(1 + (n / 3));
+
+    let mut num = 1;
+    let mut wheel_incr = WHEEL_2_3_5_7.iter().cycle();
+    primes.extend([2, 3, 5, 7]);
+
+    loop {
+        num += *wheel_incr.next().unwrap() as usize;
+        if num * num > n {
+            break;
+        }
+        if !sieve.get(((num / 6) << 1) + (num % 6 == 5) as usize - 1) {
+            primes.push(num);
+            let mut multiple = num * num;
+            for &incr in wheel_incr.clone() {
+                if multiple > n {
+                    break;
+                }
+                sieve.set(((multiple / 6) << 1) + (multiple % 6 == 5) as usize - 1);
+                multiple += incr as usize * num;
+            }
+        }
+    }
+    for &incr in wheel_incr {
+        if num > n {
+            break;
+        }
+        if !sieve.get(((num / 6) << 1) + (num % 6 == 5) as usize - 1) {
+            primes.push(num);
+        }
+        num += incr as usize;
+    }
+
+    primes
+}
 pub fn sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
     primes.push(2);
@@ -155,6 +202,7 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
             let mut multiple = low - low % (prime * 6) + prime;
             for &incr in WHEEL_2_3.iter().cycle() {
                 if multiple < low {
+                    //println!("{prime}, {multiple}, {low}");
                     multiple += incr as usize * prime;
                     continue;
                 }
@@ -339,7 +387,6 @@ pub fn _wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
                     break;
                 }
                 let index = ((multiple / 30) << 3) + ((multiple % 30) << 3) / 30 - 1;
-
                 sieve.set(index);
                 multiple += incr as usize * num;
             }
@@ -359,12 +406,9 @@ pub fn _wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
 }
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 1e9 as usize + 7;
+    const N: usize = 1e7 as usize + 7;
 
-    assert_eq!(
-        sieve_of_atkin(N / 4),
-        _wheel_factorized_sieve_of_eratosthenes(N / 4)
-    );
+    assert_eq!(sieve_of_atkin(500), experiment(500));
     dbg!(segmented_sieve_of_eratosthenes(500));
 
     let start = Instant::now();
@@ -374,6 +418,11 @@ pub fn main() {
 
     let start = Instant::now();
     dbg!(wheel_factorized_sieve_of_eratosthenes(N).len());
+    let end = start.elapsed();
+    println!("{:?}", end);
+
+    let start = Instant::now();
+    dbg!(experiment(N).len());
     let end = start.elapsed();
     println!("{:?}", end);
 
@@ -401,4 +450,10 @@ pub fn main() {
     dbg!(sundaram_sieve(N).len());
     let end = start.elapsed();
     println!("{:?}", end);
+
+    /* let mut num = 1;
+    for (ind, &i) in WHEEL_2_3_5_7.iter().enumerate() {
+        println!("{ind}: {} % 30 = {}, ", num, num % 30);
+        num += i as usize;
+    } */
 }
