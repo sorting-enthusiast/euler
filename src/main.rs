@@ -60,7 +60,8 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     }
 }
 pub fn main() {
-    dbg!(modular_exponentiation::<497>(4, 13));
+    dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
+    dbg!(9700303872u128 * 28433 % 10_000_000_000);
     prime_sieves::main();
     longest_collatz_chain::main();
     const A: i32 = 51;
@@ -69,5 +70,5 @@ pub fn main() {
     dbg!(B);
     dbg!(gcd(A, B));
 
-    xorprimes::main();
+    //xorprimes::main();
 }
