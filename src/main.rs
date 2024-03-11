@@ -9,7 +9,9 @@ pub mod bit_array;
 pub mod longest_collatz_chain;
 pub mod pandigital_products;
 pub mod prime_sieves;
+pub mod sieve_of_pritchard;
 pub mod xorprimes;
+
 const fn modular_exponentiation<const MODULO: u128>(mut x: u128, mut exp: u128) -> u128 {
     let mut r = 1;
     while exp > 1 {
@@ -69,6 +71,13 @@ pub fn main() {
     dbg!(A);
     dbg!(B);
     dbg!(gcd(A, B));
-
+    dbg!([
+        1, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 49, 53, 59, 61, 67, 71, 73, 77, 79, 83,
+        89, 91, 97, 101, 103, 107, 109, 113, 119, 121, 127, 131, 133, 137, 139, 143, 149, 151, 157,
+        161, 163, 167, 169, 173, 179, 181, 187, 191, 193, 197, 199, 203, 209, 211, 217, 221, 223,
+        227, 229, 233, 239
+    ]
+    .len());
+    dbg!(3u64.wrapping_add((-1 as i64) as u64));
     //xorprimes::main();
 }
