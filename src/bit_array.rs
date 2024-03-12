@@ -1,7 +1,7 @@
 const ELEM_BIT_WIDTH: u8 = (7 - (usize::BITS as u8).leading_zeros()) as u8;
 const MASK: usize = usize::BITS as usize - 1;
 pub struct BitArray {
-    bits: Box<[usize]>,
+    pub bits: Box<[usize]>,
 }
 impl BitArray {
     pub fn zeroed(n: usize) -> BitArray {
