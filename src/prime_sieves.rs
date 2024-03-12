@@ -5,6 +5,7 @@ Find C(123567101113).
 */
 //const N: usize = 123_567_101_113;
 use crate::bit_array::BitArray;
+use crate::sieve_of_pritchard::sift;
 const WHEEL_2_3_5_7: [u8; 48] = [
     10, 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 8, 6, 4, 6, 2,
     4, 6, 2, 6, 6, 4, 2, 4, 6, 2, 6, 4, 2, 4, 2, 10, 2,
@@ -346,7 +347,7 @@ pub fn sieve(n: usize) -> Vec<usize> {
                 let mut t = k + S[k] as usize;
                 while sieve.get(t) {
                     S[k] += S[t];
-                    t = k + S[k] as usize;
+                    t += S[t] as usize;
                 }
                 t
             };
@@ -356,11 +357,12 @@ pub fn sieve(n: usize) -> Vec<usize> {
             let mut t = k + S[k] as usize;
             while sieve.get(t) {
                 S[k] += S[t];
-                t = k + S[k] as usize;
+                t += S[t] as usize;
             }
             t
         };
     }
+    drop(S);
     let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
     primes.extend((2..=n).filter(|&x| !sieve.get(x)));
     primes
@@ -406,10 +408,21 @@ pub fn _wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
 }
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 1e7 as usize + 7;
+    const N: usize = 1e9 as usize + 7;
 
-    assert_eq!(sieve_of_atkin(500), experiment(500));
-    dbg!(segmented_sieve_of_eratosthenes(500));
+    assert_eq!(
+        sieve_of_atkin(500),
+        sift(500)
+            .into_iter()
+            .map(|x| x as usize)
+            .collect::<Vec<usize>>()
+    );
+    dbg!(sift(500));
+
+    let start = Instant::now();
+    dbg!(sift(N as u64).len());
+    let end = start.elapsed();
+    println!("{:?}", end);
 
     let start = Instant::now();
     dbg!(segmented_sieve_of_eratosthenes(N).len());
@@ -440,11 +453,6 @@ pub fn main() {
     dbg!(sieve_of_eratosthenes(N).len());
     let end = start.elapsed();
     println!("{:?}", end);
-
-    /* let start = Instant::now();
-    dbg!(sieve(N).len());
-    let end = start.elapsed();
-    println!("{:?}", end); */
 
     let start = Instant::now();
     dbg!(sundaram_sieve(N).len());

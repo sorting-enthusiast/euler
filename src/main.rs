@@ -5,10 +5,15 @@ use std::{
     },
     mem::transmute,
 };
+
+use crate::count_squarefree::count_squarefree;
+
 pub mod bit_array;
+pub mod count_squarefree;
 pub mod longest_collatz_chain;
 pub mod pandigital_products;
 pub mod prime_sieves;
+pub mod sieve_of_pritchard;
 pub mod xorprimes;
 const fn modular_exponentiation<const MODULO: u128>(mut x: u128, mut exp: u128) -> u128 {
     let mut r = 1;
@@ -59,16 +64,18 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
         _mm_cvtsi128_si32(ar) << shift
     }
 }
+
 pub fn main() {
     dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
     dbg!(9700303872u128 * 28433 % 10_000_000_000);
-    prime_sieves::main();
+    //prime_sieves::main();
     longest_collatz_chain::main();
     const A: i32 = 51;
     const B: i32 = 257;
     dbg!(A);
     dbg!(B);
     dbg!(gcd(A, B));
-
+    dbg!(count_squarefree(1 << 50));
+    dbg!(3u64.wrapping_add((-1 as i64) as u64));
     //xorprimes::main();
 }
