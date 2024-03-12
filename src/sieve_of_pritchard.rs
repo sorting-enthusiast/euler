@@ -63,7 +63,7 @@ fn delete(bitmap: *mut u8, p: u64, length: u64) {
     let kmin = p / 240;
     let kmax = maxf / 240;
     let bit64 = (((maxf % 240) / 30) << 3).wrapping_add(MOD30_TO_BIT8[(maxf % 240 % 30) as usize]);
-    let mut base_on_30 = kmin * p << 3;
+    let mut base_on_30 = (kmin * p) << 3;
     let length_to_1_on_3 = (length as f64).cbrt() as u64;
 
     if p > length_to_1_on_3 {

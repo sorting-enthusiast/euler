@@ -77,7 +77,7 @@ pub fn main() {
     dbg!(B);
     dbg!(gcd(A, B));
     let start = Instant::now();
-    dbg!(count_squarefree(!0u64 as u128));
+    dbg!(count_squarefree(1 << 50));
     let end = start.elapsed();
     println!("{:?}", end);
     //xorprimes::main();
