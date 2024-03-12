@@ -4,12 +4,13 @@ use std::{
         _mm_slli_epi32, _mm_srli_epi32, _mm_sub_epi32,
     },
     mem::transmute,
+    time::Instant,
 };
 
 use crate::count_squarefree::count_squarefree;
-
 pub mod bit_array;
 pub mod count_squarefree;
+pub mod eratosthenes_variants;
 pub mod longest_collatz_chain;
 pub mod pandigital_products;
 pub mod prime_sieves;
@@ -68,14 +69,16 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 pub fn main() {
     dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
     dbg!(9700303872u128 * 28433 % 10_000_000_000);
-    //prime_sieves::main();
+    prime_sieves::main();
     longest_collatz_chain::main();
     const A: i32 = 51;
     const B: i32 = 257;
     dbg!(A);
     dbg!(B);
     dbg!(gcd(A, B));
-    dbg!(count_squarefree(1 << 50));
-    dbg!(3u64.wrapping_add((-1 as i64) as u64));
+    let start = Instant::now();
+    dbg!(count_squarefree(!0u64 as u128));
+    let end = start.elapsed();
+    println!("{:?}", end);
     //xorprimes::main();
 }
