@@ -18,8 +18,6 @@ const WHEEL_2_3_5_7: [u8; 48] = [
 ];
 const WHEEL_2_3_5: [u8; 8] = [6, 4, 2, 4, 2, 4, 6, 2];
 
-const WHEEL_2_3: [u8; 2] = [4, 2];
-
 pub fn wheel_factorized_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
     if n < 7 {
         let mut ret = vec![2];
@@ -168,25 +166,28 @@ pub fn segmented_sieve_of_eratosthenes(n: usize) -> Vec<usize> {
         if high > n {
             high = n;
         }
-        for i in 3..first_primes_count {
-            let prime = primes[i];
-            let mut multiple = first_multiple[i - 3];
-
-            let mut to_erase = multiple * prime;
+        for (&prime, multiple) in primes[3..first_primes_count]
+            .iter()
+            .zip(first_multiple.iter_mut())
+        {
+            let mut to_erase = (*multiple) * prime;
             if to_erase > high {
                 continue;
             }
-            for &incr in WHEEL_2_3_5.iter().cycle().skip(((multiple % 30) * 8) / 30) {
-                if to_erase > high {
-                    break;
-                }
+            for &incr in WHEEL_2_3_5
+                .iter()
+                .cycle()
+                .skip((((*multiple) % 30) * 8) / 30)
+            {
                 unsafe {
                     *bitmap.add((to_erase - low) / 30) |= 1 << (((to_erase % 30) * 8) / 30);
                 }
-                multiple += incr as usize;
+                *multiple += incr as usize;
                 to_erase += incr as usize * prime;
+                if to_erase > high {
+                    break;
+                }
             }
-            first_multiple[i - 3] = multiple;
         }
         let mut num = low - low % 30 + 1;
 
@@ -216,7 +217,11 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
     let end = limit + 1;
     let mut primes = Vec::with_capacity((limit as f64 / (limit as f64).log(3.0)) as usize);
     primes.extend([2, 3, 5]);
-    let mut sieve = BitArray::zeroed(1 + (limit / 30) << 3);
+
+    let bitmap_size = (((limit / 30) >> 3) + 1) << 3;
+    let mut sieve = vec![0u8; bitmap_size].into_boxed_slice();
+    let bitmap = sieve.as_mut_ptr();
+
     const SET0: u64 = (1 << 1)
         | (1 << 13)
         | (1 << 17)
@@ -236,8 +241,9 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
                 break;
             }
             if (SET0 >> (n % 60)) & 1 == 1 {
-                let ind = ((n / 30) << 3) + ((n % 30) << 3) / 30;
-                sieve.flip(ind);
+                unsafe {
+                    *bitmap.add(n / 30) ^= 1 << ((n % 30) * 8 / 30);
+                }
             }
         }
     }
@@ -249,8 +255,9 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
                 break;
             }
             if (SET1 >> (n % 60)) & 1 == 1 {
-                let ind = ((n / 30) << 3) + ((n % 30) << 3) / 30;
-                sieve.flip(ind);
+                unsafe {
+                    *bitmap.add(n / 30) ^= 1 << ((n % 30) * 8 / 30);
+                }
             }
         }
     }
@@ -262,38 +269,44 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
                 break;
             }
             if (SET2 >> (n % 60)) & 1 == 1 {
-                let ind = ((n / 30) << 3) + ((n % 30) << 3) / 30;
-                sieve.flip(ind);
+                unsafe {
+                    *bitmap.add(n / 30) ^= 1 << ((n % 30) * 8 / 30);
+                }
             }
         }
     }
     let mut n = 1;
-    for (&incr, ind) in WHEEL_2_3_5.iter().cycle().zip(0..) {
+    for &incr in WHEEL_2_3_5.iter().cycle() {
         if n > sqrt_end {
             break;
         }
-        if sieve.get(ind) {
-            let n_squared = n * n;
-            let mut c = n_squared;
-            for &incr in WHEEL_2_3_5.iter().cycle() {
-                if c > end {
-                    break;
+        unsafe {
+            if *bitmap.add(n / 30) & (1 << (((n % 30) * 8) / 30)) != 0 {
+                let n_squared = n * n;
+                let mut c = n_squared;
+                for &incr in WHEEL_2_3_5.iter().cycle() {
+                    if c > end {
+                        break;
+                    }
+
+                    *bitmap.add(c / 30) &= !(1 << ((c % 30) * 8 / 30));
+
+                    c += incr as usize * n_squared;
                 }
-                let ind = ((c / 30) << 3) + ((c % 30) << 3) / 30;
-                sieve.clear(ind);
-                c += incr as usize * n_squared;
             }
         }
         n += incr as usize;
     }
     n = 1;
-    for (&incr, ind) in WHEEL_2_3_5.iter().cycle().zip(1..) {
+    for &incr in WHEEL_2_3_5.iter().cycle() {
         n += incr as usize;
         if n > end {
             break;
         }
-        if sieve.get(ind) {
-            primes.push(n);
+        unsafe {
+            if *bitmap.add(n / 30) & (1 << (((n % 30) * 8) / 30)) != 0 {
+                primes.push(n);
+            }
         }
     }
     primes
@@ -301,8 +314,8 @@ pub fn sieve_of_atkin(limit: usize) -> Vec<usize> {
 
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 1e6 as usize + 7;
-    dbg!(sift(500));
+    const N: usize = 5e9 as usize + 7;
+    //dbg!(sift(500));
 
     let start = Instant::now();
     dbg!(sift(N as u64).len());
