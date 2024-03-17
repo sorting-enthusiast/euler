@@ -1,13 +1,7 @@
-use std::{
-    arch::x86_64::{
-        _mm_abs_epi32, _mm_blendv_ps, _mm_cvtsi128_si32, _mm_min_epi32, _mm_set1_epi32,
-        _mm_slli_epi32, _mm_srli_epi32, _mm_sub_epi32,
-    },
-    mem::transmute,
-    time::Instant,
-};
+use std::time::Instant;
 
 use crate::count_squarefree::count_squarefree;
+pub mod achilles;
 pub mod bit_array;
 pub mod count_squarefree;
 pub mod eratosthenes_variants;
@@ -27,58 +21,66 @@ const fn modular_exponentiation<const MODULO: u128>(mut x: u128, mut exp: u128) 
     }
     (r * x) % MODULO
 }
-#[inline(never)]
-fn gcd(mut a: i32, mut b: i32) -> i32 {
-    if a == 0 || b == 0 {
-        return a | b;
+fn gen_candidates_1(limit: u64, acc: u64, primes: &[u64]) -> Vec<u64> {
+    let prime_len = primes.len();
+    if prime_len == 0 {
+        return vec![];
     }
-    let az = a.trailing_zeros();
-    let bz = b.trailing_zeros();
-    let shift = if az < bz { az } else { bz };
-    a >>= az;
-    b >>= shift;
-    unsafe {
-        let mut ar = _mm_set1_epi32(a);
-        let mut br = _mm_set1_epi32(b);
+    let mut res = vec![];
+    for i in 1..=prime_len {
+        let p = primes[prime_len - i];
+        let mut prod = acc * (p * p);
 
-        loop {
-            let b_even = _mm_srli_epi32(br, 1);
-
-            let diff = _mm_sub_epi32(ar, br);
-            let a_odd = _mm_min_epi32(ar, br);
-            let b_odd = _mm_abs_epi32(diff);
-
-            let t = _mm_slli_epi32(br, 31);
-
-            ar = transmute(_mm_blendv_ps(transmute(ar), transmute(a_odd), transmute(t)));
-
-            br = transmute(_mm_blendv_ps(
-                transmute(b_even),
-                transmute(b_odd),
-                transmute(t),
-            ));
-
-            if _mm_cvtsi128_si32(br) == 0 {
-                break;
-            }
+        while prod <= limit {
+            res.push(prod);
+            res.extend(gen_candidates_1(limit, prod, &primes[..prime_len - i]));
+            prod *= p;
         }
-        _mm_cvtsi128_si32(ar) << shift
     }
+    res
 }
-
+#[inline(never)]
+pub fn gcd(mut u: u64, mut v: u64) -> u64 {
+    if u == 0 || v == 0 {
+        return u | v;
+    }
+    let shift = (u | v).trailing_zeros();
+    u >>= u.trailing_zeros();
+    loop {
+        v >>= v.trailing_zeros();
+        v -= u;
+        let m = (v as i64 >> 63) as u64;
+        u += v & m;
+        v = (v + m) ^ m;
+        if v == 0 {
+            break;
+        }
+    }
+    u << shift
+}
 pub fn main() {
-    dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
-    dbg!(9700303872u128 * 28433 % 10_000_000_000);
-    prime_sieves::main();
-    longest_collatz_chain::main();
-    const A: i32 = 51;
-    const B: i32 = 257;
-    dbg!(A);
-    dbg!(B);
-    dbg!(gcd(A, B));
-    let start = Instant::now();
-    dbg!(count_squarefree(1 << 50));
-    let end = start.elapsed();
-    println!("{:?}", end);
+    /* dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
+       dbg!(9700303872u128 * 28433 % 10_000_000_000);
+       prime_sieves::main();
+       longest_collatz_chain::main();
+       const A: u64 = 51;
+       const B: u64 = 257;
+       dbg!(A);
+       dbg!(B);
+
+       dbg!(gcd(A, B));
+       //193
+       let start = Instant::now();
+       dbg!(count_squarefree(1 << 50));
+       let end = start.elapsed();
+       println!("{:?}", end);
+       //197
+       let u_n = (2..513).fold(0.71, |acc, _| 1.42 * 2.0f64.powf(-acc * acc));
+       dbg!(u_n + 1.42 * 2.0f64.powf(-u_n * u_n));
+
+       //301: nim
+       dbg!((1..=(1 << 30)).filter(|x| x ^ (x << 1) == 3 * x).count());
+    */
+    achilles::main();
     //xorprimes::main();
 }
