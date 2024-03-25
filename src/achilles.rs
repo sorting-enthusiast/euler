@@ -1,25 +1,8 @@
-use crate::sieve_of_pritchard::sift;
+use crate::{math, sieve_of_pritchard::sift};
 use std::time::Instant;
-static mut V: Vec<(u32, u32)> = vec![];
+static mut V: Vec<(u64, u64)> = vec![];
 const N: u64 = 1e18 as u64;
-pub fn gcd(mut u: u64, mut v: u64) -> u64 {
-    if u == 0 || v == 0 {
-        return u | v;
-    }
-    let shift = (u | v).trailing_zeros();
-    u >>= u.trailing_zeros();
-    loop {
-        v >>= v.trailing_zeros();
-        v -= u;
-        let m = (v as i64 >> 63) as u64;
-        u += v & m;
-        v = (v + m) ^ m;
-        if v == 0 {
-            break;
-        }
-    }
-    u << shift
-}
+
 pub fn main() {
     //302:
     //achilles number: every prime factor has multiplicity > 1 and gcd(multiplicities)=1
@@ -37,15 +20,15 @@ fn check_achilles(k: u64, primes: &[u64]) -> bool {
     let mut x = k;
     unsafe {
         for &(first, second) in V.iter() {
-            let mut ret = second as u64;
-            while x % first as u64 == 0 {
-                x /= first as u64;
+            let mut ret = second;
+            while x % first == 0 {
+                x /= first;
                 ret += 1;
             }
             if ret < 2 {
                 return false;
             }
-            s = gcd(s, ret);
+            s = math::gcd(s, ret);
         }
         for &prime in primes {
             if prime * prime > x {
@@ -59,46 +42,46 @@ fn check_achilles(k: u64, primes: &[u64]) -> bool {
             if multiplicity == 1 {
                 return false;
             }
-            s = gcd(s, multiplicity);
+            s = math::gcd(s, multiplicity);
         }
     }
     s == 1 && x == 1
 }
-fn dfs(depth: u32, w: u64, ls: u32, phi: u64, la: u32, z: bool, primes: &[u64]) -> u64 {
+fn dfs(depth: u64, acc: u64, ls: u64, phi: u64, la: u64, z: bool, primes: &[u64]) -> u64 {
     let mut ans = 0;
-    if ls == 1 && la >= 3 && z {
+    if ls == 1 && la > 2 && z {
         ans += check_achilles(phi, primes) as u64;
     }
     if depth as usize > primes.len() {
         return ans;
     }
-    let s = primes[depth as usize - 1];
-    let mut tmp = s * s;
-    let mut p = 2;
-    if w > N / tmp {
+    let prime = primes[depth as usize - 1];
+    let mut prime_power = prime * prime;
+    let mut power = 2;
+    if acc > N / prime_power {
         return ans;
     }
-    while w <= N / tmp {
+    while acc <= N / prime_power {
         unsafe {
-            V.push((s as u32, p - 1));
+            V.push((prime, power - 1));
         }
         ans += dfs(
             depth + 1,
-            w * tmp,
-            gcd(ls as u64, p as u64) as u32,
-            phi * (s - 1),
-            p,
+            acc * prime_power,
+            math::gcd(ls, power),
+            phi * (prime - 1),
+            power,
             true,
             primes,
         );
         unsafe {
             V.pop();
         }
-        if s > N / tmp {
+        if prime > N / prime_power {
             break;
         }
-        tmp *= s;
-        p += 1;
+        prime_power *= prime;
+        power += 1;
     }
-    ans + dfs(depth + 1, w, ls, phi, la, false, primes)
+    ans + dfs(depth + 1, acc, ls, phi, la, false, primes)
 }

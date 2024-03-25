@@ -23,6 +23,7 @@ const WHEEL_2_3_5_VALS: [u8; 8] = [1, 7, 11, 13, 17, 19, 23, 29];
 pub const fn num2bits(num: usize) -> u8 {
     (num % 30 * 8 / 30) as u8
 }
+//TODO: fix
 pub fn hprime_sieve(max: usize) -> Vec<usize> {
     let mut adj_max = (max - 1) / 30 * 30 + 1;
     let sqrt_max = (max as f64).sqrt() as usize;
