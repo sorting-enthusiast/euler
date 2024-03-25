@@ -40,7 +40,7 @@ fn gen_candidates_1(limit: u64, acc: u64, primes: &[u64]) -> Vec<u64> {
     res
 }
 pub fn main() {
-    dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
+    /* dbg!(modular_exponentiation::<10_000_000_000>(2, 7830457));
     dbg!(9700303872u128 * 28433 % 10_000_000_000);
     prime_sieves::main();
     longest_collatz_chain::main();
@@ -60,8 +60,8 @@ pub fn main() {
     dbg!(u_n + 1.42 * 2.0f64.powf(-u_n * u_n));
 
     //301: nim
-    dbg!((1..=(1 << 30)).filter(|x| x ^ (x << 1) == 3 * x).count());
+    dbg!((1..=(1 << 30)).filter(|x| x ^ (x << 1) == 3 * x).count()); */
 
-    //achilles::main();
+    achilles::main();
     //xorprimes::main();
 }
