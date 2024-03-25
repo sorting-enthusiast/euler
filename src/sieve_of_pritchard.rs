@@ -171,7 +171,7 @@ pub fn sift(n: u64) -> Vec<u64> {
     let mut primes = Vec::with_capacity((n as f64 / (n as f64).log(3.0)) as usize);
     primes.extend([2, 3, 5]);
     let mut bitmap = vec![0u8; bitmap_size as usize].into_boxed_slice();
-    bitmap[0] = 0xff;
+    bitmap[0] = 0xFF;
     let mut length = 30;
     let mut p = 7;
     let mut p_squared = 49;
