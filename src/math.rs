@@ -17,10 +17,15 @@ pub const fn gcd(mut u: u64, mut v: u64) -> u64 {
     u >>= u.trailing_zeros();
     loop {
         v >>= v.trailing_zeros();
+        if u > v {
+            let tmp = u;
+            u = v;
+            v = tmp;
+        }
         v -= u;
-        let m = (v as i64 >> 63) as u64;
+        /* let m = (v as i64 >> 63) as u64;
         u += v & m;
-        v = (v + m) ^ m;
+        v = (v + m) ^ m; */
         if v == 0 {
             break;
         }
