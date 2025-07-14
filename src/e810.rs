@@ -1,9 +1,7 @@
-use crate::bit_array::BitArray;
-use std::{
-    arch::x86_64::{_mm_clmulepi64_si128, _mm_cvtsi64_si128, _mm_extract_epi64},
-    collections::HashMap,
-    time::Instant,
-};
+use crate::utils::bit_array::BitArray;
+use core::arch::x86_64::{_mm_clmulepi64_si128, _mm_cvtsi64_si128, _mm_extract_epi64};
+use std::{collections::HashMap, time::Instant};
+
 const fn xor_product(x: u64, y: u64) -> u64 {
     let mut res = 0;
     let mut a = if x < y { x } else { y };
@@ -18,8 +16,9 @@ const fn xor_product(x: u64, y: u64) -> u64 {
     }
     res
 }
-#[inline(always)]
-fn xor_mul(a: u64, b: u64) -> u64 {
+#[target_feature(enable = "pclmulqdq")]
+#[inline]
+unsafe fn xor_mul(a: u64, b: u64) -> u64 {
     unsafe {
         let a = _mm_cvtsi64_si128(a as i64);
         let b = _mm_cvtsi64_si128(b as i64);
@@ -27,7 +26,8 @@ fn xor_mul(a: u64, b: u64) -> u64 {
         _mm_extract_epi64(c, 0) as u64
     }
 }
-fn xor_power(base: u64, mut exp: u128) -> u64 {
+#[target_feature(enable = "pclmulqdq")]
+unsafe fn xor_power(base: u64, mut exp: u128) -> u64 {
     unsafe {
         let mut x = _mm_cvtsi64_si128(base as i64);
         let mut y = _mm_cvtsi64_si128(1);
@@ -54,7 +54,7 @@ fn sieve_of_eratosthenes_xor_primes(limit: u64) -> Option<u64> {
             }
 
             for i in (num..S(limit, num)).step_by(2) {
-                let multiple = xor_mul(num, i);
+                let multiple = unsafe { xor_mul(num, i) };
                 if multiple > new_lim {
                     continue;
                 }
@@ -87,7 +87,7 @@ const fn S(n: u64, a: u64) -> u64 {
     (n >> deg(a)) - ((n ^ rem(n, a) > n) as u64)
 }
 fn mu(n: i64) -> i64 {
-    let mut r = (n == 1) as i64;
+    let mut r = i64::from(n == 1);
     for k in 1..n {
         if n % k == 0 {
             r -= mu(k);
@@ -112,7 +112,7 @@ fn find_nth_xorprime(T: u64) -> u64 {
         pp += a / m;
         m += 1;
     }
-    let h = (m + 2) / 2;
+    let h = m.midpoint(2);
     let limit: u64 = 1 << h;
     let mut sieve = BitArray::zeroed(limit as usize);
     let mut primes = Vec::new();
@@ -120,7 +120,7 @@ fn find_nth_xorprime(T: u64) -> u64 {
         if !sieve.get(x as usize) {
             primes.push(x);
             for y in x..(limit >> deg(x)) {
-                sieve.set(xor_mul(x, y) as usize);
+                sieve.set(unsafe { xor_mul(x, y) } as usize);
             }
         }
     }
@@ -133,7 +133,7 @@ fn find_nth_xorprime(T: u64) -> u64 {
             if deg(p) + deg(q) > m {
                 break;
             }
-            let mut r = xor_mul(p, q);
+            let mut r = unsafe { xor_mul(p, q) };
             if deg(r) >= k {
                 r &= ((1 << k) - 1) << (deg(r) - k + 1);
             }
@@ -180,19 +180,21 @@ fn find_nth_xorprime(T: u64) -> u64 {
 }
 pub fn main() {
     const MOD: u64 = 1_000_000_007;
-    dbg!(deg(MOD));
     const X: u64 = 37;
-    dbg!(xor_power(11, MOD as u128));
-    dbg!(xor_power(11, MOD as u128) % MOD);
-    dbg!(xor_mul(xor_mul(11, 11), xor_mul(11, 11)) % MOD);
-    assert_eq!(xor_product(X, X), xor_mul(X, X));
+    dbg!(deg(MOD));
+    unsafe {
+        dbg!(xor_power(11, u128::from(MOD)));
+        dbg!(xor_power(11, u128::from(MOD)) % MOD);
+        dbg!(xor_mul(xor_mul(11, 11), xor_mul(11, 11)) % MOD);
+        assert_eq!(xor_product(X, X), xor_mul(X, X));
+    }
     let now = Instant::now();
     dbg!(find_nth_xorprime(5_000_000));
     let elapsed = now.elapsed();
-    println!("{:?}", elapsed);
+    println!("{elapsed:?}");
     let now = Instant::now();
     dbg!(sieve_of_eratosthenes_xor_primes(150_000_000));
     let elapsed = now.elapsed();
-    println!("{:?}", elapsed);
+    println!("{elapsed:?}");
     dbg!(8u128.pow(12) * 12u128.pow(8));
 }

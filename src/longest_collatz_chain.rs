@@ -27,6 +27,7 @@ impl DynamicProgrammingCollatz {
     }
 }
 //use for compile time evaluation
+#[must_use]
 pub const fn collatz_chain_length(mut x: usize) -> usize {
     let mut seq_length = 1;
     if x & 1 == 0 {
@@ -77,7 +78,7 @@ macro_rules! gen_collatz_impl {
 gen_collatz_impl!(u8, u16, u32, u64, u128, usize);
 
 const N: usize = 1_000_000;
-const MAX_UNDER_MILLION: usize = 837799;
+const MAX_UNDER_MILLION: usize = 837_799;
 const MAX_CHAIN_LENGTH: usize = collatz_chain_length(MAX_UNDER_MILLION);
 pub fn main() {
     let mut max_start = 1;
@@ -89,6 +90,9 @@ pub fn main() {
             max_chain = chain;
             max_start = n;
         }
+        /* if n % 1_000_000_000 == 0 {
+            println!("{n}, {max_start}, {max_chain}");
+        } */
     }
     println!("{:?}", (max_start, max_chain));
     println!("{:?}", (MAX_UNDER_MILLION, MAX_CHAIN_LENGTH));

@@ -1,53 +1,81 @@
-pub mod achilles;
-pub mod bit_array;
-pub mod count_squarefree;
-pub mod eratosthenes_variants;
-pub mod longest_collatz_chain;
-pub mod math;
-pub mod pandigital_products;
-pub mod prime_sieves;
-pub mod sieve_of_pritchard;
-pub mod xorprimes;
+#![warn(clippy::pedantic)]
+#![allow(long_running_const_eval)]
+#![allow(dead_code)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::inline_always)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::cast_precision_loss)]
 
 use std::time::Instant;
 
-use crate::count_squarefree::count_squarefree;
+use crate::utils::{
+    math::{modexp, prime_modinv},
+    prime_sieves::{self, sieve_it},
+    primecount::{
+        lucy, lucy_alt, lucy_fastdivide, lucy_fastdivide_alt, lucy_strengthreduce,
+        lucy_strengthreduce_alt, lucy_sum,
+    },
+};
+
+mod e153;
+mod e156;
+mod e169;
+mod e193;
+mod e245;
+mod e249;
+mod e250;
+mod e255;
+mod e258;
+mod e302;
+mod e355;
+mod e401;
+mod e432;
+mod e501;
+mod e508;
+mod e521;
+mod e530;
+mod e639;
+mod e708;
+mod e745;
+mod e810;
+
+pub mod longest_collatz_chain;
+mod utils;
 pub fn main() {
-    dbg!(math::modular_exponentiation::<10_000_000_000>(2, 7830457));
-    dbg!(9700303872u128 * 28433 % 10_000_000_000);
+    //e153::main();
     //prime_sieves::main();
-    //longest_collatz_chain::main();
-    //193
+    const N: usize = 1e16 as _;
     let start = Instant::now();
-    dbg!(count_squarefree(1 << 50));
+    let count = lucy(N)[N];
     let end = start.elapsed();
-    println!("{:?}", end);
-    //197
-    let u_n = (2..513).fold(0.71, |acc, _| 1.42 * 2.0f64.powf(-acc * acc));
-    dbg!(u_n + 1.42 * 2.0f64.powf(-u_n * u_n));
+    println!("res = {count}, took {end:?}");
 
-    //301: nim
-    dbg!((1..=(1 << 30)).filter(|x| x ^ (x << 1) == 3 * x).count());
-
-    //123: prime square remainder
     let start = Instant::now();
-    let primes = sieve_of_pritchard::sift(1e6 as u64);
-    for n in (7037..).step_by(2) {
-        if (n << 1) * primes[n - 1] as usize > 1e10 as usize {
-            dbg!(n);
-            break;
-        }
-    }
+    let count = lucy_alt(N)[N];
     let end = start.elapsed();
-    println!("{:?}", end);
+    println!("res = {count}, took {end:?}");
 
-    //120: square remainder
-    let mut sum = 0;
-    for a in 3..1001 {
-        sum += a * ((a - 1) & !1);
-    }
-    dbg!(sum);
+    let start = Instant::now();
+    let count = lucy_strengthreduce(N)[N];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
 
-    //achilles::main();
-    //xorprimes::main();
+    let start = Instant::now();
+    let count = lucy_strengthreduce_alt(N)[N];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = lucy_fastdivide(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = lucy_fastdivide_alt(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    // a^(phi(n)-2) = a^-1 mod n
+    //dbg!(prime_modinv::<{ 1e9 as u128 + 7 }>(42));
 }

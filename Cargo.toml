@@ -1,9 +1,13 @@
 [package]
 name = "euler"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-rayon = "1.9.0"
+fastdivide = "0.4.2"
+itertools = "0.13.0"
+paste = "1.0.15"
+rand = "0.9.1"
+strength_reduce = "0.2.4"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

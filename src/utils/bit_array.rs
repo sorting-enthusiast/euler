@@ -11,7 +11,7 @@ impl BitArray {
     }
     #[inline]
     pub fn zero(&mut self) {
-        self.bits.iter_mut().for_each(|x| *x = 0);
+        self.bits.fill(0);
     }
     #[inline(always)]
     pub fn set(&mut self, i: usize) {
