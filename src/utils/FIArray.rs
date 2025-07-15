@@ -3,6 +3,7 @@ use std::ops::{Index, IndexMut};
 macro_rules! FIArray_impl_for {
     ($($type:ty),+) => { $(
         paste!{
+            #[derive(Debug, Clone, PartialEq, Eq)]
             pub struct [<FIArray $type:camel>] {
                 x: $type,
                 isqrt: $type,

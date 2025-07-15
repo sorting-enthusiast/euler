@@ -8,18 +8,18 @@ pub fn main() {
         aviv(10_000_000_000_000_000_000_000_000_u128)
     );
 }
-pub fn aviv_optimized(mut num: u128) -> u64 {
+pub const fn aviv_optimized(mut num: u128) -> u64 {
     let mut ans = 1;
     let mut dp = 0;
     while num != 0 {
-        let tz = u64::from(num.trailing_zeros());
+        let tz = num.trailing_zeros() as u64;
         dp += tz * ans;
         ans += dp;
         num >>= tz + 1;
     }
     ans
 }
-pub fn aviv(mut num: u128) -> u64 {
+pub const fn aviv(mut num: u128) -> u64 {
     let mut ans = 1;
     let mut dp = 0;
     while num != 0 {

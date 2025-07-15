@@ -1,9 +1,6 @@
 use itertools::Itertools;
 
-use crate::utils::{
-    bit_array::BitArray,
-    prime_sieves::{sieve_it, wheel_factorized_sieve_of_eratosthenes},
-};
+use crate::utils::bit_array::BitArray;
 
 const fn modexp(mut x: usize, mut exp: usize, modulo: usize) -> usize {
     if exp == 0 {
@@ -160,6 +157,7 @@ fn sieve(n: usize) -> Vec<usize> {
     }
     res
 }
+
 pub fn main() {
     const N: usize = 2 as usize;
 

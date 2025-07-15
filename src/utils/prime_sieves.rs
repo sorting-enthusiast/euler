@@ -28,7 +28,7 @@ pub const fn num2bits(num: usize) -> u8 {
     MOD30_TO_BIT8[num % 30] as u8
 }
 //TODO: fix
-#[must_use]
+/* #[must_use]
 pub fn hprime_sieve(max: usize) -> Vec<usize> {
     let mut adj_max = (max - 1) / 30 * 30 + 1;
     let sqrt_max = (max as f64).sqrt() as usize;
@@ -140,7 +140,7 @@ pub fn hprime_sieve(max: usize) -> Vec<usize> {
 
     primes
 }
-
+ */
 #[must_use]
 pub fn linear_sieve(n: u64) -> Vec<u64> {
     let mut p = 7;
