@@ -36,12 +36,12 @@ mod e639;
 mod e708;
 mod e745;
 mod e810;
+mod e955;
 
 pub mod longest_collatz_chain;
 mod utils;
 pub fn main() {
-    e484::main();
-    //dbg!(5e15f64 as usize - 3039635509268642);
+    e955::main();
     // a^(phi(n)-2) = a^-1 mod n
     //dbg!(prime_modinv::<{ 1e9 as u128 + 7 }>(42));
 }

@@ -6,10 +6,11 @@ use crate::utils::powerful_numbers::PowerfulExt;
 // gcd(p^e*n, (p^e*n)') = gcd(p^e*n, e*p^(e-1)*n + p^e * n') = p^(e-1) * gcd(pn, en + pn')
 // gcd(pn, en + pn'):
 // p|e: gcd(pn, en + pn') = gcd(pn, p*k*n + pn') = p * gcd(n, k*n+n') = p * gcd(n,n') => gcd(p^e*n, (p^e*n)') = p^e * gcd(n,n')
-// p!|e: gcd(pn, en + pn') = gcd(n, n')
+// p!|e: gcd(pn, en + pn') = gcd(n, en + n') = gcd(n, n') => gcd(p^e*n, (p^e*n)') = p^(e-1) * gcd(n,n')
 
 // let v_p(n) be the p-adic valuation of n.
-// define f(n) = gcd(n,n'): product over p|n of {p^v_p(n) if p|v_p(n), else p^(v_p(n)-1)}
+// define f(n) = gcd(n,n'): by expanding the identity from before,
+// we can see that gcd(n,n') = product over p|n of {p^v_p(n) if p|v_p(n), else p^(v_p(n)-1)}
 // notice that f(n) is multiplicative, and that f(p) = gcd(p,1) = 1 = u(p)
 // find h such that f = h * u <=> h = f * mobius
 // h(p^e) = f(p^e) - f(p^(e-1))

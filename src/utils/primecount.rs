@@ -399,7 +399,7 @@ fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e9 as _;
+    const N: usize = 1e10 as _;
 
     println!("standard-ish lucy");
     let start = Instant::now();
