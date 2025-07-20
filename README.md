@@ -1,1 +1,1 @@
-solutions for project euler exercises
+my solutions for project euler exercises
