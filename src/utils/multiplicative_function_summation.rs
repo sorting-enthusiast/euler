@@ -37,6 +37,33 @@ pub fn totient_sieve(n: usize) -> Vec<i64> {
     }
     res
 }
+pub fn mobius_sieve(n: usize) -> Vec<i64> {
+    let mut res = vec![0; n];
+    if n < 2 {
+        return res;
+    }
+    let mut composite = BitArray::zeroed(n);
+    let mut primes = vec![];
+    res[1] = 1;
+    for i in 2..n {
+        if !composite.get(i) {
+            primes.push(i);
+            res[i] = -1;
+        }
+        for &p in &primes {
+            if i * p >= n {
+                break;
+            }
+            composite.set(i * p);
+            if i % p == 0 {
+                res[i * p] = 0;
+                break;
+            }
+            res[i * p] = -res[i];
+        }
+    }
+    res
+}
 pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
     let y = if x > 64 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)

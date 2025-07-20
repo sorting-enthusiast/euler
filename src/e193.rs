@@ -22,7 +22,7 @@ fn count_squarefree(limit: u128) -> u128 {
 }
 
 pub fn main() {
-    const N: i64 = 1e12 as _;
+    const N: i64 = 5e15 as _;
     let start = Instant::now();
     let res = count_squarefree(N as _);
     let end = start.elapsed();

@@ -5,6 +5,8 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::{FIArray, FIArrayU64, FIArrayU128},
+    bit_array::BitArray,
+    fenwick::FenwickTree,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
@@ -397,16 +399,16 @@ fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 4e7 as _;
+    const N: usize = 1e9 as _;
+
+    println!("standard-ish lucy");
     let start = Instant::now();
-    let s = lucy(N as _);
-    let count = s[N as _];
+    let count = lucy(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
-    let s2 = lucy_wheel(N as _);
-    let count = s2[N as _];
+    let count = lucy_wheel(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -419,7 +421,6 @@ pub fn main() {
     let count = lucy_alt(N)[N];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
-    dbg!(s == s2);
 
     println!("strength reduced:");
     let start = Instant::now();
@@ -434,14 +435,12 @@ pub fn main() {
 
     println!("fast divide:");
     let start = Instant::now();
-    let s = lucy_fastdivide(N as _);
-    let count = s[N as _];
+    let count = lucy_fastdivide(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
-    let s2 = lucy_fastdivide_wheel(N as _);
-    let count = s2[N as _];
+    let count = lucy_fastdivide_wheel(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -454,6 +453,102 @@ pub fn main() {
     let count = lucy_fastdivide_alt(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
+}
 
-    dbg!(s == s2);
+//never faster for me, though asymptotically better: O(x^(2/3) (loglogx)^(1/3)) vs O(x^(3/4))
+pub fn lucy_fenwick(x: usize) -> FIArray {
+    let mut s = FIArray::new(x);
+    let sqrtx = x.isqrt();
+    let len = s.arr.len();
+    let y = (2e9 as usize)
+        .min((0.35 * ((x as f64) / (x as f64).ln().ln()).powf(2. / 3.)).round() as usize)
+        .max(sqrtx + 1);
+    let mut sieve_raw = BitArray::zeroed(y + 1);
+    let mut sieve = FenwickTree::new(y + 1, 1);
+    sieve.add(1, -1);
+    sieve.add(0, -1);
+    /* sieve_raw.set(0);
+    sieve_raw.set(1); */
+
+    let keys = FIArray::keys(x).collect_vec();
+    for (i, v) in keys.iter().enumerate() {
+        s.arr[i] = v - 1;
+    }
+
+    for p in 2..=sqrtx {
+        if !sieve_raw.get(p) {
+            let sp = sieve.sum(p - 1) as usize;
+            let lim = (x / y).min(x / (p * p));
+            for i in 1..=lim {
+                let xip = x / (i * p);
+                s.arr[len - i] -= if xip <= y {
+                    sieve.sum(xip) as usize
+                } else {
+                    s[xip]
+                } - sp;
+            }
+            let mut j = p * p;
+            while j <= y {
+                if !sieve_raw.get(j) {
+                    sieve_raw.set(j);
+                    sieve.add(j, -1);
+                }
+                j += p;
+            }
+        }
+    }
+    for (i, &v) in keys.iter().take_while(|&&v| v <= y).enumerate() {
+        s.arr[i] = sieve.sum(v) as usize;
+    }
+    s
+}
+
+pub fn lucy_fenwick_trick(x: usize) -> usize {
+    let mut s = FIArray::new(x);
+    let sqrtx = x.isqrt();
+    let len = s.arr.len();
+    let y = (2e9 as usize)
+        .min((0.35 * ((x as f64) / (x as f64).ln().ln()).powf(2. / 3.)).round() as usize)
+        .max(sqrtx + 1);
+    let mut sieve_raw = BitArray::zeroed(y + 1);
+    let mut sieve = FenwickTree::new(y + 1, 1);
+    sieve.add(1, -1);
+    sieve.add(0, -1);
+
+    for (i, v) in FIArray::keys(x).enumerate() {
+        s.arr[i] = v - 1;
+    }
+
+    for p in 2..=sqrtx {
+        if !sieve_raw.get(p) {
+            let sp = sieve.sum(p - 1) as usize;
+            let lim = (x / y).min(x / (p * p));
+            let xp = x / p;
+            s.arr[len - 1] -= if xp <= y {
+                sieve.sum(xp) as usize
+            } else {
+                s[xp]
+            } - sp;
+            for i in p..=lim {
+                if sieve_raw.get(i) {
+                    continue;
+                }
+                let xip = x / (i * p);
+                s.arr[len - i] -= if xip <= y {
+                    sieve.sum(xip) as usize
+                } else {
+                    s[xip]
+                } - sp;
+            }
+            let mut j = p * p;
+            while j <= y {
+                if !sieve_raw.get(j) {
+                    sieve_raw.set(j);
+                    sieve.add(j, -1);
+                }
+                j += p;
+            }
+        }
+    }
+    s[x]
 }

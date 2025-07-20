@@ -96,10 +96,10 @@ const fn is_divisible_by_b_to_nth((a, b): (i64, i64), n: usize) -> bool {
     /* let new = [(a | b), (a - b) | (a + b)];
     new[n & 1].trailing_zeros() as usize >= (n >> 1) + (n & 1) */
 }
-const fn add_gaussian((a, b): (i64, i64), (c, d): (i64, i64)) -> (i64, i64) {
+pub const fn add_gaussian((a, b): (i64, i64), (c, d): (i64, i64)) -> (i64, i64) {
     (a + c, b + d)
 }
-const fn mul_gaussian((a, b): (i64, i64), (c, d): (i64, i64)) -> (i64, i64) {
+pub const fn mul_gaussian((a, b): (i64, i64), (c, d): (i64, i64)) -> (i64, i64) {
     (a * c - b * d, a * d + b * c)
 }
 /*
