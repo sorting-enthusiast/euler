@@ -21,9 +21,12 @@ pub fn main() {
     let start = std::time::Instant::now();
     let mut sum = 0;
     let h = |p: i64, e| {
-        let pe2 = p.pow(e as u32 - 2);
-        (if e % p == 0 { pe2 * p * p } else { pe2 * p })
-            - if (e - 1) % p == 0 { pe2 * p } else { pe2 }
+        if (e - 1) % p == 0 {
+            0
+        } else {
+            let pe2 = p.pow(e as u32 - 2);
+            (if e % p == 0 { pe2 * p * p } else { pe2 * p }) - pe2
+        }
     };
     for (n, hn) in PowerfulExt::<_, { i64::MAX }>::new(N, h).filter(|&(_, hn)| hn != 0) {
         sum += hn * (N / n);

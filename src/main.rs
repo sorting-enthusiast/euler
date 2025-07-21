@@ -41,7 +41,7 @@ mod e955;
 pub mod longest_collatz_chain;
 mod utils;
 pub fn main() {
-    e955::main();
+    e508::main();
     // a^(phi(n)-2) = a^-1 mod n
     //dbg!(prime_modinv::<{ 1e9 as u128 + 7 }>(42));
 }
