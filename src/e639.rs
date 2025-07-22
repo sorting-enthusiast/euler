@@ -101,7 +101,7 @@ fn sum_k(x: i64, k: usize) -> i64 {
     static FAULHABER_COEFFS: [[i64; KMAX + 2]; KMAX + 1] = faulhaber_coeffs();
 
     let x = x % MOD;
-    let mut xp = x % MOD;
+    let mut xp = x;
     let mut sum = 0;
     for c in &FAULHABER_COEFFS[k][1..=k + 1] {
         sum += (c * xp) % MOD;
@@ -110,6 +110,12 @@ fn sum_k(x: i64, k: usize) -> i64 {
     sum % MOD
 }
 
+// Kinda dumb, powerful number trick with g = N^k and h(p^e) = p^k (1-p^k)
+// Precalculate faulhaber coefficients at compile time
+// At runtime, iterate over every k and just sum using powerful number trick with g and h
+// Accelerated by caching partial sums of g in a FIArray,
+// as there are few possible values for floor(N/i) - reduces time from 12 seconds to 2
+// O(sqrt(n) + k^2) space, O(k^2*sqrt(n)) time at runtime
 pub fn main() {
     let start = Instant::now();
     let ps = sift(N.isqrt() as u64 + 1);
@@ -118,7 +124,7 @@ pub fn main() {
     let mut cache = FIArrayI64::new(N);
     for k in 1..=KMAX {
         cache.arr.fill(-1);
-        let h = |p: i64, e| {
+        let h = |p, e| {
             unsafe { core::hint::assert_unchecked(e > 1) };
             let pk = powmod(p, k as _);
             (pk * (MOD + 1 - pk)) % MOD
