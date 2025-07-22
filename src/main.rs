@@ -7,8 +7,6 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use crate::utils::primecount;
-
 mod e107;
 mod e153;
 mod e156;
@@ -41,7 +39,8 @@ mod e955;
 pub mod longest_collatz_chain;
 mod utils;
 pub fn main() {
-    e508::main();
+    e639::main();
+
     // a^(phi(n)-2) = a^-1 mod n
     //dbg!(prime_modinv::<{ 1e9 as u128 + 7 }>(42));
 }

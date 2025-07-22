@@ -38,6 +38,16 @@ macro_rules! FIArray_impl_for {
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
                         .chain((1..isqrt).rev().map(move |n| x / n))
                 }
+                pub fn get_index(&self, v: $type) -> usize {
+                    if v <= 0 {
+                        0
+                    } else if v <= self.isqrt {
+                        v as usize - 1
+                    } else {
+                        let l = self.arr.len();
+                        l - (self.x / v) as usize
+                    }
+                }
             }
 
             impl Index<$type> for [<FIArray $type:camel>] {
