@@ -7,10 +7,6 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use crate::utils::multiplicative_function_summation::{
-    mertens, mertens_slow, totient_sum, totient_sum_single,
-};
-
 mod e107;
 mod e153;
 mod e156;
@@ -46,17 +42,7 @@ mod longest_collatz_chain;
 mod utils;
 
 pub fn main() {
-    const N: i64 = 1e13 as i64;
-
-    let start = std::time::Instant::now();
-    let m1 = totient_sum_single::<{ 1e9 as _ }>(N);
-    let end = start.elapsed();
-    println!("res = {m1}, took {end:?}");
-
-    let start = std::time::Instant::now();
-    let m2 = totient_sum::<{ 1e9 as _ }>(N)[N];
-    let end = start.elapsed();
-    println!("res = {m2}, took {end:?}");
+    e448::main();
 
     /* let p = sift(1e6 as _);
     dbg!(p.len());
