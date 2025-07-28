@@ -1,8 +1,20 @@
-pub struct FenwickTree(Vec<i64>);
+use itertools::Itertools;
+
+pub struct FenwickTree(pub Vec<i64>);
 
 impl FenwickTree {
     pub fn new(len: usize, init: i64) -> Self {
         let mut v = vec![init; len];
+        for i in 1..len {
+            let r = i + (i & (!i + 1));
+            if r <= len {
+                v[r - 1] += v[i - 1];
+            }
+        }
+        Self(v)
+    }
+    pub fn new_with(len: usize, init: impl FnMut(usize) -> i64) -> Self {
+        let mut v = (0..len).map(init).collect_vec();
         for i in 1..len {
             let r = i + (i & (!i + 1));
             if r <= len {

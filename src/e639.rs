@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use crate::utils::{FIArray::FIArrayI64, powerful_numbers::PowerfulExtAlt, prime_sieves::sift};
 
 const N: i64 = 1e12 as i64;
@@ -117,13 +115,13 @@ fn sum_k(x: i64, k: usize) -> i64 {
 // as there are few possible values for floor(N/i) - reduces time from 12 seconds to 2
 // O(sqrt(n) + k^2) space, O(k^2*sqrt(n)) time at runtime
 pub fn main() {
-    let start = Instant::now();
+    let start = std::time::Instant::now();
     let ps = sift(N.isqrt() as u64 + 1);
 
     let mut sum = 0;
     let mut cache = FIArrayI64::new(N);
     for k in 1..=KMAX {
-        cache.arr.fill(-1);
+        cache.arr.fill(0);
         let h = |p, e| {
             unsafe { core::hint::assert_unchecked(e > 1) };
             let pk = powmod(p, k as _);
@@ -131,7 +129,7 @@ pub fn main() {
         };
         for (n, hn) in PowerfulExtAlt::<_, MOD>::new(N, h, &ps).filter(|&(_, hn)| hn != 0) {
             let i = cache.get_index(N / n);
-            if cache.arr[i] == -1 {
+            if cache.arr[i] == 0 {
                 cache.arr[i] = sum_k(N / n, k);
             }
             sum += (hn * cache.arr[i]) % MOD;

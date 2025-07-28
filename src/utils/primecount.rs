@@ -10,7 +10,7 @@ use crate::utils::{
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
-// O(x^(3/4)) prime counting function
+// O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
 // 1e16: prime counting took 525.8536176s: 279238341033925
 // 1e15: prime counting took 102.6765764s: 29844570422669
 // 1e14: prime counting took 19.8688139s: 3204941750802
@@ -29,10 +29,10 @@ pub fn lucy(x: usize) -> FIArray {
     }
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     for p in 2..=x.isqrt() {
-        if s.arr[p - 1] == s.arr[p - 2] {
+        let sp = s.arr[p - 2];
+        if s.arr[p - 1] == sp {
             continue;
         }
-        let sp = s.arr[p - 2];
 
         for (i, &v) in keys.iter().enumerate().rev() {
             if v < p * p {
@@ -165,10 +165,10 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
     }
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
     for p in 2..=x.isqrt() {
-        if s.arr[p as usize - 1] == s.arr[p as usize - 2] {
+        let sp = s.arr[p as usize - 2];
+        if s.arr[p as usize - 1] == sp {
             continue;
         }
-        let sp = s.arr[p as usize - 2];
 
         let pdiv = DividerU64::divide_by(p);
         for (i, &v) in keys.iter().enumerate().rev() {
@@ -399,7 +399,18 @@ fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e13 as _;
+    const N: usize = 1e15 as _;
+
+    println!("lucy fenwick:");
+    let start = Instant::now();
+    let count = lucy_fenwick_trick(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = lucy_fenwick(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
 
     println!("standard-ish lucy");
     let start = Instant::now();
@@ -461,17 +472,14 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
     let sqrtx = x.isqrt();
     let len = s.arr.len();
     let y = (2e9 as usize)
-        .min((0.35 * ((x as f64) / (x as f64).ln().ln()).powf(2. / 3.)).round() as usize)
+        .min((((x as f64) / (x as f64).ln().ln()).powf(2. / 3.)).round() as usize >> 3)
         .max(sqrtx + 1);
     let mut sieve_raw = BitArray::zeroed(y + 1);
     let mut sieve = FenwickTree::new(y + 1, 1);
     sieve.add(1, -1);
     sieve.add(0, -1);
-    /* sieve_raw.set(0);
-    sieve_raw.set(1); */
 
-    let keys = FIArray::keys(x).collect_vec();
-    for (i, v) in keys.iter().enumerate() {
+    for (i, v) in FIArray::keys(x).enumerate() {
         s.arr[i] = v - 1;
     }
 
@@ -497,7 +505,7 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
             }
         }
     }
-    for (i, &v) in keys.iter().take_while(|&&v| v <= y).enumerate() {
+    for (i, v) in FIArray::keys(x).take_while(|&v| v <= y).enumerate() {
         s.arr[i] = sieve.sum(v) as usize;
     }
     s
@@ -508,7 +516,7 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
     let sqrtx = x.isqrt();
     let len = s.arr.len();
     let y = (2e9 as usize)
-        .min((0.35 * ((x as f64) / (x as f64).ln().ln()).powf(2. / 3.)).round() as usize)
+        .min((((x as f64) / (x as f64).ln().ln()).powf(2. / 3.)).round() as usize >> 4)
         .max(sqrtx + 1);
     let mut sieve_raw = BitArray::zeroed(y + 1);
     let mut sieve = FenwickTree::new(y + 1, 1);

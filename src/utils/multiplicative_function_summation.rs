@@ -1,13 +1,12 @@
-use crate::utils::{FIArray::FIArrayI64, bit_array::BitArray};
+use itertools::Itertools;
 
-pub const fn sum_n<const MOD: i64>(x: i64) -> i64 {
-    let x = x % (MOD << 1);
-    (if x & 1 == 0 {
-        (x / 2) * (x + 1)
-    } else {
-        ((x + 1) / 2) * x
-    }) % MOD
-}
+use crate::utils::{
+    FIArray::{
+        FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize, FIArrayU32, FIArrayU64, FIArrayU128,
+        FIArrayUsize,
+    },
+    bit_array::BitArray,
+};
 pub fn totient_sieve(n: usize) -> Vec<i64> {
     let mut res = vec![0; n];
     if n < 2 {
@@ -37,7 +36,7 @@ pub fn totient_sieve(n: usize) -> Vec<i64> {
     }
     res
 }
-pub fn mobius_sieve(n: usize) -> Vec<i64> {
+pub fn mobius_sieve(n: usize) -> Vec<i8> {
     let mut res = vec![0; n];
     if n < 2 {
         return res;
@@ -64,59 +63,75 @@ pub fn mobius_sieve(n: usize) -> Vec<i64> {
     }
     res
 }
-pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
-    let y = if x > 64 {
-        (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
-    } else {
-        x as usize
-    };
-    let mut small_phi = totient_sieve(y + 1);
-    for i in 2..y {
-        small_phi[i] += small_phi[i - 1];
-        small_phi[i] %= MOD;
+pub fn mobius_sieve_i16(n: usize) -> Vec<i16> {
+    let mut res = vec![0; n];
+    if n < 2 {
+        return res;
     }
-    let mut Phi = FIArrayI64::new(x);
+    let mut composite = BitArray::zeroed(n);
+    let mut primes = vec![];
+    res[1] = 1;
+    for i in 2..n {
+        if !composite.get(i) {
+            primes.push(i);
+            res[i] = -1;
+        }
+        for &p in &primes {
+            if i * p >= n {
+                break;
+            }
+            composite.set(i * p);
+            if i % p == 0 {
+                res[i * p] = 0;
+                break;
+            }
+            res[i * p] = -res[i];
+        }
+    }
+    res
+}
+pub fn divisor_sieve(n: usize) -> Vec<i64> {
+    let mut res = vec![0; n];
+    if n < 2 {
+        return res;
+    }
+    let mut composite = BitArray::zeroed(n);
+    let mut pow = vec![0; n];
+    let mut primes = vec![];
+    res[1] = 1;
+    for i in 2..n {
+        if !composite.get(i) {
+            if i << 1 < n {
+                primes.push(i);
+            }
+            res[i] = 2;
+            pow[i] = i;
+        }
+        for &p in &primes {
+            if i * p >= n {
+                break;
+            }
+            composite.set(i * p);
+            if i % p == 0 {
+                res[i * p] = res[i] + res[i / pow[i]];
+                pow[i * p] = pow[i] * p;
+                break;
+            }
+            res[i * p] = res[i] << 1;
+            pow[i * p] = p;
+        }
+    }
+    res
+}
 
-    for v in FIArrayI64::keys(x) {
-        if v as usize <= y {
-            Phi[v] = small_phi[v as usize];
-            continue;
-        }
-        let mut phi_v = sum_n::<MOD>(v);
-        let vsqrt = v.isqrt();
-        for i in 1..=vsqrt {
-            phi_v -= ((small_phi[i as usize] - small_phi[i as usize - 1]) * (v / i)) % MOD;
-            phi_v -= Phi[v / i];
-            phi_v %= MOD;
-        }
-        phi_v += Phi[vsqrt] * vsqrt;
-        phi_v %= MOD;
-        if phi_v < 0 {
-            phi_v += MOD;
-        }
-        Phi[v] = phi_v;
-    }
-    Phi
-}
-pub const fn divisor_summatory(x: i64) -> i64 {
-    let mut sum = 0;
-    let sqrt = x.isqrt();
-    let mut n = 1;
-    while n <= sqrt {
-        sum += x / n;
-        n += 1;
-    }
-    sum <<= 1;
-    sum - sqrt * sqrt
-}
-pub fn totient_sum_alt<const MOD: i64>(x: i64) -> FIArrayI64 {
-    let y = if x > 64 {
+pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
+    let y = if x > 1023 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
         x as usize
     };
     let mut small_phi = totient_sieve(y + 1);
-    for i in 2..y {
+    for i in 2..=y {
         small_phi[i] += small_phi[i - 1];
         small_phi[i] %= MOD;
     }
@@ -124,12 +139,13 @@ pub fn totient_sum_alt<const MOD: i64>(x: i64) -> FIArrayI64 {
 
     for (ind, v) in FIArrayI64::keys(x).enumerate() {
         if v as usize <= y {
-            Phi.set(ind, small_phi[v as usize]);
+            Phi.arr[ind] = small_phi[v as usize];
             continue;
         }
-        let mut phi_v = sum_n::<MOD>(v);
         let vsqrt = v.isqrt();
-        for i in 1..=vsqrt {
+
+        let mut phi_v = (sum_n_i64::<MOD>(v) + MOD - v % MOD) % MOD;
+        for i in 2..=vsqrt {
             phi_v -= ((small_phi[i as usize] - small_phi[i as usize - 1]) * (v / i)) % MOD;
             phi_v -= Phi[v / i];
             phi_v %= MOD;
@@ -139,7 +155,192 @@ pub fn totient_sum_alt<const MOD: i64>(x: i64) -> FIArrayI64 {
         if phi_v < 0 {
             phi_v += MOD;
         }
-        Phi.set(ind, phi_v);
+        Phi.arr[ind] = phi_v;
     }
     Phi
 }
+pub fn mertens(x: i64) -> FIArrayI64 {
+    let y = if x > 1023 {
+        (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 2)
+    } else {
+        x as usize
+    };
+    let mut small_m = mobius_sieve_i16(y + 1);
+    for i in 2..=y {
+        small_m[i] += small_m[i - 1];
+    }
+    let mut M = FIArrayI64::new(x);
+
+    for (i, v) in FIArrayI64::keys(x).enumerate() {
+        if v as usize <= y {
+            M.arr[i] = i64::from(small_m[v as usize]);
+            continue;
+        }
+        let vsqrt = v.isqrt();
+
+        let mut mu_v = 1;
+        mu_v -= v;
+
+        for i in 2..=vsqrt {
+            mu_v -= i64::from(small_m[i as usize] - small_m[i as usize - 1]) * (v / i);
+            mu_v -= M[v / i];
+        }
+        mu_v += vsqrt * M[vsqrt];
+        M.arr[i] = mu_v;
+    }
+    M
+}
+pub fn divisor_summatory(x: i64) -> FIArrayI64 {
+    let y = if x > 1023 {
+        (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
+    } else {
+        x as usize
+    };
+    let mut small_d = divisor_sieve(y + 1);
+    for i in 2..=y {
+        small_d[i] += small_d[i - 1];
+    }
+    let M = mertens(x);
+    let mut D = FIArrayI64::new(x);
+
+    for (i, v) in FIArrayI64::keys(x).enumerate() {
+        if v as usize <= y {
+            D.arr[i] = small_d[v as usize];
+            continue;
+        }
+        let vsqrt = v.isqrt();
+        let mut d_v = v - M.arr[i] + M[vsqrt] * D[vsqrt];
+        for j in 2..=vsqrt {
+            d_v -= (D.arr[j as usize - 1] - D.arr[j as usize - 2]) * M[v / j];
+            d_v -= (M.arr[j as usize - 1] - M.arr[j as usize - 2]) * D[v / j];
+        }
+        D.arr[i] = d_v;
+    }
+    D
+}
+
+pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
+    let M = mertens(x);
+    let mut sum = M[x] + sum_n_i64::<MOD>(x);
+    sum %= MOD;
+    let isqrt = x.isqrt();
+    for i in 2..=isqrt {
+        sum += i * M[x / i];
+        sum += (M.arr[i as usize - 1] - M.arr[i as usize - 2]) * sum_n_i64::<MOD>(x / i);
+        sum %= MOD;
+    }
+    sum -= sum_n_i64::<MOD>(isqrt) * M[isqrt];
+    sum %= MOD;
+    if sum < 0 {
+        sum += MOD;
+    }
+    sum
+}
+pub fn mertens_slow(x: i64) -> FIArrayI64 {
+    let y = if x > 1023 {
+        x.isqrt() as usize
+    } else {
+        x as usize
+    };
+    let mobius = mobius_sieve(y + 1);
+    let mut M = FIArrayI64::new(x);
+
+    M.arr[0] = 1;
+    for (i, v) in FIArrayI64::keys(x).enumerate().skip(1) {
+        if v as usize <= y {
+            M.arr[i] = i64::from(mobius[i + 1]) + M.arr[i - 1];
+            continue;
+        }
+        let vsqrt = v.isqrt();
+
+        let mut mu_v = 1;
+        mu_v -= v;
+
+        for i in 2..=vsqrt {
+            mu_v -= i64::from(mobius[i as usize]) * (v / i);
+            mu_v -= M[v / i];
+        }
+        mu_v += vsqrt * M[vsqrt];
+        M.arr[i] = mu_v;
+    }
+    M
+}
+
+use paste::paste;
+macro_rules! min25_sieve_impl_for {
+    ($($type:ty),+) => { $(
+        paste!{
+            pub const fn [<divisor_summatory_ $type>](x: $type) -> $type {
+                let mut sum = 0;
+                let sqrt = x.isqrt();
+                let mut n = 1;
+                while n <= sqrt {
+                    sum += x / n;
+                    n += 1;
+                }
+                sum <<= 1;
+                sum - sqrt * sqrt
+            }
+            pub const fn [<sum_n_ $type>]<const MOD: $type>(x: $type) -> $type {
+                let x = x % (MOD << 1);
+                (if x & 1 == 0 {
+                    (x / 2) * (x + 1)
+                } else {
+                    ((x + 1) / 2) * x
+                }) % MOD
+            }
+            pub fn [<min25_sieve_ $type>]<const MOD: $type>(
+                x: $type,
+                mut g: impl FnMut($type) -> $type,
+                mut G: impl FnMut($type) -> $type,
+                mut f: impl FnMut($type, $type) -> $type,
+            ) -> [<FIArray $type:camel>] {
+                let primes = super::prime_sieves::sift(x.isqrt() as u64 + 1);
+                let mut s = [<FIArray $type:camel>]::new(x);
+                let keys = [<FIArray $type:camel>]::keys(x).collect_vec();
+
+                unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
+                for (i, &v) in keys.iter().enumerate() {
+                    s.arr[i] = G(v);
+                }
+                for &p in &primes {
+                    let sp = s.arr[p as usize - 2];
+                    let p = p as $type;
+                    for (i, &v) in keys.iter().enumerate().rev() {
+                        if v < p * p {
+                            break;
+                        }
+                        s.arr[i] -= g(p) * (s[v / p] - sp);
+                        s.arr[i] %= MOD;
+                        if s.arr[i] < 0 {
+                            s.arr[i] += MOD;
+                        }
+                    }
+                }
+
+                for &p in primes.iter().rev() {
+                    let sp = s.arr[p as usize - 1];
+                    let p = p as $type;
+                    for (i, &v) in keys.iter().enumerate().rev() {
+                        if v < p * p {
+                            break;
+                        }
+                        let mut e = 1;
+                        let mut u = v / p;
+                        while u >= p {
+                            s.arr[i] += f(p, e) * (s[u] - sp) + f(p, e + 1);
+                            s.arr[i] %= MOD;
+                            if s.arr[i] < 0 {
+                                s.arr[i] += MOD;
+                            }
+                            e += 1;
+                            u /= p;
+                        }
+                    }
+                }
+                s
+            }
+        }
+    )+ };
+}
+min25_sieve_impl_for!(u32, i32, u64, i64, usize, isize, u128, i128);

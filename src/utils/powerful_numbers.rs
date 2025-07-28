@@ -88,7 +88,7 @@ where
         }
     }
 }
-impl<'a, H, const M: i64> Iterator for PowerfulExtAlt<'a, H, M>
+impl<H, const M: i64> Iterator for PowerfulExtAlt<'_, H, M>
 where
     H: Fn(i64, i64) -> i64,
 {

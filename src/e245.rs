@@ -1,4 +1,4 @@
-use crate::utils::{bit_array::BitArray, multiplicative_function_summation::totient_sieve};
+use crate::utils::bit_array::BitArray;
 
 pub fn main() {
     const LIM: usize = 2e10 as usize;

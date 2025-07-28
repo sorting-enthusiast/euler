@@ -1,7 +1,4 @@
-use crate::utils::{
-    FIArray::FIArrayI64,
-    multiplicative_function_summation::{totient_sum, totient_sum_alt},
-};
+use crate::utils::{FIArray::FIArrayI64, multiplicative_function_summation::totient_sum};
 use std::{collections::HashMap, time::Instant};
 
 const MOD: i64 = 1e9 as i64;
@@ -149,7 +146,7 @@ fn s_prime_rec(n: i8, m: i64, totient_sums: &FIArrayI64) -> i64 {
 
 pub fn main() {
     let start = Instant::now();
-    let sums = totient_sum_alt::<MOD>(M);
+    let sums = totient_sum::<MOD>(M);
     let end = start.elapsed();
     println!("all totient summations precomputed in {end:?}");
     // FIArrayI64::keys(M) = all possible values of M div n, hence all possible totient queries are already in the cache
