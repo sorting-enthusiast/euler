@@ -7,6 +7,8 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
+use crate::utils::primecount;
+
 mod e107;
 mod e153;
 mod e156;
@@ -34,6 +36,7 @@ mod e521;
 mod e530;
 mod e625;
 mod e639;
+mod e668;
 mod e708;
 mod e745;
 mod e810;
@@ -42,7 +45,7 @@ mod longest_collatz_chain;
 mod utils;
 
 pub fn main() {
-    e448::main();
+    e668::main();
 
     /* let p = sift(1e6 as _);
     dbg!(p.len());

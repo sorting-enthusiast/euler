@@ -25,10 +25,12 @@ pub fn lucy(x: usize) -> FIArray {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+    s.arr[2] = 2; // deal with 3 separately
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in 2..=x.isqrt() {
+    for p in 3..=x.isqrt() {
         let sp = s.arr[p - 2];
         if s.arr[p - 1] == sp {
             continue;
@@ -50,9 +52,12 @@ pub fn lucy_alt(x: usize) -> FIArray {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
-    for p in primes {
+    s.arr[0] = 0;
+
+    s.arr[2] = 2;
+    for &p in &primes[1..] {
         let p = p as usize;
         let sp = s.arr[p - 2];
         for (i, &v) in keys.iter().enumerate().rev() {
@@ -70,12 +75,15 @@ pub fn lucy_wheel(x: usize) -> FIArray {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+
+    s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     let lim = x.isqrt();
     assert!(lim >= 5);
-    for p in [2, 3, 5] {
+    for p in [3, 5] {
         let sp = s.arr[p - 2];
 
         for (i, &v) in keys.iter().enumerate().rev() {
@@ -161,10 +169,12 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+    s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    for p in 2..=x.isqrt() {
+    for p in 3..=x.isqrt() {
         let sp = s.arr[p as usize - 2];
         if s.arr[p as usize - 1] == sp {
             continue;
@@ -188,10 +198,12 @@ pub fn lucy_fastdivide_alt(x: u64) -> FIArrayU64 {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+    s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    for p in primes {
+    for &p in &primes[1..] {
         let sp = s.arr[p as usize - 2];
 
         let pdiv = DividerU64::divide_by(p);
@@ -210,12 +222,14 @@ pub fn lucy_fastdivide_wheel(x: u64) -> FIArrayU64 {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+    s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
     let lim = x.isqrt();
     assert!(lim >= 5);
-    for p in [2, 3, 5] {
+    for p in [3, 5] {
         let sp = s.arr[p as usize - 2];
 
         let pdiv = DividerU64::divide_by(p);
@@ -256,12 +270,14 @@ pub fn lucy_fastdivide_wheel210(x: u64) -> FIArrayU64 {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+    s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
     let lim = x.isqrt();
     assert!(lim >= 7);
-    for p in [2, 3, 5, 7] {
+    for p in [3, 5, 7] {
         let sp = s.arr[p as usize - 2];
 
         let pdiv = DividerU64::divide_by(p);
@@ -301,10 +317,13 @@ pub fn lucy_strengthreduce(x: usize) -> FIArray {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[2] = 2;
+    s.arr[0] = 0;
+
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in 2..=x.isqrt() {
+    for p in 3..=x.isqrt() {
         if s.arr[p - 1] == s.arr[p - 2] {
             continue;
         }
@@ -327,10 +346,12 @@ pub fn lucy_strengthreduce_alt(x: usize) -> FIArray {
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
+        s.arr[i] = (v + 1) >> 1;
     }
+    s.arr[0] = 0;
+    s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in primes {
+    for &p in &primes[1..] {
         let p = p as usize;
         let sp = s.arr[p - 2];
 
@@ -379,7 +400,7 @@ pub fn lucy_sum<const MOD: u128>(x: u128) -> FIArrayU128 {
 }
 
 // easier to understand, but completely inferior due to many more integer divisions: never use
-fn lucy_dumber(x: usize) -> FIArray {
+pub fn lucy_dumber(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     for v in FIArray::keys(x) {
         s[v] = v - 1;
@@ -399,7 +420,7 @@ fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e15 as _;
+    const N: usize = 1e14 as _;
 
     println!("lucy fenwick:");
     let start = Instant::now();

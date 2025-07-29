@@ -9,3 +9,4 @@ pub mod powerful_numbers;
 pub mod prime_sieves;
 pub mod primecount;
 pub mod sieve_of_pritchard;
+pub mod smooth;
