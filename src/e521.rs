@@ -177,24 +177,22 @@ fn lucy_based(x: usize) -> usize {
     let mut sums = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
     for (i, &v) in keys.iter().enumerate() {
-        s.set(i, v - 1);
-        sums.set(i, (sum_n::<MOD>(v) - 1 + MOD) % MOD);
+        s.arr[i] = v - 1;
+        sums.arr[i] = (sum_n::<MOD>(v) - 1 + MOD) % MOD;
     }
     for p in 2..=x.isqrt() {
-        if s.at(p - 1) == s.at(p - 2) {
+        if s.arr[p - 1] == s.arr[p - 2] {
             continue;
         }
-        let sp = s.at(p - 2);
-        let sp2 = sums.at(p - 2);
+        let sp = s.arr[p - 2];
+        let sp2 = sums.arr[p - 2];
         for (i, &v) in keys.iter().enumerate().rev() {
             if v < p * p {
                 break;
             }
-            s.set(i, s.at(i) - (s[v / p] - sp));
-            sums.set(
-                i,
-                (sums.at(i) + MOD - (p * (sums[v / p] + MOD - sp2)) % MOD) % MOD,
-            );
+            s.arr[i] -= s[v / p] - sp;
+            sums.arr[i] += MOD - (p * (sums[v / p] + MOD - sp2)) % MOD;
+            sums.arr[i] %= MOD;
             if v == x {
                 sum += (p * (s[v / p] - sp)) % MOD; // p = lpf
                 if sum >= MOD {

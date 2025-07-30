@@ -191,32 +191,8 @@ pub fn mertens(x: i64) -> FIArrayI64 {
     M
 }
 pub fn divisor_summatory(x: i64) -> FIArrayI64 {
-    let y = if x > 1023 {
-        (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
-    } else {
-        x as usize
-    };
-    let mut small_d = divisor_sieve(y + 1);
-    for i in 2..=y {
-        small_d[i] += small_d[i - 1];
-    }
-    let M = mertens(x);
-    let mut D = FIArrayI64::new(x);
-
-    for (i, v) in FIArrayI64::keys(x).enumerate() {
-        if v as usize <= y {
-            D.arr[i] = small_d[v as usize];
-            continue;
-        }
-        let vsqrt = v.isqrt();
-        let mut d_v = v - M.arr[i] + M[vsqrt] * D[vsqrt];
-        for j in 2..=vsqrt {
-            d_v -= (D.arr[j as usize - 1] - D.arr[j as usize - 2]) * M[v / j];
-            d_v -= (M.arr[j as usize - 1] - M.arr[j as usize - 2]) * D[v / j];
-        }
-        D.arr[i] = d_v;
-    }
-    D
+    let u = FIArrayI64::unit(x);
+    dirichlet_mul(&u, &u, x as _)
 }
 
 pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
@@ -344,3 +320,144 @@ macro_rules! min25_sieve_impl_for {
     )+ };
 }
 min25_sieve_impl_for!(u32, i32, u64, i64, usize, isize, u128, i128);
+
+// note: does not require the functions f and g to be multiplicative
+pub fn dirichlet_mul(F: &FIArrayI64, G: &FIArrayI64, n: usize) -> FIArrayI64 {
+    let mut H = FIArrayI64::new(n as i64);
+    let len = H.arr.len();
+
+    let rt_n = n.isqrt();
+
+    let to_ord = |x| {
+        if x <= rt_n { x } else { len + 1 - (n / x) }
+    };
+    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+        let f_x1 = F.arr[x1 - 1];
+        let g_y1 = G.arr[y1 - 1];
+        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+        let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+        H.arr[z0 - 1] += t;
+        if let Some(v) = H.arr.get_mut(z1) {
+            *v -= t;
+        }
+    };
+    propogate((1, 1), (1, 1), (1, len));
+    for k in 2..=len {
+        let z = len + 1 - k;
+        for x in 2.. {
+            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+            let y_hi_ord = to_ord(n / (x * z));
+            if y_hi_ord < y_lo_ord {
+                break;
+            }
+            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+        }
+        propogate((1, 1), (k, k), (k, len));
+        propogate((k, k), (1, 1), (k, len));
+        let x = k;
+        for y in 2..k {
+            let z_lo_ord = to_ord(x * y);
+            let z_hi_ord = to_ord(n / x);
+            if z_hi_ord < z_lo_ord {
+                break;
+            }
+            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+        }
+
+        if x <= rt_n {
+            propogate((x, x), (x, x), (to_ord(x * x), len));
+        }
+    }
+
+    for i in 1..len {
+        H.arr[i] += H.arr[i - 1];
+    }
+    H
+}
+
+pub fn dirichlet_mul_with_buffer(F: &FIArrayI64, G: &FIArrayI64, n: usize, H: &mut FIArrayI64) {
+    H.arr.fill(0);
+    let len = H.arr.len();
+
+    let rt_n = n.isqrt();
+
+    let to_ord = |x| {
+        if x <= rt_n { x } else { len + 1 - (n / x) }
+    };
+    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+        let f_x1 = F.arr[x1 - 1];
+        let g_y1 = G.arr[y1 - 1];
+        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+        let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+        H.arr[z0 - 1] += t;
+        if let Some(v) = H.arr.get_mut(z1) {
+            *v -= t;
+        }
+    };
+    propogate((1, 1), (1, 1), (1, len));
+    for k in 2..=len {
+        let z = len + 1 - k;
+        for x in 2.. {
+            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+            let y_hi_ord = to_ord(n / (x * z));
+            if y_hi_ord < y_lo_ord {
+                break;
+            }
+            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+        }
+        propogate((1, 1), (k, k), (k, len));
+        propogate((k, k), (1, 1), (k, len));
+        let x = k;
+        for y in 2..k {
+            let z_lo_ord = to_ord(x * y);
+            let z_hi_ord = to_ord(n / x);
+            if z_hi_ord < z_lo_ord {
+                break;
+            }
+            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+        }
+
+        if x <= rt_n {
+            propogate((x, x), (x, x), (to_ord(x * x), len));
+        }
+    }
+
+    for i in 1..len {
+        H.arr[i] += H.arr[i - 1];
+    }
+}
+
+// O(log(k)x^(2/3)) time, O(x^(1/2)) space, specifically ~6x^(1/2) i64's
+pub fn general_divisor_summatory(x: i64, mut k: u8) -> FIArrayI64 {
+    let mut r = FIArrayI64::eps(x);
+    if k == 0 {
+        return r;
+    }
+    let mut u = FIArrayI64::unit(x);
+    if k == 1 {
+        return u;
+    }
+    let mut buffer = FIArrayI64::new(x);
+    while k > 1 {
+        if k & 1 == 1 {
+            dirichlet_mul_with_buffer(&r, &u, x as _, &mut buffer);
+            core::mem::swap(&mut r, &mut buffer);
+            //r = r * u;
+        }
+        //u = u * u;
+        dirichlet_mul_with_buffer(&u, &u, x as _, &mut buffer);
+        core::mem::swap(&mut u, &mut buffer);
+        k >>= 1;
+    }
+    //(r * u)
+    dirichlet_mul_with_buffer(&r, &u, x as _, &mut buffer);
+    buffer
+}

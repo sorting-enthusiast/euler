@@ -7,7 +7,12 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use crate::utils::primecount;
+use crate::utils::{
+    FIArray::FIArrayI64,
+    multiplicative_function_summation::{
+        dirichlet_mul, general_divisor_summatory, mertens, sum_n_i64, totient_sum,
+    },
+};
 
 mod e107;
 mod e153;
@@ -45,22 +50,12 @@ mod longest_collatz_chain;
 mod utils;
 
 pub fn main() {
-    e668::main();
+    //e668::main();
+    const N: i64 = 1e4 as _;
+    const MOD: i64 = 1e9 as i64 + 7;
 
-    /* let p = sift(1e6 as _);
-    dbg!(p.len());
-    dbg!(
-        p.len()
-            - p.iter()
-                .filter(|&&p| powmod(5, (p - 1) >> 1, p) == p - 1)
-                .count()
-    );
-    dbg!(
-        p.iter()
-            .filter(|&&p| p != 2 && powmod(5, (p - 1) >> 1, p) == 1)
-            .take(10)
-            .collect_vec()
-    ); */
-    // a^(phi(n)-2) = a^-1 mod n
-    //dbg!(prime_modinv::<{ 1e9 as u128 + 7 }>(42));
+    let start = std::time::Instant::now();
+    let divi = general_divisor_summatory(N, 63);
+    let end = start.elapsed();
+    println!("res = {}, took {end:?}", divi[N]);
 }

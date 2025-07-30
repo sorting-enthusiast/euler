@@ -1,5 +1,7 @@
+use itertools::Itertools;
 use paste::paste;
 use std::ops::{Index, IndexMut};
+
 macro_rules! FIArray_impl_for {
     ($($type:ty),+) => { $(
         paste!{
@@ -20,17 +22,19 @@ macro_rules! FIArray_impl_for {
                         arr: vec![0; l as usize],
                     }
                 }
-                pub fn at(&self, i: usize) -> $type {
-                    //assert!(i < self.arr.len());
-                    unsafe { core::hint::assert_unchecked(i < self.arr.len()) };
-
-                    self.arr[i]
+                pub fn unit(x: $type) -> Self {
+                    let isqrt = x.isqrt();
+                    let arr = Self::keys(x).collect_vec();
+                    Self { x, isqrt, arr }
                 }
-                pub fn set(&mut self, i: usize, v: $type) {
-                    //assert!(i < self.arr.len());
-                    unsafe { core::hint::assert_unchecked(i < self.arr.len()) };
-
-                    self.arr[i] = v;
+                pub fn eps(x: $type) -> Self {
+                    let isqrt = x.isqrt();
+                    let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
+                    Self {
+                        x,
+                        isqrt,
+                        arr: vec![1; l as usize],
+                    }
                 }
                 pub fn keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
                     let isqrt = x.isqrt();
