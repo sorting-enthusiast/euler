@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::utils::powerful_numbers::PowerfulExt;
+use crate::utils::powerful_numbers::PowerfulExtSkipZero;
 const N: i64 = 1e14 as i64;
 const MOD: i64 = 1e9 as i64 + 7;
 const fn powmod(mut x: i64, mut exp: i64) -> i64 {
@@ -33,7 +33,7 @@ pub fn main() {
         }
     };
     let mut sum = 0;
-    for (n, hn) in PowerfulExt::<_, MOD>::new(N, h).filter(|&(_, hn)| hn != 0) {
+    for (n, hn) in PowerfulExtSkipZero::<_, MOD>::new(N, h) {
         sum += hn * ((N / n) % MOD);
         sum %= MOD;
     }

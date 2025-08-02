@@ -1,6 +1,6 @@
 use crate::utils::{
     FIArray::FIArrayI64, multiplicative_function_summation::divisor_summatory_i64,
-    powerful_numbers::PowerfulExt,
+    powerful_numbers::PowerfulExtSkipZero,
 };
 const N: i64 = 1e15 as i64;
 
@@ -20,7 +20,7 @@ pub fn main() {
     };
     let mut sum = 0;
     let mut cache = FIArrayI64::new(N);
-    for (n, hn) in PowerfulExt::<_, { i64::MAX }>::new(N, h).filter(|&(_, hn)| hn != 0) {
+    for (n, hn) in PowerfulExtSkipZero::<_, { i64::MAX }>::new(N, h) {
         let index = cache.get_index(N / n);
         if cache.arr[index] == 0 {
             cache.arr[index] = divisor_summatory_i64(N / n);

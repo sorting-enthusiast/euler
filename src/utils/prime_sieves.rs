@@ -724,7 +724,7 @@ pub fn sieve_it() -> impl Iterator<Item = usize> {
 //
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 436273008;
+    const N: usize = 101;
     //dbg!(hprime_sieve(500));
     /* {
          use rand::distr::uniform::{UniformSampler, UniformUsize};

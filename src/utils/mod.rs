@@ -3,6 +3,7 @@ pub mod binary_search;
 pub mod bit_array;
 mod eratosthenes_variants;
 pub mod fenwick;
+pub mod gaussian_ints;
 pub mod math;
 pub mod multiplicative_function_summation;
 pub mod powerful_numbers;

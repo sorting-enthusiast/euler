@@ -122,3 +122,56 @@ where
         None
     }
 }
+
+pub struct PowerfulExtSkipZero<H, const M: i64>
+where
+    H: Fn(i64, i64) -> i64,
+{
+    x: i64,
+    h: H,
+    ps: Vec<u64>,
+    stack: Vec<(i64, i64, usize)>,
+}
+impl<H, const M: i64> PowerfulExtSkipZero<H, M>
+where
+    H: Fn(i64, i64) -> i64,
+{
+    pub fn new(x: i64, h: H) -> Self {
+        let stack = vec![(1, 1, 0)];
+        let ps = sift(x.isqrt() as u64 + 1);
+        Self { x, h, ps, stack }
+    }
+}
+impl<H, const M: i64> Iterator for PowerfulExtSkipZero<H, M>
+where
+    H: Fn(i64, i64) -> i64,
+{
+    type Item = (i64, i64);
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((n, hn, i)) = self.stack.pop() {
+            if let Some(&p) = self.ps.get(i) {
+                let xdivn = (self.x / n) as u64;
+                if p * p > xdivn {
+                    return Some((n, hn));
+                }
+                self.stack.push((n, hn, i + 1));
+                let mut pe = p * p;
+                let mut e = 2;
+                while pe <= xdivn {
+                    let hpe = (self.h)(p as i64, e);
+                    if hpe != 0 {
+                        self.stack.push((n * pe as i64, (hn * hpe) % M, i + 1));
+                    }
+                    if pe > xdivn / p {
+                        break;
+                    }
+                    pe *= p;
+                    e += 1;
+                }
+            } else {
+                return Some((n, hn));
+            }
+        }
+        None
+    }
+}

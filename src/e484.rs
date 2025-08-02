@@ -1,4 +1,4 @@
-use crate::utils::powerful_numbers::PowerfulExt;
+use crate::utils::powerful_numbers::PowerfulExtSkipZero;
 
 // first 100%!!!
 // (p^e)' = e*p^(e-1): easy enough to prove, also shown on wiki page
@@ -28,7 +28,7 @@ pub fn main() {
             (if e % p == 0 { pe2 * p * p } else { pe2 * p }) - pe2
         }
     };
-    for (n, hn) in PowerfulExt::<_, { i64::MAX }>::new(N, h).filter(|&(_, hn)| hn != 0) {
+    for (n, hn) in PowerfulExtSkipZero::<_, { i64::MAX }>::new(N, h) {
         sum += hn * (N / n);
     }
     sum -= 1; // sum requested starts at 2, not 1

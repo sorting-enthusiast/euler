@@ -1,7 +1,9 @@
+use super::multiplicative_function_summation::{
+    sum_n_i32, sum_n_i64, sum_n_i128, sum_n_isize, sum_n_u32, sum_n_u64, sum_n_u128, sum_n_usize,
+};
 use itertools::Itertools;
 use paste::paste;
 use std::ops::{Index, IndexMut};
-
 macro_rules! FIArray_impl_for {
     ($($type:ty),+) => { $(
         paste!{
@@ -25,6 +27,11 @@ macro_rules! FIArray_impl_for {
                 pub fn unit(x: $type) -> Self {
                     let isqrt = x.isqrt();
                     let arr = Self::keys(x).collect_vec();
+                    Self { x, isqrt, arr }
+                }
+                pub fn id<const MOD: $type>(x: $type) -> Self {
+                    let isqrt = x.isqrt();
+                    let arr = Self::keys(x).map(|v| [<sum_n_ $type>]::<MOD>(v)).collect_vec();
                     Self { x, isqrt, arr }
                 }
                 pub fn eps(x: $type) -> Self {

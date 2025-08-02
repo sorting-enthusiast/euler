@@ -29,15 +29,17 @@ pub fn lucy(x: usize) -> FIArray {
     }
     s.arr[0] = 0;
     s.arr[2] = 2; // deal with 3 separately
+    let mut pp = 4;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     for p in 3..=x.isqrt() {
+        pp += (p << 1) - 1;
         let sp = s.arr[p - 2];
         if s.arr[p - 1] == sp {
             continue;
         }
 
         for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
+            if v < pp {
                 break;
             }
             s.arr[i] -= s[v / p] - sp;
@@ -46,7 +48,7 @@ pub fn lucy(x: usize) -> FIArray {
     s
 }
 pub fn lucy_alt(x: usize) -> FIArray {
-    let primes = sift(x.isqrt() as u64 + 1);
+    let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
 
@@ -173,8 +175,10 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
     }
     s.arr[0] = 0;
     s.arr[2] = 2;
+    let mut pp = 4;
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
     for p in 3..=x.isqrt() {
+        pp += (p << 1) - 1;
         let sp = s.arr[p as usize - 2];
         if s.arr[p as usize - 1] == sp {
             continue;
@@ -182,7 +186,7 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
 
         let pdiv = DividerU64::divide_by(p);
         for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
+            if v < pp {
                 break;
             }
             s.arr[i] -= s[v / pdiv] - sp;
@@ -191,7 +195,7 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
     s
 }
 pub fn lucy_fastdivide_alt(x: u64) -> FIArrayU64 {
-    let primes = sift(x.isqrt() + 1);
+    let primes = sift(x.isqrt());
 
     let mut s = FIArrayU64::new(x);
     let keys = FIArrayU64::keys(x).collect_vec();
@@ -340,7 +344,7 @@ pub fn lucy_strengthreduce(x: usize) -> FIArray {
     s
 }
 pub fn lucy_strengthreduce_alt(x: usize) -> FIArray {
-    let primes = sift(x.isqrt() as u64 + 1);
+    let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
 
@@ -420,7 +424,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e14 as _;
+    const N: usize = 1e12 as _;
 
     println!("lucy fenwick:");
     let start = Instant::now();
