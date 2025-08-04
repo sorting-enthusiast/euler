@@ -7,6 +7,7 @@ use crate::utils::{
     FIArray::{FIArray, FIArrayU64, FIArrayU128},
     bit_array::BitArray,
     fenwick::FenwickTree,
+    multiplicative_function_summation::{dirichlet_mul_usize, dirichlet_mul_with_buffer_usize},
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
@@ -22,17 +23,16 @@ use crate::utils::{
 pub fn lucy(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
-
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
         s.arr[i] = (v + 1) >> 1;
     }
     s.arr[0] = 0;
     s.arr[2] = 2; // deal with 3 separately
-    let mut pp = 4;
+    let mut pp = 1;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in 3..=x.isqrt() {
-        pp += (p << 1) - 1;
+    for p in (3..=x.isqrt()).step_by(2) {
+        pp += (p << 2) - 4;
         let sp = s.arr[p - 2];
         if s.arr[p - 1] == sp {
             continue;
@@ -80,7 +80,6 @@ pub fn lucy_wheel(x: usize) -> FIArray {
         s.arr[i] = (v + 1) >> 1;
     }
     s.arr[0] = 0;
-
     s.arr[2] = 2;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     let lim = x.isqrt();
@@ -175,10 +174,10 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
     }
     s.arr[0] = 0;
     s.arr[2] = 2;
-    let mut pp = 4;
+    let mut pp = 1;
     unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    for p in 3..=x.isqrt() {
-        pp += (p << 1) - 1;
+    for p in (3..=x.isqrt()).step_by(2) {
+        pp += (p << 2) - 4;
         let sp = s.arr[p as usize - 2];
         if s.arr[p as usize - 1] == sp {
             continue;
@@ -326,16 +325,18 @@ pub fn lucy_strengthreduce(x: usize) -> FIArray {
     s.arr[2] = 2;
     s.arr[0] = 0;
 
+    let mut pp = 1;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in 3..=x.isqrt() {
-        if s.arr[p - 1] == s.arr[p - 2] {
+    for p in (3..=x.isqrt()).step_by(2) {
+        pp += (p << 2) - 4;
+        let sp = s.arr[p - 2];
+        if s.arr[p - 1] == sp {
             continue;
         }
-        let sp = s.arr[p - 2];
 
         let pdiv = strength_reduce::StrengthReducedUsize::new(p);
         for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
+            if v < pp {
                 break;
             }
             s.arr[i] -= s[v / pdiv] - sp;
@@ -424,7 +425,12 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e12 as _;
+    const N: usize = 1e15 as usize;
+
+    let start = Instant::now();
+    let count = lucy_trick(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
 
     println!("lucy fenwick:");
     let start = Instant::now();
@@ -455,6 +461,12 @@ pub fn main() {
 
     let start = Instant::now();
     let count = lucy_alt(N)[N];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    println!("prime counting using the logarithm of the zeta function:");
+    let start = Instant::now();
+    let count = log_zeta(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -553,35 +565,194 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
     }
 
     for p in 2..=sqrtx {
-        if !sieve_raw.get(p) {
-            let sp = sieve.sum(p - 1) as usize;
-            let lim = (x / y).min(x / (p * p));
-            let xp = x / p;
-            s.arr[len - 1] -= if xp <= y {
-                sieve.sum(xp) as usize
-            } else {
-                s[xp]
-            } - sp;
-            for i in p..=lim {
-                if sieve_raw.get(i) {
-                    continue;
-                }
-                let xip = x / (i * p);
-                s.arr[len - i] -= if xip <= y {
-                    sieve.sum(xip) as usize
-                } else {
-                    s[xip]
-                } - sp;
+        if sieve_raw.get(p) {
+            continue;
+        }
+        let sp = sieve.sum(p - 1) as usize;
+        let lim = (x / y).min(x / (p * p));
+        let xp = x / p;
+        s.arr[len - 1] -= if xp <= y {
+            sieve.sum(xp) as usize
+        } else {
+            s[xp]
+        } - sp;
+        for i in p..=lim {
+            if sieve_raw.get(i) {
+                continue;
             }
-            let mut j = p * p;
-            while j <= y {
-                if !sieve_raw.get(j) {
-                    sieve_raw.set(j);
-                    sieve.add(j, -1);
-                }
-                j += p;
+            let xip = xp / i;
+            s.arr[len - i] -= if xip <= y {
+                sieve.sum(xip) as usize
+            } else {
+                s[xip]
+            } - sp;
+        }
+        for j in (p * p..=y).step_by(p) {
+            if !sieve_raw.get(j) {
+                sieve_raw.set(j);
+                sieve.add(j, -1);
             }
         }
     }
     s[x]
+}
+
+pub fn lucy_trick(x: usize) -> usize {
+    let mut s = FIArray::new(x);
+    let sqrtx = x.isqrt();
+    let len = s.arr.len();
+    let y = sqrtx;
+    let mut sieve_raw = BitArray::zeroed(y + 1);
+    let mut sieve = FenwickTree::new(y + 1, 1);
+    sieve.add(1, -1);
+    sieve.add(0, -1);
+
+    for (i, v) in FIArray::keys(x).enumerate() {
+        s.arr[i] = v - 1;
+    }
+
+    for p in 2..=sqrtx {
+        if sieve_raw.get(p) {
+            continue;
+        }
+        let sp = sieve.sum(p - 1) as usize;
+        let lim = (x / y).min(x / (p * p));
+        let xp = x / p;
+        s.arr[len - 1] -= if xp <= y {
+            sieve.sum(xp) as usize
+        } else {
+            s[xp]
+        } - sp;
+        for i in p..=lim {
+            if sieve_raw.get(i) {
+                continue;
+            }
+            let xip = xp / i;
+            s.arr[len - i] -= if xip <= y {
+                sieve.sum(xip) as usize
+            } else {
+                s[xip]
+            } - sp;
+        }
+        for j in (p * p..=y).step_by(p) {
+            if !sieve_raw.get(j) {
+                sieve_raw.set(j);
+                sieve.add(j, -1);
+            }
+        }
+    }
+    s[x]
+}
+
+// based on https://codeforces.com/blog/entry/91632?#comment-802482
+// O(n^(2/3)) time, O(n^(1/2)) space. Pretty slow, despite noticeably superior time complexity.
+// Likely due to repeated calls to dirichlet_mul, which is not particularly fast.
+// Moreover, this function needs 4 times more memory than the O(n^0.75) lucy_hedgehog based functions.
+// uses the fact that the coefficients of the logarithm of the DGF of u(n) = 1 (i.e. the zeta function)
+// are exactly 1/k for p^k for some prime p, and 0 otherwise.
+// Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
+// over the primes, though tbh you should probably just use lucy's algorithm for that.
+// TODO: try to speed up the convolution steps, as each of the arrays has a 0 prefix of length ~ n^(1/6)
+// bug: when x is 1 more than a prime the function fails for some reason.
+// For now I just made x be odd and greater than 3, so the bug never surfaces
+pub fn log_zeta(n: usize) -> FIArray {
+    const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
+    let rt = n.isqrt();
+    let mut zeta = FIArray::unit(n as _);
+    let len = zeta.arr.len();
+
+    let mut buffer = zeta.clone();
+
+    let mut ret = FIArray::new(n);
+    let x = {
+        let mut x = 2;
+        let mut x_cubed = 8;
+        while x_cubed <= rt {
+            x += 1;
+            x_cubed += 3 * x * (x - 1) + 1;
+        }
+        x
+    } | 1;
+    // remove contributions of small primes
+    for p in 2..x {
+        let val = zeta.arr[p - 1] - 1;
+        if val == 0 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        for (i, nk) in buffer.arr.iter().enumerate().rev() {
+            if i < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[nk / p];
+        }
+        zeta.arr[p - 1] = 1;
+    }
+    zeta.arr[..x - 1].fill(0);
+
+    for i in x..=len {
+        zeta.arr[i - 1] -= 1;
+    }
+
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x^5 / 5 - x^4 / 4 + x^3 / 3 - x^2 / 2 + x
+    // x is zeta_t - 1.
+    // in order to not have to deal with rational numbers, we compute 60*log(zeta_t)
+    // and adjust later
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+    let mut pow_zeta = dirichlet_mul_usize(&zeta, &zeta, n);
+
+    for i in x..=len {
+        ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
+    }
+
+    dirichlet_mul_with_buffer_usize(&pow_zeta, &zeta, n, &mut buffer);
+    core::mem::swap(&mut pow_zeta, &mut buffer);
+
+    for i in x..=len {
+        ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[3];
+    }
+
+    dirichlet_mul_with_buffer_usize(&pow_zeta, &zeta, n, &mut buffer);
+    core::mem::swap(&mut pow_zeta, &mut buffer);
+
+    for i in x..=len {
+        ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[4];
+    }
+
+    dirichlet_mul_with_buffer_usize(&pow_zeta, &zeta, n, &mut buffer);
+    core::mem::swap(&mut pow_zeta, &mut buffer);
+
+    for i in x..=len {
+        ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[5];
+    }
+
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..=len).rev() {
+        ret.arr[i - 1] -= ret.arr[i - 2];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / 60;
+        let mut e = 1;
+        let mut pv = v;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+            pv *= v;
+
+            ret[px] -= pv * INVS[e];
+        }
+    }
+    for i in 1..ret.arr.len() {
+        if i >= x - 1 {
+            ret.arr[i] /= 60;
+        }
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
 }

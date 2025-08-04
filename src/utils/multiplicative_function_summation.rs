@@ -193,7 +193,7 @@ pub fn mertens(x: i64) -> FIArrayI64 {
 }
 pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     let u = FIArrayI64::unit(x);
-    dirichlet_mul(&u, &u, x as _)
+    dirichlet_mul_i64(&u, &u, x as _)
 }
 
 pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
@@ -349,257 +349,257 @@ macro_rules! min25_sieve_impl_for {
                 }
                 s
             }
+            // note: does not require the functions f and g to be multiplicative
+            pub fn [<dirichlet_mul_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> [<FIArray $type:camel>] {
+                let mut H = [<FIArray $type:camel>]::new(n as _);
+                let len = H.arr.len();
+
+                let rt_n = n.isqrt();
+
+                let to_ord = |x| {
+                    if x <= rt_n { x } else { len + 1 - (n / x) }
+                };
+                let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+                    let f_x1 = F.arr[x1 - 1];
+                    let g_y1 = G.arr[y1 - 1];
+                    let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+                    let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+                    let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+                    H.arr[z0 - 1] += t;
+                    if let Some(v) = H.arr.get_mut(z1) {
+                        *v -= t;
+                    }
+                };
+                propogate((1, 1), (1, 1), (1, len));
+                for k in 2..=len {
+                    let z = len + 1 - k;
+                    for x in 2.. {
+                        let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+                        let y_hi_ord = to_ord(n / (x * z));
+                        if y_hi_ord < y_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+                        propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+                    }
+                    propogate((1, 1), (k, k), (k, len));
+                    propogate((k, k), (1, 1), (k, len));
+                    let x = k;
+                    for y in 2..k {
+                        let z_lo_ord = to_ord(x * y);
+                        let z_hi_ord = to_ord(n / x);
+                        if z_hi_ord < z_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+                        propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+                    }
+
+                    if x <= rt_n {
+                        propogate((x, x), (x, x), (to_ord(x * x), len));
+                    }
+                }
+
+                for i in 1..len {
+                    H.arr[i] += H.arr[i - 1];
+                }
+                H
+            }
+
+            pub fn [<dirichlet_mul_with_buffer_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize, H: &mut [<FIArray $type:camel>]) {
+                H.arr.fill(0);
+                let len = H.arr.len();
+
+                let rt_n = n.isqrt();
+
+                let to_ord = |x| {
+                    if x <= rt_n { x } else { len + 1 - (n / x) }
+                };
+                let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+                    let f_x1 = F.arr[x1 - 1];
+                    let g_y1 = G.arr[y1 - 1];
+                    let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+                    let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+                    let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+                    H.arr[z0 - 1] += t;
+                    if let Some(v) = H.arr.get_mut(z1) {
+                        *v -= t;
+                    }
+                };
+                propogate((1, 1), (1, 1), (1, len));
+                for k in 2..=len {
+                    let z = len + 1 - k;
+                    for x in 2.. {
+                        let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+                        let y_hi_ord = to_ord(n / (x * z));
+                        if y_hi_ord < y_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+                        propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+                    }
+                    propogate((1, 1), (k, k), (k, len));
+                    propogate((k, k), (1, 1), (k, len));
+                    let x = k;
+                    for y in 2..k {
+                        let z_lo_ord = to_ord(x * y);
+                        let z_hi_ord = to_ord(n / x);
+                        if z_hi_ord < z_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+                        propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+                    }
+
+                    if x <= rt_n {
+                        propogate((x, x), (x, x), (to_ord(x * x), len));
+                    }
+                }
+
+                for i in 1..len {
+                    H.arr[i] += H.arr[i - 1];
+                }
+            }
+
+            // note: does not require the functions f and g to be multiplicative
+            pub fn [<dirichlet_mulmod_ $type>]<const MOD: $type>(F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> [<FIArray $type:camel>] {
+                let mut H = [<FIArray $type:camel>]::new(n as _);
+                let len = H.arr.len();
+
+                let rt_n = n.isqrt();
+
+                let to_ord = |x| {
+                    if x <= rt_n { x } else { len + 1 - (n / x) }
+                };
+                let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+                    let f_x1 = F.arr[x1 - 1];
+                    let g_y1 = G.arr[y1 - 1];
+                    let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+                    let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+                    let t = ((f_x1 - f_x0_1) % MOD * (g_y1 - g_y0_1) % MOD) % MOD;
+                    H.arr[z0 - 1] += t;
+                    //H.arr[z0 - 1] %= MOD;
+                    if let Some(v) = H.arr.get_mut(z1) {
+                        *v -= t;
+                        //*v %= MOD;
+                    }
+                };
+                propogate((1, 1), (1, 1), (1, len));
+                for k in 2..=len {
+                    let z = len + 1 - k;
+                    for x in 2.. {
+                        let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+                        let y_hi_ord = to_ord(n / (x * z));
+                        if y_hi_ord < y_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+                        propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+                    }
+                    propogate((1, 1), (k, k), (k, len));
+                    propogate((k, k), (1, 1), (k, len));
+                    let x = k;
+                    for y in 2..k {
+                        let z_lo_ord = to_ord(x * y);
+                        let z_hi_ord = to_ord(n / x);
+                        if z_hi_ord < z_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+                        propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+                    }
+
+                    if x <= rt_n {
+                        propogate((x, x), (x, x), (to_ord(x * x), len));
+                    }
+                }
+
+                for i in 1..len {
+                    H.arr[i] %= MOD;
+                    H.arr[i] += H.arr[i - 1];
+                    H.arr[i] %= MOD;
+                    if H.arr[i] < 0 {
+                        H.arr[i] += MOD;
+                    }
+                }
+                H
+            }
+
+            pub fn [<dirichlet_mulmod_with_buffer_ $type>]<const MOD: $type>(
+                F: &[<FIArray $type:camel>],
+                G: &[<FIArray $type:camel>],
+                n: usize,
+                H: &mut [<FIArray $type:camel>],
+            ) {
+                H.arr.fill(0);
+                let len = H.arr.len();
+
+                let rt_n = n.isqrt();
+
+                let to_ord = |x| {
+                    if x <= rt_n { x } else { len + 1 - (n / x) }
+                };
+                let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+                    let f_x1 = F.arr[x1 - 1];
+                    let g_y1 = G.arr[y1 - 1];
+                    let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+                    let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+                    let t = ((f_x1 - f_x0_1) % MOD * (g_y1 - g_y0_1) % MOD) % MOD;
+                    H.arr[z0 - 1] += t;
+                    //H.arr[z0 - 1] %= MOD;
+                    if let Some(v) = H.arr.get_mut(z1) {
+                        *v -= t;
+                        //*v %= MOD;
+                    }
+                };
+                propogate((1, 1), (1, 1), (1, len));
+                for k in 2..=len {
+                    let z = len + 1 - k;
+                    for x in 2.. {
+                        let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+                        let y_hi_ord = to_ord(n / (x * z));
+                        if y_hi_ord < y_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+                        propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+                    }
+                    propogate((1, 1), (k, k), (k, len));
+                    propogate((k, k), (1, 1), (k, len));
+                    let x = k;
+                    for y in 2..k {
+                        let z_lo_ord = to_ord(x * y);
+                        let z_hi_ord = to_ord(n / x);
+                        if z_hi_ord < z_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+                        propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+                    }
+
+                    if x <= rt_n {
+                        propogate((x, x), (x, x), (to_ord(x * x), len));
+                    }
+                }
+
+                for i in 1..len {
+                    H.arr[i] %= MOD;
+                    H.arr[i] += H.arr[i - 1];
+                    H.arr[i] %= MOD;
+                    if H.arr[i] < 0 {
+                        H.arr[i] += MOD;
+                    }
+                }
+            }
+
         }
     )+ };
 }
 min25_sieve_impl_for!(u32, i32, u64, i64, usize, isize, u128, i128);
-
-// note: does not require the functions f and g to be multiplicative
-pub fn dirichlet_mul(F: &FIArrayI64, G: &FIArrayI64, n: usize) -> FIArrayI64 {
-    let mut H = FIArrayI64::new(n as i64);
-    let len = H.arr.len();
-
-    let rt_n = n.isqrt();
-
-    let to_ord = |x| {
-        if x <= rt_n { x } else { len + 1 - (n / x) }
-    };
-    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
-        let f_x1 = F.arr[x1 - 1];
-        let g_y1 = G.arr[y1 - 1];
-        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
-        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
-
-        let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
-        H.arr[z0 - 1] += t;
-        if let Some(v) = H.arr.get_mut(z1) {
-            *v -= t;
-        }
-    };
-    propogate((1, 1), (1, 1), (1, len));
-    for k in 2..=len {
-        let z = len + 1 - k;
-        for x in 2.. {
-            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
-            let y_hi_ord = to_ord(n / (x * z));
-            if y_hi_ord < y_lo_ord {
-                break;
-            }
-            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
-            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
-        }
-        propogate((1, 1), (k, k), (k, len));
-        propogate((k, k), (1, 1), (k, len));
-        let x = k;
-        for y in 2..k {
-            let z_lo_ord = to_ord(x * y);
-            let z_hi_ord = to_ord(n / x);
-            if z_hi_ord < z_lo_ord {
-                break;
-            }
-            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
-            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
-        }
-
-        if x <= rt_n {
-            propogate((x, x), (x, x), (to_ord(x * x), len));
-        }
-    }
-
-    for i in 1..len {
-        H.arr[i] += H.arr[i - 1];
-    }
-    H
-}
-
-pub fn dirichlet_mul_with_buffer(F: &FIArrayI64, G: &FIArrayI64, n: usize, H: &mut FIArrayI64) {
-    H.arr.fill(0);
-    let len = H.arr.len();
-
-    let rt_n = n.isqrt();
-
-    let to_ord = |x| {
-        if x <= rt_n { x } else { len + 1 - (n / x) }
-    };
-    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
-        let f_x1 = F.arr[x1 - 1];
-        let g_y1 = G.arr[y1 - 1];
-        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
-        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
-
-        let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
-        H.arr[z0 - 1] += t;
-        if let Some(v) = H.arr.get_mut(z1) {
-            *v -= t;
-        }
-    };
-    propogate((1, 1), (1, 1), (1, len));
-    for k in 2..=len {
-        let z = len + 1 - k;
-        for x in 2.. {
-            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
-            let y_hi_ord = to_ord(n / (x * z));
-            if y_hi_ord < y_lo_ord {
-                break;
-            }
-            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
-            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
-        }
-        propogate((1, 1), (k, k), (k, len));
-        propogate((k, k), (1, 1), (k, len));
-        let x = k;
-        for y in 2..k {
-            let z_lo_ord = to_ord(x * y);
-            let z_hi_ord = to_ord(n / x);
-            if z_hi_ord < z_lo_ord {
-                break;
-            }
-            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
-            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
-        }
-
-        if x <= rt_n {
-            propogate((x, x), (x, x), (to_ord(x * x), len));
-        }
-    }
-
-    for i in 1..len {
-        H.arr[i] += H.arr[i - 1];
-    }
-}
-
-// note: does not require the functions f and g to be multiplicative
-pub fn dirichlet_mulmod<const MOD: i64>(F: &FIArrayI64, G: &FIArrayI64, n: usize) -> FIArrayI64 {
-    let mut H = FIArrayI64::new(n as i64);
-    let len = H.arr.len();
-
-    let rt_n = n.isqrt();
-
-    let to_ord = |x| {
-        if x <= rt_n { x } else { len + 1 - (n / x) }
-    };
-    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
-        let f_x1 = F.arr[x1 - 1];
-        let g_y1 = G.arr[y1 - 1];
-        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
-        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
-
-        let t = ((f_x1 - f_x0_1) % MOD * (g_y1 - g_y0_1) % MOD) % MOD;
-        H.arr[z0 - 1] += t;
-        //H.arr[z0 - 1] %= MOD;
-        if let Some(v) = H.arr.get_mut(z1) {
-            *v -= t;
-            //*v %= MOD;
-        }
-    };
-    propogate((1, 1), (1, 1), (1, len));
-    for k in 2..=len {
-        let z = len + 1 - k;
-        for x in 2.. {
-            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
-            let y_hi_ord = to_ord(n / (x * z));
-            if y_hi_ord < y_lo_ord {
-                break;
-            }
-            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
-            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
-        }
-        propogate((1, 1), (k, k), (k, len));
-        propogate((k, k), (1, 1), (k, len));
-        let x = k;
-        for y in 2..k {
-            let z_lo_ord = to_ord(x * y);
-            let z_hi_ord = to_ord(n / x);
-            if z_hi_ord < z_lo_ord {
-                break;
-            }
-            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
-            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
-        }
-
-        if x <= rt_n {
-            propogate((x, x), (x, x), (to_ord(x * x), len));
-        }
-    }
-
-    for i in 1..len {
-        H.arr[i] %= MOD;
-        H.arr[i] += H.arr[i - 1];
-        H.arr[i] %= MOD;
-        if H.arr[i] < 0 {
-            H.arr[i] += MOD;
-        }
-    }
-    H
-}
-
-pub fn dirichlet_mulmod_with_buffer<const MOD: i64>(
-    F: &FIArrayI64,
-    G: &FIArrayI64,
-    n: usize,
-    H: &mut FIArrayI64,
-) {
-    H.arr.fill(0);
-    let len = H.arr.len();
-
-    let rt_n = n.isqrt();
-
-    let to_ord = |x| {
-        if x <= rt_n { x } else { len + 1 - (n / x) }
-    };
-    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
-        let f_x1 = F.arr[x1 - 1];
-        let g_y1 = G.arr[y1 - 1];
-        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
-        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
-
-        let t = ((f_x1 - f_x0_1) % MOD * (g_y1 - g_y0_1) % MOD) % MOD;
-        H.arr[z0 - 1] += t;
-        //H.arr[z0 - 1] %= MOD;
-        if let Some(v) = H.arr.get_mut(z1) {
-            *v -= t;
-            //*v %= MOD;
-        }
-    };
-    propogate((1, 1), (1, 1), (1, len));
-    for k in 2..=len {
-        let z = len + 1 - k;
-        for x in 2.. {
-            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
-            let y_hi_ord = to_ord(n / (x * z));
-            if y_hi_ord < y_lo_ord {
-                break;
-            }
-            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
-            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
-        }
-        propogate((1, 1), (k, k), (k, len));
-        propogate((k, k), (1, 1), (k, len));
-        let x = k;
-        for y in 2..k {
-            let z_lo_ord = to_ord(x * y);
-            let z_hi_ord = to_ord(n / x);
-            if z_hi_ord < z_lo_ord {
-                break;
-            }
-            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
-            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
-        }
-
-        if x <= rt_n {
-            propogate((x, x), (x, x), (to_ord(x * x), len));
-        }
-    }
-
-    for i in 1..len {
-        H.arr[i] %= MOD;
-        H.arr[i] += H.arr[i - 1];
-        H.arr[i] %= MOD;
-        if H.arr[i] < 0 {
-            H.arr[i] += MOD;
-        }
-    }
-}
 
 // O(log(k)x^(2/3)) time, O(x^(1/2)) space, specifically ~6x^(1/2) i64's
 pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI64 {
@@ -608,7 +608,7 @@ pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI6
     let mut u = FIArrayI64::unit(x);
     let mut r = if k & 1 == 1 {
         k >>= 1;
-        dirichlet_mulmod_with_buffer::<MOD>(&u, &u, x as _, &mut buffer);
+        dirichlet_mulmod_with_buffer_i64::<MOD>(&u, &u, x as _, &mut buffer);
         core::mem::swap(&mut u, &mut buffer);
         FIArrayI64::unit(x)
     } else {
@@ -616,17 +616,17 @@ pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI6
     };
     while k > 1 {
         if k & 1 == 1 {
-            dirichlet_mulmod_with_buffer::<MOD>(&r, &u, x as _, &mut buffer);
+            dirichlet_mulmod_with_buffer_i64::<MOD>(&r, &u, x as _, &mut buffer);
             core::mem::swap(&mut r, &mut buffer);
             //r = r * u;
         }
         //u = u * u;
-        dirichlet_mulmod_with_buffer::<MOD>(&u, &u, x as _, &mut buffer);
+        dirichlet_mulmod_with_buffer_i64::<MOD>(&u, &u, x as _, &mut buffer);
         core::mem::swap(&mut u, &mut buffer);
         k >>= 1;
     }
     //(r * u)
-    dirichlet_mulmod_with_buffer::<MOD>(&r, &u, x as _, &mut buffer);
+    dirichlet_mulmod_with_buffer_i64::<MOD>(&r, &u, x as _, &mut buffer);
     buffer
 }
 
@@ -636,7 +636,7 @@ pub fn general_divisor_summatory_alt<const MOD: i64>(x: i64, mut k: u8) -> FIArr
     let mut u = FIArrayI64::unit(x);
     let mut r = {
         while k > 1 && k & 1 == 0 {
-            dirichlet_mulmod_with_buffer::<MOD>(&u, &u, x as _, &mut buffer);
+            dirichlet_mulmod_with_buffer_i64::<MOD>(&u, &u, x as _, &mut buffer);
             core::mem::swap(&mut u, &mut buffer);
             k >>= 1;
         }
@@ -644,23 +644,23 @@ pub fn general_divisor_summatory_alt<const MOD: i64>(x: i64, mut k: u8) -> FIArr
             return u;
         }
         let ret = u.clone();
-        dirichlet_mulmod_with_buffer::<MOD>(&u, &u, x as _, &mut buffer);
+        dirichlet_mulmod_with_buffer_i64::<MOD>(&u, &u, x as _, &mut buffer);
         core::mem::swap(&mut u, &mut buffer);
         k >>= 1;
         ret
     };
     while k > 1 {
         if k & 1 == 1 {
-            dirichlet_mulmod_with_buffer::<MOD>(&r, &u, x as _, &mut buffer);
+            dirichlet_mulmod_with_buffer_i64::<MOD>(&r, &u, x as _, &mut buffer);
             core::mem::swap(&mut r, &mut buffer);
             //r = r * u;
         }
         //u = u * u;
-        dirichlet_mulmod_with_buffer::<MOD>(&u, &u, x as _, &mut buffer);
+        dirichlet_mulmod_with_buffer_i64::<MOD>(&u, &u, x as _, &mut buffer);
         core::mem::swap(&mut u, &mut buffer);
         k >>= 1;
     }
     //(r * u)
-    dirichlet_mulmod_with_buffer::<MOD>(&r, &u, x as _, &mut buffer);
+    dirichlet_mulmod_with_buffer_i64::<MOD>(&r, &u, x as _, &mut buffer);
     buffer
 }

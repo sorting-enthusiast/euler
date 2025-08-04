@@ -37,8 +37,8 @@ pub fn sum_over_primes(
  */
 // finding the actual solution was quite easy,
 // although I wasted an unbelievable amount of time debugging the code,
-// turns out subtracting 1 from the sum in F screwed the results.
-// Oddly enough it did not seem to affect the test cases.
+// turns out i was subtracting 1 from the sum in F wrong,
+// not making sure the result mod MOD was nonnegative
 pub fn main() {
     let start = std::time::Instant::now();
 
@@ -48,7 +48,7 @@ pub fn main() {
     };
     let F = |v| {
         let sn = sum_n_usize::<MOD>(v);
-        (sn * sn) % MOD
+        ((sn * sn) % MOD + MOD - 1) % MOD
     };
     let primes = sift(N.isqrt() as u64);
 
@@ -75,7 +75,7 @@ pub fn main() {
     let mut sum = 0;
     for &p in &primes {
         let p = p as usize;
-        sum += (f(p) * (s[N / p] + MOD - s[p]) % MOD) % MOD;
+        sum += (f(p) * (s[N / p] + MOD - s.arr[p - 1]) % MOD) % MOD;
         sum %= MOD;
     }
     let end = start.elapsed();

@@ -12,11 +12,9 @@ use itertools::Itertools;
 use crate::utils::{
     FIArray::FIArrayI64,
     multiplicative_function_summation::{
-        dirichlet_mulmod, divisor_summatory, general_divisor_summatory,
-        general_divisor_summatory_alt, mertens, sum_n_i64, totient_sieve, totient_sum,
-        totient_sum_single,
+        divisor_summatory, divisor_summatory_i64, sum_n_i64, totient_sieve, totient_sum,
     },
-    prime_sieves, primecount,
+    primecount,
 };
 
 mod e107;
@@ -78,7 +76,12 @@ const fn modinv(x: i64) -> i64 {
 
 pub fn main() {
     primecount::main();
-    let n = 1e3 as i64;
+    let n = 1e4 as i64;
+
+    let d = divisor_summatory(n);
+    for (i, v) in FIArrayI64::keys(n).enumerate() {
+        assert_eq!(d.arr[i], divisor_summatory_i64(v));
+    }
     let start = std::time::Instant::now();
     let mut sum = n % MOD;
     let totsums = totient_sum::<MOD>(n);
@@ -102,19 +105,22 @@ pub fn main() {
         let div = n / l;
         sum += div % MOD * (hi + MOD - lo) % MOD;
         sum %= MOD;
-
         l = (n / div) + 1;
     }
     let end = start.elapsed();
     println!("{sum}, {end:?}");
 
     let start = std::time::Instant::now();
-    let mut sum = 0;
-    let tot = totient_sieve(n as usize + 1);
-    for k in 1..=n {
-        sum += tot[k as usize] % MOD * (n / k) % MOD;
-        sum %= MOD;
-    }
+    let f = |n| {
+        let mut sum = 0;
+        let tot = totient_sieve(n as usize + 1);
+        for k in 1..=n {
+            sum += tot[k as usize] % MOD * (n / k) % MOD;
+            sum %= MOD;
+        }
+        sum
+    };
+    let sum = f(n);
     let end = start.elapsed();
     println!("{sum}, {end:?}");
     //const N: i64 = 2;
