@@ -425,7 +425,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e15 as usize;
+    const N: usize = 1e10 as usize;
 
     let start = Instant::now();
     let count = lucy_trick(N as _);
@@ -653,8 +653,6 @@ pub fn lucy_trick(x: usize) -> usize {
 // Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
 // over the primes, though tbh you should probably just use lucy's algorithm for that.
 // TODO: try to speed up the convolution steps, as each of the arrays has a 0 prefix of length ~ n^(1/6)
-// bug: when x is 1 more than a prime the function fails for some reason.
-// For now I just made x be odd and greater than 3, so the bug never surfaces
 pub fn log_zeta(n: usize) -> FIArray {
     const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
     let rt = n.isqrt();
@@ -672,7 +670,7 @@ pub fn log_zeta(n: usize) -> FIArray {
             x_cubed += 3 * x * (x - 1) + 1;
         }
         x
-    } | 1;
+    };
     // remove contributions of small primes
     for p in 2..x {
         let val = zeta.arr[p - 1] - 1;
@@ -731,7 +729,7 @@ pub fn log_zeta(n: usize) -> FIArray {
     }
 
     // correction phase: get rid of contributions of prime powers
-    for i in (x..=len).rev() {
+    for i in (x + 1..=len).rev() {
         ret.arr[i - 1] -= ret.arr[i - 2];
     }
 
