@@ -36,6 +36,7 @@ mod e351;
 mod e355;
 mod e401;
 mod e432;
+mod e439;
 mod e448;
 mod e484;
 mod e501;
@@ -75,13 +76,10 @@ const fn modinv(x: i64) -> i64 {
 }
 
 pub fn main() {
-    primecount::main();
-    let n = 1e4 as i64;
+    e439::main();
+    //primecount::main();
+    let n = 1e7 as i64;
 
-    let d = divisor_summatory(n);
-    for (i, v) in FIArrayI64::keys(n).enumerate() {
-        assert_eq!(d.arr[i], divisor_summatory_i64(v));
-    }
     let start = std::time::Instant::now();
     let mut sum = n % MOD;
     let totsums = totient_sum::<MOD>(n);

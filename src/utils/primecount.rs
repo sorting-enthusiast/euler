@@ -11,6 +11,26 @@ use crate::utils::{
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
+// repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
+// I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
+// not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
+pub fn test(x: usize) -> usize {
+    let primes = sift(x.isqrt() as u64);
+    let mut s = FIArray::unit(x);
+    let keys = FIArray::keys(x).collect_vec();
+
+    for &p in &primes {
+        let p = p as usize;
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            s.arr[i] -= s[v / p];
+        }
+    }
+    s[x] + primes.len() - 1
+}
+
 // O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
 // 1e16: prime counting took 525.8536176s: 279238341033925
 // 1e15: prime counting took 102.6765764s: 29844570422669
@@ -425,10 +445,21 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e10 as usize;
+    const N: usize = 1e11 as usize;
 
     let start = Instant::now();
     let count = lucy_trick(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    println!("prime counting using the logarithm of the zeta function:");
+    let start = Instant::now();
+    let count = log_zeta_alt(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = log_zeta(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -461,12 +492,6 @@ pub fn main() {
 
     let start = Instant::now();
     let count = lucy_alt(N)[N];
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
-
-    println!("prime counting using the logarithm of the zeta function:");
-    let start = Instant::now();
-    let count = log_zeta(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -647,12 +672,13 @@ pub fn lucy_trick(x: usize) -> usize {
 // based on https://codeforces.com/blog/entry/91632?#comment-802482
 // O(n^(2/3)) time, O(n^(1/2)) space. Pretty slow, despite noticeably superior time complexity.
 // Likely due to repeated calls to dirichlet_mul, which is not particularly fast.
-// Moreover, this function needs 4 times more memory than the O(n^0.75) lucy_hedgehog based functions.
+// Moreover, this function needs 4 times more memory than the O(n^0.75/log(n)) lucy_hedgehog based functions.
+// O(n^0.75/log(n)) with low constant factors is better than O(n^(2/3)) with medium constant factors out to quite large n
 // uses the fact that the coefficients of the logarithm of the DGF of u(n) = 1 (i.e. the zeta function)
 // are exactly 1/k for p^k for some prime p, and 0 otherwise.
 // Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
 // over the primes, though tbh you should probably just use lucy's algorithm for that.
-// TODO: try to speed up the convolution steps, as each of the arrays has a 0 prefix of length ~ n^(1/6)
+// TODO: try to speed up the convolution steps more, as each of the arrays has a 0 prefix of length ~ n^(1/6)
 pub fn log_zeta(n: usize) -> FIArray {
     const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
     let rt = n.isqrt();
@@ -696,37 +722,42 @@ pub fn log_zeta(n: usize) -> FIArray {
     // zeta now equals zeta_t - 1
     // compute log(zeta_t) using log(x + 1) = x^5 / 5 - x^4 / 4 + x^3 / 3 - x^2 / 2 + x
     // x is zeta_t - 1.
-    // in order to not have to deal with rational numbers, we compute 60*log(zeta_t)
+    // in order to not have to deal with rational numbers, we compute 60 * log(zeta_t)
     // and adjust later
+    // note that almost the entirety of the time spent by this function is in the following 4 convolutions.
+    // literally 95%+ of time taken for large n
+    let start = std::time::Instant::now();
     for i in x..=len {
         ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
     }
-    let mut pow_zeta = dirichlet_mul_usize(&zeta, &zeta, n);
 
+    let mut pow_zeta = dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1);
     for i in x..=len {
         ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
     }
 
-    dirichlet_mul_with_buffer_usize(&pow_zeta, &zeta, n, &mut buffer);
+    dirichlet_mul_zero_prefix_with_buffer(&pow_zeta, &zeta, n, &mut buffer, x - 1);
     core::mem::swap(&mut pow_zeta, &mut buffer);
 
     for i in x..=len {
         ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[3];
     }
 
-    dirichlet_mul_with_buffer_usize(&pow_zeta, &zeta, n, &mut buffer);
+    dirichlet_mul_zero_prefix_with_buffer(&pow_zeta, &zeta, n, &mut buffer, x - 1);
     core::mem::swap(&mut pow_zeta, &mut buffer);
 
     for i in x..=len {
         ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[4];
     }
 
-    dirichlet_mul_with_buffer_usize(&pow_zeta, &zeta, n, &mut buffer);
+    dirichlet_mul_zero_prefix_with_buffer(&pow_zeta, &zeta, n, &mut buffer, x - 1);
     core::mem::swap(&mut pow_zeta, &mut buffer);
 
     for i in x..=len {
         ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[5];
     }
+    let end = start.elapsed();
+    println!("second phase took {end:?}");
 
     // correction phase: get rid of contributions of prime powers
     for i in (x + 1..=len).rev() {
@@ -746,11 +777,255 @@ pub fn log_zeta(n: usize) -> FIArray {
             ret[px] -= pv * INVS[e];
         }
     }
-    for i in 1..ret.arr.len() {
+    for i in 1..len {
         if i >= x - 1 {
             ret.arr[i] /= 60;
         }
         ret.arr[i] += ret.arr[i - 1];
     }
     ret
+}
+
+pub fn dirichlet_mul_zero_prefix(F: &FIArray, G: &FIArray, n: usize, prefix: usize) -> FIArray {
+    assert!(prefix > 0);
+    /* assert!(F.arr.iter().take_while(|&&e| e == 0).count() >= prefix);
+       assert!(G.arr.iter().take_while(|&&e| e == 0).count() >= prefix);
+    */
+    let mut H = FIArray::new(n as _);
+    let len = H.arr.len();
+
+    let rt_n = n.isqrt();
+
+    let to_ord = |x| {
+        if x <= rt_n { x } else { len + 1 - (n / x) }
+    };
+    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+        let f_x1 = F.arr[x1 - 1];
+        let g_y1 = G.arr[y1 - 1];
+        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+        let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+        H.arr[z0 - 1] += t;
+        if let Some(v) = H.arr.get_mut(z1) {
+            *v -= t;
+        }
+    };
+
+    for k in 2..=len {
+        let z = len + 1 - k;
+        for x in prefix.. {
+            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+            let y_hi_ord = to_ord(n / (x * z));
+            if y_hi_ord < y_lo_ord {
+                break;
+            }
+            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+        }
+
+        let x = k;
+        for y in prefix..k {
+            let z_lo_ord = to_ord(x * y);
+            let z_hi_ord = to_ord(n / x);
+            if z_hi_ord < z_lo_ord {
+                break;
+            }
+            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+        }
+
+        if prefix <= x && x <= rt_n {
+            propogate((x, x), (x, x), (to_ord(x * x), len));
+        }
+    }
+
+    for i in 1..len {
+        H.arr[i] += H.arr[i - 1];
+    }
+    H
+}
+
+pub fn dirichlet_mul_zero_prefix_with_buffer(
+    F: &FIArray,
+    G: &FIArray,
+    n: usize,
+    H: &mut FIArray,
+    prefix: usize,
+) {
+    assert!(prefix > 0);
+
+    H.arr.fill(0);
+    let len = H.arr.len();
+
+    let rt_n = n.isqrt();
+
+    let to_ord = |x| {
+        if x <= rt_n { x } else { len + 1 - (n / x) }
+    };
+    let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+        let f_x1 = F.arr[x1 - 1];
+        let g_y1 = G.arr[y1 - 1];
+        let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+        let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+
+        let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+        H.arr[z0 - 1] += t;
+        if let Some(v) = H.arr.get_mut(z1) {
+            *v -= t;
+        }
+    };
+
+    for k in 2..=len {
+        let z = len + 1 - k;
+        for x in prefix.. {
+            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+            let y_hi_ord = to_ord(n / (x * z));
+            if y_hi_ord < y_lo_ord {
+                break;
+            }
+            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+        }
+
+        let x = k;
+        for y in prefix..k {
+            let z_lo_ord = to_ord(x * y);
+            let z_hi_ord = to_ord(n / x);
+            if z_hi_ord < z_lo_ord {
+                break;
+            }
+            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+        }
+
+        if prefix <= x && x <= rt_n {
+            propogate((x, x), (x, x), (to_ord(x * x), len));
+        }
+    }
+
+    for i in 1..len {
+        H.arr[i] += H.arr[i - 1];
+    }
+}
+
+// worse time complexity, better performance.
+// could try using an O(n^0.75) approach to the convolution, wouldn't hurt the complexity but might grant speed up - nvm doesn't help
+pub fn log_zeta_alt(n: usize) -> FIArray {
+    const INVS: [usize; 4] = [0, 6, 3, 2];
+    let rt = n.isqrt();
+    let mut zeta = FIArray::unit(n as _);
+    let len = zeta.arr.len();
+
+    let mut buffer = zeta.clone();
+
+    let mut ret = FIArray::new(n);
+    let x = rt.isqrt() + 1;
+    // remove contributions of small primes up to n^(1/4)
+    for p in 2..x {
+        let val = zeta.arr[p - 1] - 1;
+        if val == 0 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        for (i, nk) in buffer.arr.iter().enumerate().rev() {
+            if i < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[nk / p];
+        }
+        zeta.arr[p - 1] = 1;
+    }
+    zeta.arr[..x - 1].fill(0);
+
+    for i in x..=len {
+        zeta.arr[i - 1] -= 1;
+    }
+
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
+    // x is zeta_t - 1.
+    // in order to not have to deal with rational numbers, we compute 6*log(zeta_t)
+    // and adjust later
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+
+    let mut pow_zeta = dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1);
+    for i in x..=len {
+        ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
+    }
+
+    dirichlet_mul_zero_prefix_with_buffer(&pow_zeta, &zeta, n, &mut buffer, x - 1);
+    core::mem::swap(&mut pow_zeta, &mut buffer);
+
+    for i in x..=len {
+        ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[3];
+    }
+
+    // correction phase: get rid of contributions of prime powers
+    for i in (x + 1..=len).rev() {
+        ret.arr[i - 1] -= ret.arr[i - 2];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / 6;
+        let mut e = 1;
+        let mut pv = v;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+            pv *= v;
+
+            ret[px] -= pv * INVS[e];
+        }
+    }
+    for i in 1..ret.arr.len() {
+        if i >= x - 1 {
+            ret.arr[i] /= 6;
+        }
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+pub fn conv_with_buffer_zero_prefix(
+    F: &FIArray,
+    G: &FIArray,
+    n: usize,
+    H: &mut FIArray,
+    prefix_f: usize,
+    prefix_g: usize,
+) {
+    assert!(prefix_f > 0);
+    assert!(prefix_g > 0);
+    H.arr.fill(0);
+    for (i, v) in FIArray::keys(n).enumerate() {
+        if v <= prefix_f.min(prefix_g) {
+            continue;
+        }
+        let vsqrt = v.isqrt();
+        let mut h = 0;
+        for i in (1 + prefix_f)..=vsqrt {
+            h += G[v / i] * (F.arr[i - 1] - F.arr[i - 2]);
+        }
+        for i in (1 + prefix_g)..=vsqrt {
+            h += F[v / i] * (G.arr[i - 1] - G.arr[i - 2]);
+        }
+        h -= F[vsqrt] * G[vsqrt];
+        H.arr[i] = h;
+    }
+}
+
+pub fn conv_zero_prefix(
+    F: &FIArray,
+    G: &FIArray,
+    n: usize,
+    prefix_f: usize,
+    prefix_g: usize,
+) -> FIArray {
+    let mut H = FIArray::new(n);
+    conv_with_buffer_zero_prefix(F, G, n, &mut H, prefix_f, prefix_g);
+    H
 }
