@@ -6,7 +6,6 @@
 #![allow(clippy::inline_always)]
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
-
 use crate::utils::{
     FIArray::FIArrayI64,
     multiplicative_function_summation::{mertens, sum_n_i64, totient_sieve},

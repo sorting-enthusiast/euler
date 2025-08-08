@@ -7,6 +7,7 @@ use crate::utils::{
     FIArray::{FIArray, FIArrayU64, FIArrayU128},
     bit_array::BitArray,
     fenwick::FenwickTree,
+    multiplicative_function_summation::mobius_sieve,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
@@ -444,11 +445,18 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e7 as usize;
+    const N: usize = 1e15 as usize;
 
+    println!("{N}");
     println!("logarithmic integral:");
     let start = Instant::now();
     let count = Li(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    println!("Riemann R:");
+    let start = Instant::now();
+    let count = R(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -1134,12 +1142,12 @@ pub fn li(x: f64) -> f64 {
     // the precision of the libc math functions is very limited.
     for n in 1..1000 {
         p *= -logx;
-        factorial *= n as f64;
+        factorial *= f64::from(n);
         q = factorial * power2;
         power2 *= 2.;
 
         while k <= (n - 1) / 2 {
-            inner_sum += 1.0f64 / (2 * k + 1) as f64;
+            inner_sum += f64::from(2 * k + 1).recip();
             k += 1;
         }
 
@@ -1167,4 +1175,23 @@ pub fn Li(x: usize) -> usize {
     } else {
         (li(x as f64) - li2) as usize
     }
+}
+
+pub fn R(x: usize) -> usize {
+    /* let Li = |x: f64| {
+        const li2: f64 = 1.045163780117492784844588889194613136_f64;
+        if x <= 2. { 0. } else { li(x as f64) - li2 }
+    }; */
+    let x = x as f64;
+    let mobius = mobius_sieve(50);
+    let mut sum = 0.;
+    for i in 1..50 {
+        let inv_i = (i as f64).recip();
+        let li = li(x.powf(inv_i));
+        if li == 0. {
+            break;
+        }
+        sum += f64::from(mobius[i]) * inv_i * li;
+    }
+    sum as usize
 }
