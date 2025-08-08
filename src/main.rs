@@ -7,13 +7,10 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use itertools::Itertools;
-
 use crate::utils::{
     FIArray::FIArrayI64,
-    multiplicative_function_summation::{
-        divisor_summatory, divisor_summatory_i64, sum_n_i64, totient_sieve, totient_sum,
-    },
+    multiplicative_function_summation::{mertens, sum_n_i64, totient_sieve},
+    prime_sieves::sieve_it,
     primecount,
 };
 
@@ -76,51 +73,7 @@ const fn modinv(x: i64) -> i64 {
 }
 
 pub fn main() {
-    e439::main();
-    //primecount::main();
-    let n = 1e7 as i64;
-
-    let start = std::time::Instant::now();
-    let mut sum = n % MOD;
-    let totsums = totient_sum::<MOD>(n);
-    let mut l = 2;
-    let mut i = 0;
-    while l <= n {
-        let div = n / l;
-        let r = n / div;
-        sum += div % MOD * (totsums.arr[i + 1] + MOD - totsums.arr[i]) % MOD;
-        sum %= MOD;
-        l = r + 1;
-        i += 1;
-    }
-    let end = start.elapsed();
-    println!("{sum}, {end:?}");
-
-    let start = std::time::Instant::now();
-    sum = n % MOD;
-    let mut l = 2;
-    for (lo, hi) in totsums.arr.iter().tuple_windows() {
-        let div = n / l;
-        sum += div % MOD * (hi + MOD - lo) % MOD;
-        sum %= MOD;
-        l = (n / div) + 1;
-    }
-    let end = start.elapsed();
-    println!("{sum}, {end:?}");
-
-    let start = std::time::Instant::now();
-    let f = |n| {
-        let mut sum = 0;
-        let tot = totient_sieve(n as usize + 1);
-        for k in 1..=n {
-            sum += tot[k as usize] % MOD * (n / k) % MOD;
-            sum %= MOD;
-        }
-        sum
-    };
-    let sum = f(n);
-    let end = start.elapsed();
-    println!("{sum}, {end:?}");
+    primecount::main();
     //const N: i64 = 2;
     //let kk = sum_f(N)[N];
     /* let mut res = (powmod(2, (N + 1) * (N + 1)) - (N + 1) * (N + 1) - 1) % MOD;
