@@ -445,7 +445,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e15 as usize;
+    const N: usize = 1e10 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");
@@ -470,10 +470,10 @@ pub fn main() {
     let count = lucy_trick(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
-    /* let start = Instant::now();
+    let start = Instant::now();
     let count = lucy_fenwick(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");
 
     println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
@@ -545,7 +545,7 @@ pub fn main() {
     println!("res = {count}, took {end:?}");
 }
 
-//never faster for me, though asymptotically better: O(x^(2/3) (loglogx)^(1/3)) vs O(x^(3/4))
+//never faster for me, though asymptotically better: O(x^(2/3) (logx)(loglogx)^(1/3)) vs O(x^(3/4) / log(x))
 pub fn lucy_fenwick(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let sqrtx = x.isqrt();
@@ -562,13 +562,17 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
         s.arr[i] = v - 1;
     }
 
+    let mut count_sum = 0usize;
+    let mut count_add = 0usize;
     for p in 2..=sqrtx {
         if !sieve_raw.get(p) {
+            count_sum += 1;
             let sp = sieve.sum(p - 1) as usize;
             let lim = (x / y).min(x / (p * p));
             for i in 1..=lim {
                 let xip = x / (i * p);
                 s.arr[len - i] -= if xip <= y {
+                    count_sum += 1;
                     sieve.sum(xip) as usize
                 } else {
                     s[xip]
@@ -579,6 +583,7 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
                 if !sieve_raw.get(j) {
                     sieve_raw.set(j);
                     sieve.add(j, -1);
+                    count_add += 1;
                 }
                 j += p;
             }
@@ -586,7 +591,10 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
     }
     for (i, v) in FIArray::keys(x).take_while(|&v| v <= y).enumerate() {
         s.arr[i] = sieve.sum(v) as usize;
+        count_sum += 1;
     }
+    dbg!((count_sum, count_add));
+    dbg!(y * (y as f64).ln().ln() as usize);
     s
 }
 
@@ -606,14 +614,19 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
         s.arr[i] = v - 1;
     }
 
+    let mut count_sum = 0usize;
+    let mut count_add = 0usize;
     for p in 2..=sqrtx {
         if sieve_raw.get(p) {
             continue;
         }
         let sp = sieve.sum(p - 1) as usize;
+        count_sum += 1;
+
         let lim = (x / y).min(x / (p * p));
         let xp = x / p;
         s.arr[len - 1] -= if xp <= y {
+            count_sum += 1;
             sieve.sum(xp) as usize
         } else {
             s[xp]
@@ -624,6 +637,7 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
             }
             let xip = xp / i;
             s.arr[len - i] -= if xip <= y {
+                count_sum += 1;
                 sieve.sum(xip) as usize
             } else {
                 s[xip]
@@ -633,9 +647,13 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
             if !sieve_raw.get(j) {
                 sieve_raw.set(j);
                 sieve.add(j, -1);
+                count_add += 1;
             }
         }
     }
+    dbg!((count_sum, count_add));
+    dbg!(y * (y as f64).ln().ln() as usize);
+
     s[x]
 }
 
@@ -652,15 +670,21 @@ pub fn lucy_trick(x: usize) -> usize {
     for (i, v) in FIArray::keys(x).enumerate() {
         s.arr[i] = v - 1;
     }
+    let mut count_sum = 0usize;
+    let mut count_add = 0usize;
 
     for p in 2..=sqrtx {
         if sieve_raw.get(p) {
             continue;
         }
+        count_sum += 1;
+
         let sp = sieve.sum(p - 1) as usize;
         let lim = (x / y).min(x / (p * p));
         let xp = x / p;
         s.arr[len - 1] -= if xp <= y {
+            count_sum += 1;
+
             sieve.sum(xp) as usize
         } else {
             s[xp]
@@ -671,6 +695,7 @@ pub fn lucy_trick(x: usize) -> usize {
             }
             let xip = xp / i;
             s.arr[len - i] -= if xip <= y {
+                count_sum += 1;
                 sieve.sum(xip) as usize
             } else {
                 s[xip]
@@ -680,9 +705,13 @@ pub fn lucy_trick(x: usize) -> usize {
             if !sieve_raw.get(j) {
                 sieve_raw.set(j);
                 sieve.add(j, -1);
+                count_add += 1;
             }
         }
     }
+    dbg!((count_sum, count_add));
+    dbg!(y * (y as f64).ln().ln() as usize);
+
     s[x]
 }
 
@@ -930,16 +959,19 @@ pub fn log_zeta_reordered(n: usize) -> FIArray {
     }
 
     for x in x..=rt {
-        let v = ret.arr[x - 1] / 60;
+        let v = ret.arr[x - 1];
+        if v == 0 {
+            continue;
+        }
         let mut e = 1;
-        let mut pv = v;
+        //let mut pv = v;
         let mut px = x;
         while px <= n / x {
             e += 1;
             px *= x;
-            pv *= v;
+            //pv *= v;
 
-            ret[px] -= pv * INVS[e];
+            ret[px] -= /* pv * */ INVS[e];
         }
     }
     for i in 1..len {

@@ -407,6 +407,69 @@ macro_rules! min25_sieve_impl_for {
                 H
             }
 
+            pub fn [<dirichlet_div_ $type>](H: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> [<FIArray $type:camel>] {
+                let mut F = [<FIArray $type:camel>]::new(n as _);
+                let len = F.arr.len();
+                let mut modified = BitArray::zeroed(len + 2);
+
+                let rt_n = n.isqrt();
+
+                let mut H = H.clone();
+                for i in (1..len).rev() {
+                    H.arr[i] -= H.arr[i - 1];
+                }
+                let to_ord = |x| {
+                    if x <= rt_n { x } else { len + 1 - (n / x) }
+                };
+                let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
+                    let f_x1 = F.arr[x1 - 1];
+                    let g_y1 = G.arr[y1 - 1];
+                    let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
+                    let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
+                    if !modified.get(x1) {
+                        F.arr[x1 - 1] = f_x0_1 + H.arr[z0-1] / (g_y1 - g_y0_1);
+                        modified.set(x1);
+                    }
+                    let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
+                    H.arr[z0 - 1] -= t;
+                    if let Some(v) = H.arr.get_mut(z1) {
+                        *v += t;
+                    }
+                };
+                propogate((1, 1), (1, 1), (1, len));
+                for k in 2..=len {
+                    let z = len + 1 - k;
+                    for x in 2.. {
+                        let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+                        let y_hi_ord = to_ord(n / (x * z));
+                        if y_hi_ord < y_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+                        propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
+                    }
+                    propogate((1, 1), (k, k), (k, len));
+                    propogate((k, k), (1, 1), (k, len));
+                    let x = k;
+                    for y in 2..k {
+                        let z_lo_ord = to_ord(x * y);
+                        let z_hi_ord = to_ord(n / x);
+                        if z_hi_ord < z_lo_ord {
+                            break;
+                        }
+                        propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+                        propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+                    }
+
+                    if x <= rt_n {
+                        propogate((x, x), (x, x), (to_ord(x * x), len));
+                    }
+                }
+
+                F
+            }
+
+
             pub fn [<dirichlet_mul_with_buffer_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize, H: &mut [<FIArray $type:camel>]) {
                 H.arr.fill(0);
                 let len = H.arr.len();
