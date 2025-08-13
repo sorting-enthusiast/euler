@@ -422,14 +422,15 @@ macro_rules! min25_sieve_impl_for {
                     if x <= rt_n { x } else { len + 1 - (n / x) }
                 };
                 let mut propogate = |(x0, x1), (y0, y1), (z0, z1)| {
-                    let f_x1 = F.arr[x1 - 1];
                     let g_y1 = G.arr[y1 - 1];
                     let f_x0_1 = F.arr.get(x0 - 2).copied().unwrap_or_default();
                     let g_y0_1 = G.arr.get(y0 - 2).copied().unwrap_or_default();
                     if !modified.get(x1) {
                         F.arr[x1 - 1] = f_x0_1 + H.arr[z0-1] / (g_y1 - g_y0_1);
                         modified.set(x1);
+
                     }
+                    let f_x1 = F.arr[x1 - 1];
                     let t = (f_x1 - f_x0_1) * (g_y1 - g_y0_1);
                     H.arr[z0 - 1] -= t;
                     if let Some(v) = H.arr.get_mut(z1) {

@@ -445,7 +445,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e10 as usize;
+    const N: usize = 1e12 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");
@@ -483,6 +483,12 @@ pub fn main() {
 
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    println!("legendre:");
+    let start = Instant::now();
+    let count = legendre(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
