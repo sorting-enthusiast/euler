@@ -72,7 +72,9 @@ pub fn main() {
 
     let primes = sift(150)
         .into_iter()
-        .filter_map(|p| (p & 3 == 1).then(|| GaussianI64::from(sum_of_squares(p))))
+        .filter(|&p| p & 3 == 1)
+        .map(sum_of_squares)
+        .map(GaussianI64::from)
         .collect_vec();
     let res = Context::new().dfs(GaussianI64::from((1, 0)), &primes);
     let end = start.elapsed();

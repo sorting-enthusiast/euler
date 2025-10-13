@@ -4,8 +4,8 @@ use super::utils::sieve_of_pritchard::sift;
 // ez: only look at composites with either 3 distinct prime factors,
 // or 2 distinct prime factors, with one of them being of multplicity 3 and the other of 1,
 // or p^7
-// TODO: fix
-pub fn main() {
+// TODO: fix, rewrite using lucy based approach
+fn solve() {
     const N: u64 = 1e12 as u64;
     let block_size = (N as f64).sqrt() as u64 + 1;
     let primes = sift(block_size);
@@ -110,4 +110,8 @@ pub fn main() {
     }
 
     dbg!(count);
+}
+
+pub fn main() {
+    solve();
 }

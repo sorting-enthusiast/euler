@@ -6,19 +6,11 @@
 #![allow(clippy::inline_always)]
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
-use std::i64;
 
-use crate::utils::{
-    FIArray::FIArrayI64,
-    multiplicative_function_summation::{
-        dirichlet_div_i64, dirichlet_mulmod_i64, mertens, sum_n_i64, totient_sieve, totient_sum,
-        totient_sum_single,
-    },
-    prime_sieves::sieve_it,
-    primecount,
-};
+use crate::{e193::count_squarefree, utils::powerful_numbers::PowerfulExt};
 
 mod e107;
+mod e12;
 mod e153;
 mod e156;
 mod e169;
@@ -31,6 +23,7 @@ mod e249;
 mod e250;
 mod e255;
 mod e258;
+mod e27;
 mod e273;
 mod e302;
 mod e351;
@@ -53,6 +46,7 @@ mod e668;
 mod e708;
 mod e745;
 mod e810;
+mod e942;
 mod e955;
 mod longest_collatz_chain;
 mod utils;
@@ -77,7 +71,14 @@ const fn modinv(x: i64) -> i64 {
     powmod(x, MOD - 2)
 }
 
+// digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 pub fn main() {
-    dbg!(totient_sum_single::<{ i64::MAX >> 1 }>(16000));
-    //e415::main();
+    //e193::main();
+    e942::main();
+    //utils::primecount::main();
+    /*let n = 2e4 as i64;
+    let prime_pi = utils::primecount::lucy(n as usize);
+    let sqfree_1 = count_squarefree(n.isqrt() as _) as usize;
+    let sqfree_2 = count_squarefree((n as f64).cbrt() as _) as usize;
+    dbg!(dbg!(PowerfulExt::<_, 2>::new(n, |_, _| 1).count()) - dbg!(sqfree_1) - dbg!(sqfree_2) + 1); */
 }

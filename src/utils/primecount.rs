@@ -7,7 +7,7 @@ use crate::utils::{
     FIArray::{FIArray, FIArrayU64, FIArrayU128},
     bit_array::BitArray,
     fenwick::FenwickTree,
-    multiplicative_function_summation::mobius_sieve,
+    multiplicative_function_summation::{dirichlet_mul_single_zero_prefix_usize, mobius_sieve},
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
@@ -32,6 +32,7 @@ pub fn legendre(x: usize) -> usize {
 }
 
 // O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
+// 1e17: prime counting took 4042.9456095s: 2623557157654233
 // 1e16: prime counting took 525.8536176s: 279238341033925
 // 1e15: prime counting took 102.6765764s: 29844570422669
 // 1e14: prime counting took 19.8688139s: 3204941750802
@@ -445,7 +446,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e12 as usize;
+    const N: usize = 1e17 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");
@@ -460,7 +461,7 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    println!("lucy fenwick:");
+    /*println!("lucy fenwick:");
     let start = Instant::now();
     let count = lucy_fenwick_trick(N as _);
     let end = start.elapsed();
@@ -484,19 +485,19 @@ pub fn main() {
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}");*/
 
-    println!("legendre:");
+    /* println!("legendre:");
     let start = Instant::now();
     let count = legendre(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
     println!("standard-ish lucy");
-    let start = Instant::now();
+    /* let start = Instant::now();
     let count = lucy_dumber(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
     let start = Instant::now();
     let count = lucy(N as _)[N as _];
@@ -599,8 +600,8 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
         s.arr[i] = sieve.sum(v) as usize;
         count_sum += 1;
     }
-    dbg!((count_sum, count_add));
-    dbg!(y * (y as f64).ln().ln() as usize);
+    /* dbg!((count_sum, count_add));
+    dbg!(y * (y as f64).ln().ln() as usize); */
     s
 }
 
@@ -657,9 +658,9 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
             }
         }
     }
-    dbg!((count_sum, count_add));
-    dbg!(y * (y as f64).ln().ln() as usize);
-
+    /* dbg!((count_sum, count_add));
+       dbg!(y * (y as f64).ln().ln() as usize);
+    */
     s[x]
 }
 
@@ -715,8 +716,8 @@ pub fn lucy_trick(x: usize) -> usize {
             }
         }
     }
-    dbg!((count_sum, count_add));
-    dbg!(y * (y as f64).ln().ln() as usize);
+    /* dbg!((count_sum, count_add));
+    dbg!(y * (y as f64).ln().ln() as usize); */
 
     s[x]
 }
@@ -724,7 +725,7 @@ pub fn lucy_trick(x: usize) -> usize {
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
 // O(n^(2/3)) time, O(n^(1/2)) space. Pretty slow, despite noticeably superior time complexity.
 // Likely due to repeated calls to dirichlet_mul, which is not particularly fast.
-// Moreover, this function needs 4 times more memory than the O(n^0.75/log(n)) lucy_hedgehog based functions.
+// Moreover, this function needs 2 times more memory than the O(n^0.75/log(n)) lucy_hedgehog based functions.
 // O(n^0.75/log(n)) with low constant factors is better than O(n^(2/3)) with medium constant factors out to quite large n
 // uses the fact that the coefficients of the logarithm of the DGF of u(n) = 1 (i.e. the zeta function)
 // are exactly 1/k for p^k for some prime p, and 0 otherwise.
@@ -989,6 +990,108 @@ pub fn log_zeta_reordered(n: usize) -> FIArray {
     ret
 }
 
+// TODO: fix
+/* pub fn log_zeta_reordered_single(n: usize) -> usize {
+    const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
+    let rt = n.isqrt();
+    let mut zeta = FIArray::unit(n as _);
+    let len = zeta.arr.len();
+
+    let mut buffer = zeta.clone();
+
+    let mut ret = 0;
+    let x = {
+        let mut x = 2;
+        let mut x_cubed = 8;
+        while x_cubed <= rt {
+            x += 1;
+            x_cubed += 3 * x * (x - 1) + 1;
+        }
+        x
+    } * (n as f64).ln() as usize; // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
+    // remove contributions of small primes (first ~n^1/6 of them)
+    for p in 2..x {
+        let val = zeta.arr[p - 1] - 1;
+        if val == 0 {
+            //not prime
+            continue;
+        }
+        ret += 1;
+        for (i, nk) in buffer.arr.iter().enumerate().rev() {
+            if i < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[nk / p];
+        }
+        zeta.arr[p - 1] = 1;
+    }
+    //let prime_count = zeta.arr[..x - 1].iter().filter(|&&e| e == 1).count();
+    zeta.arr[..x - 1].fill(0);
+
+    for i in x..=len {
+        zeta.arr[i - 1] -= 1;
+    }
+
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x^5 / 5 - x^4 / 4 + x^3 / 3 - x^2 / 2 + x
+    // x is zeta_t - 1.
+    // in order to not have to deal with rational numbers, we compute 60 * log(zeta_t)
+    // and adjust later
+    // the contributions of x^4 and x^5 are 0 for essentially all reasonable n
+
+    ret += zeta.arr[len - 1] * INVS[1];
+
+    //let start = std::time::Instant::now();
+    let pow_zeta = dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1, x - 1);
+    //dbg!(start.elapsed());
+    let z2_pref = pow_zeta.arr.iter().take_while(|&&e| e == 0).count();
+
+    ret -= pow_zeta.arr[len - 1] * INVS[2];
+
+    if z2_pref * z2_pref < n {
+        ret -= INVS[4]
+            * dirichlet_mul_single_zero_prefix_usize(&pow_zeta, &pow_zeta, n, z2_pref, z2_pref);
+    }
+    if (x - 1) * z2_pref < n {
+        //if (x - 1) * z2_pref * z2_pref < n {
+        println!("hello 1");
+        dirichlet_mul_zero_prefix_with_buffer(&zeta, &pow_zeta, n, &mut buffer, x - 1, z2_pref);
+
+        ret += buffer.arr[len - 1] * INVS[3];
+
+        let z3_pref = buffer.arr.iter().take_while(|&&e| e == 0).count();
+
+        if z2_pref * z3_pref < n {
+            ret += dirichlet_mul_single_zero_prefix_usize(&pow_zeta, &buffer, n, z2_pref, z3_pref)
+                * INVS[5];
+        }
+        /* } else {
+        println!("hello 2");
+
+        ret +=
+            dirichlet_mul_single_zero_prefix_usize(&zeta, &pow_zeta, n, x - 1, z2_pref) * INVS[3];
+        } */
+    }
+    //dbg!(prime_count + ret.arr[len - 1] / 60); // approximate final result
+    // correction phase: get rid of contributions of prime powers
+    let primes = sift(rt as _);
+
+    for x in primes
+        .into_iter()
+        .filter_map(|p| (p as usize >= x).then_some(p as usize))
+    {
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+            ret -= INVS[e];
+        }
+    }
+
+    ret / 60
+}
+ */
 pub fn dirichlet_mul_zero_prefix(
     F: &FIArray,
     G: &FIArray,

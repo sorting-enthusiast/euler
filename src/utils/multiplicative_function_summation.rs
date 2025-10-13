@@ -407,6 +407,32 @@ macro_rules! min25_sieve_impl_for {
                 H
             }
 
+            pub fn [<dirichlet_mul_single_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> $type {
+                let rt_n = n.isqrt();
+                let mut ret = F.arr[0] * G[n as $type] + G.arr[0] * F[n as $type] - F[rt_n as $type] * G[rt_n as $type];
+                for i in 2..=rt_n {
+                    let ni = n / i;
+                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G[ni as $type]
+                        + (G.arr[i - 1] - G.arr[i - 2]) * F[ni as $type];
+                }
+                ret
+            }
+
+            pub fn [<dirichlet_mul_single_zero_prefix_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize, prefix_f: usize, prefix_g: usize) -> $type {
+                let rt_n = n.isqrt();
+                let mut ret = F.arr[0] * G[n as $type] + G.arr[0] * F[n as $type] - F[rt_n as $type] * G[rt_n as $type];
+                for i in prefix_f..prefix_g {
+                    let ni = n / i;
+                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G[ni as $type];
+                }
+                for i in prefix_g..=rt_n {
+                    let ni = n / i;
+                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G[ni as $type]
+                        + (G.arr[i - 1] - G.arr[i - 2]) * F[ni as $type];
+                }
+                ret
+            }
+
             pub fn [<dirichlet_div_ $type>](H: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> [<FIArray $type:camel>] {
                 let mut F = [<FIArray $type:camel>]::new(n as _);
                 let len = F.arr.len();

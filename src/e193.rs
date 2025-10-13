@@ -18,13 +18,13 @@ fn incl_excl(limit: u128, acc: u128, primes: &[u64]) -> u128 {
     res
 }
 #[must_use]
-fn count_squarefree(limit: u128) -> u128 {
+pub fn count_squarefree(limit: u128) -> u128 {
     let first_primes = sift((limit as f64).sqrt() as u64);
     limit - incl_excl(limit, 1, &first_primes)
 }
 
 pub fn main() {
-    const N: i64 = 1 << 50;
+    const N: i64 = 1 << 62;
     let start = Instant::now();
     let res = count_squarefree(N as _);
     let end = start.elapsed();

@@ -722,9 +722,37 @@ pub fn sieve_it() -> impl Iterator<Item = usize> {
 // times called: n - sqrt(n) - pi(n) + pi(sqrt(n)) == n - n/log(n) - (sqrt(n) - sqrt(n)/log(sqrt(n)))
 // total complexity:
 //
+
+//TODO: fix
+pub fn dijkstra_sieve(limit: usize) -> Vec<usize> {
+    let mut primes = vec![2, 3, 5];
+    let mut multiples = vec![];
+    let mut incrs: Vec<std::iter::Cycle<std::array::IntoIter<u8, 8>>> = vec![];
+    let mut num = 1;
+    let mut wheel_incr = WHEEL_2_3_5.into_iter().cycle();
+
+    loop {
+        num += unsafe { wheel_incr.next().unwrap_unchecked() } as usize;
+        if num > limit {
+            break;
+        }
+        if let Some(pos) = multiples.iter().position(|&e| e == num) {
+            let incr = unsafe { incrs[pos].next().unwrap_unchecked() } as usize;
+            multiples[pos] += incr * primes[pos + 3];
+        } else {
+            primes.push(num);
+            if num * num <= limit {
+                multiples.push(num * num);
+                incrs.push(wheel_incr.clone());
+            }
+        }
+    }
+    primes
+}
+
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 101;
+    const N: usize = 1e3 as usize + 7;
     //dbg!(hprime_sieve(500));
     /* {
          use rand::distr::uniform::{UniformSampler, UniformUsize};
@@ -857,6 +885,11 @@ pub fn main() {
 
     let start = Instant::now();
     dbg!(wheel_factorized_sieve_of_eratosthenes(N).len());
+    let end = start.elapsed();
+    println!("{end:?}");
+
+    let start = Instant::now();
+    dbg!(dijkstra_sieve(N).len());
     let end = start.elapsed();
     println!("{end:?}");
 
