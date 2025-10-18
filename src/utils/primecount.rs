@@ -446,7 +446,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e17 as usize;
+    const N: usize = 1e12 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");
@@ -461,7 +461,7 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    /*println!("lucy fenwick:");
+    println!("lucy fenwick:");
     let start = Instant::now();
     let count = lucy_fenwick_trick(N as _);
     let end = start.elapsed();
@@ -485,7 +485,7 @@ pub fn main() {
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");*/
+    println!("res = {count}, took {end:?}");
 
     /* println!("legendre:");
     let start = Instant::now();
@@ -494,10 +494,10 @@ pub fn main() {
     println!("res = {count}, took {end:?}"); */
 
     println!("standard-ish lucy");
-    /* let start = Instant::now();
+    let start = Instant::now();
     let count = lucy_dumber(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
     let count = lucy(N as _)[N as _];
@@ -858,6 +858,7 @@ pub fn log_zeta(n: usize) -> FIArray {
 }
 
 // identical to log_zeta, but convolutions are reordered in order to maximise shared 0 prefix, minor speedup for large n
+// 1e17: 14411.9862525s
 // 1e16: 2035.5664288s
 // 1e15: 362.4408137s
 // 1e14: 65.0882843s

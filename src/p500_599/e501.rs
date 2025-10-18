@@ -1,5 +1,5 @@
-use super::utils::binary_search::binsearch;
-use super::utils::sieve_of_pritchard::sift;
+use crate::utils::binary_search::binsearch;
+use crate::utils::sieve_of_pritchard::sift;
 // 501
 // ez: only look at composites with either 3 distinct prime factors,
 // or 2 distinct prime factors, with one of them being of multplicity 3 and the other of 1,

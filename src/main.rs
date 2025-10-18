@@ -7,50 +7,19 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use crate::{e193::count_squarefree, utils::powerful_numbers::PowerfulExt};
+use crate::p100_199::e193::count_squarefree;
 
-mod e107;
-mod e12;
-mod e153;
-mod e156;
-mod e169;
-mod e175;
-mod e193;
-mod e214;
-mod e233;
-mod e245;
-mod e249;
-mod e250;
-mod e255;
-mod e258;
-mod e27;
-mod e273;
-mod e302;
-mod e351;
-mod e355;
-mod e401;
-mod e415;
-mod e432;
-mod e439;
-mod e448;
-mod e484;
-mod e501;
-mod e508;
-mod e512;
-mod e521;
-mod e530;
-mod e606;
-mod e625;
-mod e639;
-mod e668;
-mod e708;
-mod e745;
-mod e810;
-mod e942;
-mod e955;
-mod longest_collatz_chain;
-mod utils;
-
+pub mod p0_99;
+pub mod p100_199;
+pub mod p200_299;
+pub mod p300_399;
+pub mod p400_499;
+pub mod p500_599;
+pub mod p600_699;
+pub mod p700_799;
+pub mod p800_899;
+pub mod p900_999;
+pub mod utils;
 const MOD: i64 = 1e9 as i64 + 7;
 const fn powmod(mut x: i64, mut exp: i64) -> i64 {
     if exp == 0 {
@@ -74,7 +43,14 @@ const fn modinv(x: i64) -> i64 {
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 pub fn main() {
     //e193::main();
-    e942::main();
+    //p900_999::e942::main();
+    let mut v = 0;
+    for i in 2..100 {
+        v ^= i;
+        println!("{v:0b}");
+    }
+    v = 2;
+    dbg!(v ^ (5 ^ 7));
     //utils::primecount::main();
     /*let n = 2e4 as i64;
     let prime_pi = utils::primecount::lucy(n as usize);

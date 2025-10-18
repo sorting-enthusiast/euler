@@ -1,4 +1,4 @@
-use crate::e169::aviv as f;
+use super::e169::aviv as f;
 
 // f is the function from e169
 pub fn main() {

@@ -3,7 +3,7 @@ use std::vec;
 
 use itertools::Itertools;
 
-use crate::e249::sieve;
+use crate::p200_299::e249::sieve;
 
 //const N: usize = 123_567_101_113;
 use super::bit_array::BitArray;
