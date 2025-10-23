@@ -7,7 +7,7 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use crate::p100_199::e193::count_squarefree;
+use crate::{p400_499::e464, p500_599::e580};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -42,15 +42,9 @@ const fn modinv(x: i64) -> i64 {
 
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 pub fn main() {
-    //e193::main();
-    //p900_999::e942::main();
-    let mut v = 0;
-    for i in 2..100 {
-        v ^= i;
-        println!("{v:0b}");
-    }
-    v = 2;
-    dbg!(v ^ (5 ^ 7));
+    //p200_299::e255::main();
+    //p900_999::e953::main();
+    e464::main();
     //utils::primecount::main();
     /*let n = 2e4 as i64;
     let prime_pi = utils::primecount::lucy(n as usize);

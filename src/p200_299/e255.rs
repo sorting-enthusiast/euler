@@ -55,7 +55,7 @@ fn iteration(r: RangeInclusive<u64>) -> usize {
     acc
 }
 
-pub fn main() {
+fn solve() {
     let start = Instant::now();
     let acc = (3_162_279..10_000_000)
         .map(|root| {
@@ -69,4 +69,29 @@ pub fn main() {
     let res = acc as f64 / (R - L) as f64;
     let end = start.elapsed();
     println!("res = {res:.10}, took {end:?}");
+}
+// adapted from forum post
+fn alt() {
+    let start = Instant::now();
+    let mut acc = 0;
+    let mut stack = vec![(L, R - 1, GUESS, 0)];
+    while let Some((a, b, x, n)) = stack.pop() {
+        let (qmin, qmax) = (a.div_ceil(x), b.div_ceil(x));
+        for q in qmin..=qmax {
+            let (na, nb) = (a.max((q - 1) * x + 1), b.min(q * x));
+            let x_next = (x + q) >> 1;
+            if x_next == x {
+                acc += (nb - na + 1) * (n + 1);
+            } else {
+                stack.push((na, nb, x_next, n + 1));
+            }
+        }
+    }
+    let res = acc as f64 / (R - L) as f64;
+    let end = start.elapsed();
+    println!("res = {res:.10}, took {end:?}");
+}
+pub fn main() {
+    solve();
+    alt();
 }

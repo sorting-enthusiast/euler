@@ -1,14 +1,16 @@
 use itertools::Itertools;
-
+#[derive(Clone)]
 pub struct FenwickTree(pub Vec<i64>);
 
 impl FenwickTree {
     pub fn new(len: usize, init: i64) -> Self {
         let mut v = vec![init; len];
-        for i in 1..len {
-            let r = i + (i & (!i + 1));
-            if r <= len {
-                v[r - 1] += v[i - 1];
+        if init != 0 {
+            for i in 1..len {
+                let r = i + (i & (!i + 1));
+                if r <= len {
+                    v[r - 1] += v[i - 1];
+                }
             }
         }
         Self(v)
