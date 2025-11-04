@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::HashSet, time::Instant};
 
 use fastdivide::DividerU64;
 use itertools::Itertools;
@@ -78,7 +78,6 @@ pub fn lucy_alt(x: usize) -> FIArray {
         s.arr[i] = (v + 1) >> 1;
     }
     s.arr[0] = 0;
-
     s.arr[2] = 2;
     for &p in &primes[1..] {
         let p = p as usize;
@@ -446,7 +445,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e12 as usize;
+    const N: usize = 1e6 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");

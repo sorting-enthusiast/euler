@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::utils::{fenwick::FenwickTree, multiplicative_function_summation::mobius_sieve};
-const N: usize = 2e7 as _;
+const N: usize = 1e9 as _;
 
 #[derive(Clone, Copy, Default)]
 struct Pt {
@@ -237,7 +237,7 @@ fn solve3() {
         let start = std::time::Instant::now();
 
         let mob = mobius_sieve(N + 1);
-        let mut xys: Vec<(i32, i32)> = vec![(0, 0); N + 1];
+        let mut xys = vec![(0, 0); N + 1];
 
         xys[1] = (100, -99);
         for i in 2..=N {
@@ -280,8 +280,9 @@ fn solve3() {
 }
 
 pub fn main() {
+    solve2();
     solve3();
-    solve();
+    //solve();
 }
 fn solve() {
     let start = std::time::Instant::now();
@@ -318,4 +319,200 @@ fn solve() {
         xys[i] = (k1, k2);
     }
     dbg!(count, start.elapsed());
+}
+fn solve2() {
+    {
+        let start = std::time::Instant::now();
+
+        let mob = mobius_sieve(N + 1);
+        let mut xs = vec![0; N + 1];
+        let mut ys = vec![0; N + 1];
+
+        (xs[1], ys[1]) = (100, -99);
+        for i in 2..=N {
+            let (mut k1, mut k2) = (xs[i - 1], ys[i - 1]);
+            if mob[i] == 1 {
+                k1 += 100;
+                k2 -= 99;
+            } else if mob[i] == -1 {
+                k1 -= 99;
+                k2 += 100;
+            }
+            (xs[i], ys[i]) = (k1, k2);
+        }
+        let mut count = (N * (N + 1)) >> 1;
+        let mut tmp = vec![0; N + 1];
+        count -= pingpong_inversions(&mut xs, &mut tmp);
+        count -= pingpong_inversions(&mut ys, &mut tmp);
+        /*
+            for i in 1..=N {
+                let (k1, k2) = (xs[i], ys[i]);
+
+                count -= xs[..i].iter().filter(|&&x| x > k1).count() // inversions in x
+                    +ys[..i].iter().filter(|&&y| y > k2).count() // inversions in y
+                    - both, but no points will fit this criterion
+        ;
+            } */
+        dbg!(count, start.elapsed());
+    }
+    {
+        let start = std::time::Instant::now();
+
+        let mob = mobius_sieve(N + 1);
+        let mut xs = vec![0; N + 1];
+        let mut ys = vec![0; N + 1];
+
+        (xs[1], ys[1]) = (100, -99);
+        for i in 2..=N {
+            let (mut k1, mut k2) = (xs[i - 1], ys[i - 1]);
+            if mob[i] == 1 {
+                k1 += 100;
+                k2 -= 99;
+            } else if mob[i] == -1 {
+                k1 -= 99;
+                k2 += 100;
+            }
+            (xs[i], ys[i]) = (k1, k2);
+        }
+        let mut count = (N * (N + 1)) >> 1;
+        let mut tmp = vec![0; N + 1];
+        count -= inversions(&mut xs, &mut tmp);
+        count -= inversions(&mut ys, &mut tmp);
+        /*
+            for i in 1..=N {
+                let (k1, k2) = (xs[i], ys[i]);
+
+                count -= xs[..i].iter().filter(|&&x| x > k1).count() // inversions in x
+                    +ys[..i].iter().filter(|&&y| y > k2).count() // inversions in y
+                    - both, but no points will fit this criterion
+        ;
+            } */
+        dbg!(count, start.elapsed());
+    }
+}
+fn inversions(pts: &mut [i32], tmp: &mut [i32]) -> usize {
+    let len = pts.len();
+    if len < 2 {
+        return 0;
+    }
+    let m = len >> 1;
+    let mut res =
+        inversions(&mut pts[..m], &mut tmp[..m]) + inversions(&mut pts[m..], &mut tmp[m..]);
+
+    let mut i = 0;
+    let mut j = m;
+    let mut k = 0;
+    loop {
+        if pts[i] <= pts[j] {
+            tmp[k] = pts[i];
+            i += 1;
+            if i >= m {
+                tmp[k + 1..].copy_from_slice(&pts[j..]);
+                break;
+            }
+        } else {
+            res += m - i; // current is smaller than all remaining left points
+            tmp[k] = pts[j];
+            j += 1;
+            if j == len {
+                tmp[k + 1..].copy_from_slice(&pts[i..m]);
+                break;
+            }
+        }
+        k += 1;
+    }
+
+    // Copy back so parent sees pts sorted by x
+    // Alternatively, could take inspiration from ping-pong merging
+    // to get rid of unproductive memcpy calls
+    pts.copy_from_slice(tmp);
+    res
+}
+fn pingpong_inversions(pts: &mut [i32], tmp: &mut [i32]) -> usize {
+    let len = pts.len();
+    if len < 4 {
+        return inversions(pts, tmp);
+    }
+    let m = len >> 1;
+    let q1 = m >> 1;
+    let q2 = (len - m) >> 1;
+    let mut res = pingpong_inversions(&mut pts[..q1], &mut tmp[..q1])
+        + pingpong_inversions(&mut pts[q1..m], &mut tmp[q1..m])
+        + pingpong_inversions(&mut pts[m..][..q2], &mut tmp[m..][..q2])
+        + pingpong_inversions(&mut pts[m..][q2..], &mut tmp[m..][q2..]);
+    {
+        let mut i = 0;
+        let mut j = q1;
+        let mut k = 0;
+        loop {
+            if pts[..m][i] <= pts[..m][j] {
+                tmp[..m][k] = pts[..m][i];
+                i += 1;
+                if i >= q1 {
+                    tmp[..m][k + 1..].copy_from_slice(&pts[..m][j..]);
+                    break;
+                }
+            } else {
+                res += q1 - i;
+                tmp[..m][k] = pts[..m][j];
+                j += 1;
+                if j == m {
+                    tmp[..m][k + 1..].copy_from_slice(&pts[i..q1]);
+                    break;
+                }
+            }
+            k += 1;
+        }
+    }
+    {
+        let mut i = 0;
+        let mut j = q2;
+        let mut k = 0;
+
+        loop {
+            if pts[m..][i] <= pts[m..][j] {
+                tmp[m..][k] = pts[m..][i];
+                i += 1;
+                if i >= q2 {
+                    tmp[m..][k + 1..].copy_from_slice(&pts[m..][j..]);
+                    break;
+                }
+            } else {
+                res += q2 - i;
+                tmp[m..][k] = pts[m..][j];
+                j += 1;
+                if j == len - m {
+                    tmp[m..][k + 1..].copy_from_slice(&pts[m..][i..q2]);
+                    break;
+                }
+            }
+            k += 1;
+        }
+    }
+    {
+        let mut i = 0;
+        let mut j = m;
+        let mut k = 0;
+
+        loop {
+            if tmp[i] <= tmp[j] {
+                pts[k] = tmp[i];
+                i += 1;
+                if i >= m {
+                    pts[k + 1..].copy_from_slice(&tmp[j..]);
+                    break;
+                }
+            } else {
+                res += m - i;
+                pts[k] = tmp[j];
+                j += 1;
+                if j == len {
+                    pts[k + 1..].copy_from_slice(&tmp[i..m]);
+                    break;
+                }
+            }
+            k += 1;
+        }
+    }
+    res
 }

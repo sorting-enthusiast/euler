@@ -16,11 +16,11 @@ fn find_factors(mut n: u64, primes: &[u64]) -> ([u32; 6], usize) {
         if n == 1 {
             return (factors, i);
         }
-        if n % p == 0 {
+        if n.is_multiple_of(p) {
             factors[i] = p as u32;
             n /= p;
             i += 1;
-            while n % p == 0 {
+            while n.is_multiple_of(p) {
                 n /= p;
             }
         }

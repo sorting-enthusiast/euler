@@ -7,7 +7,9 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use crate::{p400_499::e464, p500_599::e580};
+use chrono::Local;
+
+use crate::utils::polymul::{ntt, polymul};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -42,13 +44,16 @@ const fn modinv(x: i64) -> i64 {
 
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 pub fn main() {
-    //p200_299::e255::main();
-    //p900_999::e953::main();
-    e464::main();
+    println!("Started running at: {} ", Local::now().time());
+    p200_299::e269::main();
+    //p500_599::e548::main();
+    //p600_699::e606::main();
+
     //utils::primecount::main();
     /*let n = 2e4 as i64;
     let prime_pi = utils::primecount::lucy(n as usize);
     let sqfree_1 = count_squarefree(n.isqrt() as _) as usize;
     let sqfree_2 = count_squarefree((n as f64).cbrt() as _) as usize;
     dbg!(dbg!(PowerfulExt::<_, 2>::new(n, |_, _| 1).count()) - dbg!(sqfree_1) - dbg!(sqfree_2) + 1); */
+    println!("Finished running at: {} ", Local::now().time());
 }
