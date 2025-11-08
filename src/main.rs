@@ -45,10 +45,9 @@ const fn modinv(x: i64) -> i64 {
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 pub fn main() {
     println!("Started running at: {} ", Local::now().time());
-    p200_299::e269::main();
+    //p200_299::e269::main();
     //p500_599::e548::main();
-    //p600_699::e606::main();
-
+    p900_999::e967::main();
     //utils::primecount::main();
     /*let n = 2e4 as i64;
     let prime_pi = utils::primecount::lucy(n as usize);
