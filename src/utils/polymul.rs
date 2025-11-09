@@ -88,6 +88,7 @@ pub fn ntt(a: &mut [i32], invert: bool) {
     }
 }
 
+#[must_use]
 pub fn polymul(a: &[i32], b: &[i32]) -> Vec<i32> {
     let mut fa = a.iter().copied().collect_vec();
     let mut fb = b.iter().copied().collect_vec();

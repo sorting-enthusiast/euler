@@ -3,6 +3,7 @@ use itertools::Itertools;
 pub struct FenwickTree(pub Vec<i64>);
 
 impl FenwickTree {
+    #[must_use]
     pub fn new(len: usize, init: i64) -> Self {
         let mut v = vec![init; len];
         if init != 0 {
@@ -25,6 +26,7 @@ impl FenwickTree {
         }
         Self(v)
     }
+    #[must_use]
     pub fn sum(&self, i: usize) -> i64 {
         let mut i = i + 1;
         let mut sum = 0;

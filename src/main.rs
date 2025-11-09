@@ -7,13 +7,12 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use chrono::Local;
+use std::u64;
 
-use crate::utils::{
-    factorint::{factor, print_factors},
-    polymul::{ntt, polymul},
-    primality::is_prime,
-};
+use chrono::Local;
+use itertools::Itertools;
+
+use crate::utils::{factorint::factor, multiplicative_function_summation::sum_n_u64};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -26,25 +25,6 @@ pub mod p700_799;
 pub mod p800_899;
 pub mod p900_999;
 pub mod utils;
-const MOD: i64 = 1e9 as i64 + 7;
-const fn powmod(mut x: i64, mut exp: i64) -> i64 {
-    if exp == 0 {
-        return 1;
-    }
-    let mut r = 1;
-    x %= MOD;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r = (r * x) % MOD;
-        }
-        x = (x * x) % MOD;
-        exp >>= 1;
-    }
-    (r * x) % MOD
-}
-const fn modinv(x: i64) -> i64 {
-    powmod(x, MOD - 2)
-}
 
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 pub fn main() {
@@ -53,9 +33,7 @@ pub fn main() {
     //p500_599::e548::main();
     //p900_999::e967::main();
     //utils::primecount::main();
-    dbg!(is_prime(MOD as _));
-    print_factors(MOD as u64 + 1);
-    println!();
+    dbg!(factor((1 << 15) + 1).iter().sorted_unstable());
     /*let n = 2e4 as i64;
     let prime_pi = utils::primecount::lucy(n as usize);
     let sqfree_1 = count_squarefree(n.isqrt() as _) as usize;

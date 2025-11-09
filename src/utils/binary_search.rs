@@ -1,4 +1,4 @@
-// Because rust decided not to include lower_bound/upper_bound functions
+// Because rust decided not to include lower_bound/upper_bound functions for non-slices
 use core::hint::select_unpredictable;
 pub fn upper_bound<T, F, P, U>(a: &[T], value: &U, mut f: F, mut p: P) -> usize
 where

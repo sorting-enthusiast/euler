@@ -39,7 +39,7 @@ pub fn print_factors(n: u64) {
     print_factors(n / d);
 }
 
-pub fn factor(n: u64, factors: &mut Vec<u64>) {
+pub fn get_factors(n: u64, factors: &mut Vec<u64>) {
     if n == 1 {
         return;
     }
@@ -48,6 +48,12 @@ pub fn factor(n: u64, factors: &mut Vec<u64>) {
         return;
     }
     let d = rho(n);
-    factor(d, factors);
-    factor(n / d, factors);
+    get_factors(d, factors);
+    get_factors(n / d, factors);
+}
+#[must_use]
+pub fn factor(n: u64) -> Vec<u64> {
+    let mut ret = vec![];
+    get_factors(n, &mut ret);
+    ret
 }

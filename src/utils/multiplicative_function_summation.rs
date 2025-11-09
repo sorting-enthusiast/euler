@@ -8,6 +8,7 @@ use crate::utils::{
     bit_array::BitArray,
     prime_sieves::sift,
 };
+#[must_use]
 pub fn totient_sieve(n: usize) -> Vec<i64> {
     let mut res = vec![0; n];
     if n < 2 {
@@ -37,6 +38,7 @@ pub fn totient_sieve(n: usize) -> Vec<i64> {
     }
     res
 }
+#[must_use]
 pub fn mobius_sieve(n: usize) -> Vec<i8> {
     let mut res = vec![0; n];
     if n < 2 {
@@ -64,6 +66,7 @@ pub fn mobius_sieve(n: usize) -> Vec<i8> {
     }
     res
 }
+#[must_use]
 pub fn mobius_sieve_i16(n: usize) -> Vec<i16> {
     let mut res = vec![0; n];
     if n < 2 {
@@ -91,6 +94,7 @@ pub fn mobius_sieve_i16(n: usize) -> Vec<i16> {
     }
     res
 }
+#[must_use]
 pub fn divisor_sieve(n: usize) -> Vec<i64> {
     let mut res = vec![0; n];
     if n < 2 {
@@ -113,7 +117,7 @@ pub fn divisor_sieve(n: usize) -> Vec<i64> {
                 break;
             }
             composite.set(i * p);
-            if i % p == 0 {
+            if i.is_multiple_of(p) {
                 res[i * p] = res[i] + res[i / pow[i]];
                 pow[i * p] = pow[i] * p;
                 break;
@@ -125,6 +129,7 @@ pub fn divisor_sieve(n: usize) -> Vec<i64> {
     res
 }
 
+#[must_use]
 pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
@@ -160,6 +165,7 @@ pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
     }
     Phi
 }
+#[must_use]
 pub fn mertens(x: i64) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 2)
@@ -191,11 +197,13 @@ pub fn mertens(x: i64) -> FIArrayI64 {
     }
     M
 }
+#[must_use]
 pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     let u = FIArrayI64::unit(x);
     dirichlet_mul_i64(&u, &u, x as _)
 }
 
+#[must_use]
 pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     let M = mertens(x);
     let mut sum = M[x] + sum_n_i64::<MOD>(x);
@@ -213,6 +221,7 @@ pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     }
     sum
 }
+#[must_use]
 pub fn mertens_slow(x: i64) -> FIArrayI64 {
     let y = if x > 1023 {
         x.isqrt() as usize
@@ -279,7 +288,7 @@ use paste::paste;
 macro_rules! min25_sieve_impl_for {
     ($($type:ty),+) => { $(
         paste!{
-            pub const fn [<divisor_summatory_ $type>](x: $type) -> $type {
+            #[must_use] pub const fn [<divisor_summatory_ $type>](x: $type) -> $type {
                 let mut sum = 0;
                 let sqrt = x.isqrt();
                 let mut n = 1;
@@ -692,6 +701,7 @@ macro_rules! min25_sieve_impl_for {
 min25_sieve_impl_for!(u32, i32, u64, i64, usize, isize, u128, i128);
 
 // O(log(k)x^(2/3)) time, O(x^(1/2)) space, specifically ~6x^(1/2) i64's
+#[must_use]
 pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI64 {
     assert!(k > 1);
     let mut buffer = FIArrayI64::new(x);
@@ -720,6 +730,7 @@ pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI6
     buffer
 }
 
+#[must_use]
 pub fn general_divisor_summatory_alt<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI64 {
     assert!(k > 1);
     let mut buffer = FIArrayI64::new(x);

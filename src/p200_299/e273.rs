@@ -1,21 +1,7 @@
 use itertools::Itertools;
 
-use crate::utils::{gaussian_ints::GaussianI64, prime_sieves::sift};
+use crate::utils::{gaussian_ints::GaussianI64, primality::powmod, prime_sieves::sift};
 
-const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
-    if exp == 0 {
-        return 1;
-    }
-    let mut r = 1;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r = (r * x) % modulo;
-        }
-        x = (x * x) % modulo;
-        exp >>= 1;
-    }
-    (r * x) % modulo
-}
 fn sum_of_squares(p: u64) -> (i64, i64) {
     assert_eq!(
         p & 3,

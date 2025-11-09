@@ -7,13 +7,14 @@ use crate::utils::{
     FIArray::{FIArray, FIArrayU64, FIArrayU128},
     bit_array::BitArray,
     fenwick::FenwickTree,
-    multiplicative_function_summation::{dirichlet_mul_single_zero_prefix_usize, mobius_sieve},
+    multiplicative_function_summation::mobius_sieve,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
 // not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
+#[must_use]
 pub fn legendre(x: usize) -> usize {
     let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::unit(x);
@@ -41,6 +42,7 @@ pub fn legendre(x: usize) -> usize {
 // 1e11: prime counting took 117.2172ms: 4118054813
 // 1e10: prime counting took 23.0519ms: 455052511
 // 1e9: prime counting took 4.6073ms: 50847534
+#[must_use]
 pub fn lucy(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
@@ -68,6 +70,7 @@ pub fn lucy(x: usize) -> FIArray {
     }
     s
 }
+#[must_use]
 pub fn lucy_alt(x: usize) -> FIArray {
     let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::new(x);
@@ -91,6 +94,7 @@ pub fn lucy_alt(x: usize) -> FIArray {
     }
     s
 }
+#[must_use]
 pub fn lucy_wheel(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
@@ -138,6 +142,7 @@ pub fn lucy_wheel(x: usize) -> FIArray {
     }
     s
 }
+#[must_use]
 pub fn lucy_wheel210(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
@@ -184,6 +189,7 @@ pub fn lucy_wheel210(x: usize) -> FIArray {
     s
 }
 
+#[must_use]
 pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
     let mut s = FIArrayU64::new(x);
     let keys = FIArrayU64::keys(x).collect_vec();
@@ -213,6 +219,7 @@ pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
     }
     s
 }
+#[must_use]
 pub fn lucy_fastdivide_alt(x: u64) -> FIArrayU64 {
     let primes = sift(x.isqrt());
 
@@ -239,6 +246,7 @@ pub fn lucy_fastdivide_alt(x: u64) -> FIArrayU64 {
     }
     s
 }
+#[must_use]
 pub fn lucy_fastdivide_wheel(x: u64) -> FIArrayU64 {
     let mut s = FIArrayU64::new(x);
     let keys = FIArrayU64::keys(x).collect_vec();
@@ -287,6 +295,7 @@ pub fn lucy_fastdivide_wheel(x: u64) -> FIArrayU64 {
     }
     s
 }
+#[must_use]
 pub fn lucy_fastdivide_wheel210(x: u64) -> FIArrayU64 {
     let mut s = FIArrayU64::new(x);
     let keys = FIArrayU64::keys(x).collect_vec();
@@ -334,6 +343,7 @@ pub fn lucy_fastdivide_wheel210(x: u64) -> FIArrayU64 {
     s
 }
 
+#[must_use]
 pub fn lucy_strengthreduce(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
@@ -364,6 +374,7 @@ pub fn lucy_strengthreduce(x: usize) -> FIArray {
     }
     s
 }
+#[must_use]
 pub fn lucy_strengthreduce_alt(x: usize) -> FIArray {
     let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::new(x);
@@ -399,6 +410,7 @@ const fn sum_n<const MOD: u128>(x: u128) -> u128 {
         x.div_ceil(2) * x
     }) % MOD
 }
+#[must_use]
 pub fn lucy_sum<const MOD: u128>(x: u128) -> FIArrayU128 {
     let mut s = FIArrayU128::new(x);
     let keys = FIArrayU128::keys(x).collect_vec();
@@ -425,6 +437,7 @@ pub fn lucy_sum<const MOD: u128>(x: u128) -> FIArrayU128 {
 }
 
 // easier to understand, but completely inferior due to many more integer divisions: never use
+#[must_use]
 pub fn lucy_dumber(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     for v in FIArray::keys(x) {
@@ -552,6 +565,7 @@ pub fn main() {
 }
 
 //never faster for me, though asymptotically better: O(x^(2/3) (logx)(loglogx)^(1/3)) vs O(x^(3/4) / log(x))
+#[must_use]
 pub fn lucy_fenwick(x: usize) -> FIArray {
     let mut s = FIArray::new(x);
     let sqrtx = x.isqrt();
@@ -604,6 +618,7 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
     s
 }
 
+#[must_use]
 pub fn lucy_fenwick_trick(x: usize) -> usize {
     let mut s = FIArray::new(x);
     let sqrtx = x.isqrt();
@@ -663,6 +678,7 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
     s[x]
 }
 
+#[must_use]
 pub fn lucy_trick(x: usize) -> usize {
     let mut s = FIArray::new(x);
     let sqrtx = x.isqrt();
@@ -731,6 +747,7 @@ pub fn lucy_trick(x: usize) -> usize {
 // Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
 // over the primes, though tbh you should probably just use lucy's algorithm for that.
 // TODO: try to speed up the convolution steps more somehow, as they are the main bottleneck
+#[must_use]
 pub fn log_zeta(n: usize) -> FIArray {
     const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
     let rt = n.isqrt();
@@ -868,6 +885,7 @@ pub fn log_zeta(n: usize) -> FIArray {
 // 1e9: 17.5497ms
 // 1e8: 3.5963ms
 // can try to write version which only computes final result:
+#[must_use]
 pub fn log_zeta_reordered(n: usize) -> FIArray {
     const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
     let rt = n.isqrt();
@@ -1092,6 +1110,7 @@ pub fn log_zeta_reordered(n: usize) -> FIArray {
     ret / 60
 }
  */
+#[must_use]
 pub fn dirichlet_mul_zero_prefix(
     F: &FIArray,
     G: &FIArray,
@@ -1264,11 +1283,12 @@ pub fn dirichlet_mul_zero_prefix_with_buffer(
 /// Ramanujan's formula:
 /// <https://en.wikipedia.org/wiki/Logarithmic_integral_function#Series_representation>
 ///
+#[must_use]
 pub fn li(x: f64) -> f64 {
+    const GAMMA: f64 = 0.577215664901532860606512090082402431_f64;
     if x <= 1. {
         return 0.;
     }
-    const gamma: f64 = 0.577215664901532860606512090082402431_f64;
     let mut sum = 0.;
     let mut inner_sum = 0.;
     let mut factorial = 1.;
@@ -1301,13 +1321,14 @@ pub fn li(x: f64) -> f64 {
         }
     }
 
-    gamma + logx.ln() + x.sqrt() * sum
+    GAMMA + logx.ln() + x.sqrt() * sum
 }
 
 /// Calculate the Eulerian logarithmic integral which is a very
 /// accurate approximation of the number of primes <= x.
 /// Li(x) > pi(x) for 24 <= x <= ~ 10^316
 ///
+#[must_use]
 pub fn Li(x: usize) -> usize {
     const li2: f64 = 1.045163780117492784844588889194613136_f64;
 
@@ -1318,6 +1339,7 @@ pub fn Li(x: usize) -> usize {
     }
 }
 
+#[must_use]
 pub fn R(x: usize) -> usize {
     /* let Li = |x: f64| {
         const li2: f64 = 1.045163780117492784844588889194613136_f64;

@@ -15,7 +15,7 @@ macro_rules! FIArray_impl_for {
             }
 
             impl [<FIArray $type:camel>] {
-                pub fn new(x: $type) -> Self {
+                #[must_use] pub fn new(x: $type) -> Self {
                     let isqrt = x.isqrt();
                     let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
                     Self {
@@ -24,17 +24,17 @@ macro_rules! FIArray_impl_for {
                         arr: vec![0; l as usize],
                     }
                 }
-                pub fn unit(x: $type) -> Self {
+                #[must_use] pub fn unit(x: $type) -> Self {
                     let isqrt = x.isqrt();
                     let arr = Self::keys(x).collect_vec();
                     Self { x, isqrt, arr }
                 }
-                pub fn id<const MOD: $type>(x: $type) -> Self {
+                #[must_use] pub fn id<const MOD: $type>(x: $type) -> Self {
                     let isqrt = x.isqrt();
                     let arr = Self::keys(x).map(|v| [<sum_n_ $type>]::<MOD>(v)).collect_vec();
                     Self { x, isqrt, arr }
                 }
-                pub fn eps(x: $type) -> Self {
+                #[must_use] pub fn eps(x: $type) -> Self {
                     let isqrt = x.isqrt();
                     let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
                     Self {
@@ -43,13 +43,13 @@ macro_rules! FIArray_impl_for {
                         arr: vec![1; l as usize],
                     }
                 }
-                pub fn keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
+                #[must_use] pub fn keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
                     let isqrt = x.isqrt();
                     (1..=isqrt)
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
                         .chain((1..isqrt).rev().map(move |n| x / n))
                 }
-                pub fn get_index(&self, v: $type) -> usize {
+                #[must_use] pub fn get_index(&self, v: $type) -> usize {
                     if v <= 0 {
                         0
                     } else if v <= self.isqrt {

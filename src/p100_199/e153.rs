@@ -1,7 +1,9 @@
 use itertools::{Either, Itertools};
 use std::collections::HashSet;
 
-use crate::utils::{FIArray::FIArrayU64, bit_array::BitArray, prime_sieves::sift};
+use crate::utils::{
+    FIArray::FIArrayU64, bit_array::BitArray, primality::powmod, prime_sieves::sift,
+};
 
 const fn modexp(mut x: usize, mut exp: usize, modulo: usize) -> usize {
     if exp == 0 {
@@ -94,7 +96,7 @@ fn sieve(n: usize) -> Vec<usize> {
                 break;
             }
             //composite.set(i * p);
-            if i % p == 0 {
+            if i.is_multiple_of(p) {
                 pow[i * p] = pow[i] * p;
                 let v = i / pow[i];
                 if v != 1 {
@@ -208,20 +210,7 @@ fn wrapper(lim: u64, primes: &[u64]) -> u64 {
     }
     sum
 }
-const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
-    if exp == 0 {
-        return 1;
-    }
-    let mut r = 1;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r = (r * x) % modulo;
-        }
-        x = (x * x) % modulo;
-        exp >>= 1;
-    }
-    (r * x) % modulo
-}
+
 fn sum_of_squares(p: u64) -> (u64, u64) {
     assert_eq!(
         p & 3,

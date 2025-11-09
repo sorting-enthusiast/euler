@@ -4,8 +4,9 @@ pub struct BitArray {
     pub bits: Box<[usize]>,
 }
 impl BitArray {
-    pub fn zeroed(n: usize) -> BitArray {
-        BitArray {
+    #[must_use]
+    pub fn zeroed(n: usize) -> Self {
+        Self {
             bits: vec![0; (n >> ELEM_BIT_WIDTH) + 1].into_boxed_slice(),
         }
     }
@@ -18,6 +19,7 @@ impl BitArray {
         self.bits[i >> ELEM_BIT_WIDTH] |= 1 << (i & MASK);
     }
     #[inline(always)]
+    #[must_use]
     pub fn get(&self, i: usize) -> bool {
         self.bits[i >> ELEM_BIT_WIDTH] & (1 << (i & MASK)) != 0
     }

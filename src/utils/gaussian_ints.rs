@@ -4,12 +4,14 @@ pub struct GaussianI64 {
     pub im: i64,
 }
 impl GaussianI64 {
+    #[must_use]
     pub const fn conj(&self) -> Self {
         Self {
             re: self.re,
             im: -self.im,
         }
     }
+    #[must_use]
     pub const fn norm(&self) -> u64 {
         let a = self.re.unsigned_abs();
         let b = self.im.unsigned_abs();

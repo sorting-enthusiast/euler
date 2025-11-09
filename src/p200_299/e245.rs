@@ -22,7 +22,7 @@ pub fn main() {
                 break;
             }
             composite.set(ip);
-            if i % p == 0 {
+            if i.is_multiple_of(p) {
                 phis[ip] = phis[i] * p;
                 break;
             }
@@ -32,7 +32,7 @@ pub fn main() {
     let mut count = 0;
     for i in 2..BLOCK {
         let cophi = i - phis[i];
-        if cophi != 1 && (i - 1) % cophi == 0 {
+        if cophi != 1 && (i - 1).is_multiple_of(cophi) {
             println!("{i}: {}, {}", i - 1, cophi);
             sum += i;
             count += 1;
@@ -65,7 +65,7 @@ pub fn main() {
                 let mut k = large_prime_factor[multiple - l];
                 //dbg!(k);
 
-                while k % p == 0 {
+                while k.is_multiple_of(p) {
                     k /= p;
                 }
                 large_prime_factor[multiple - l] = k;
@@ -79,7 +79,7 @@ pub fn main() {
                 phis[i - l] *= k - 1;
             }
             let cophi = i - phis[i - l];
-            if cophi != 1 && (i - 1) % cophi == 0 {
+            if cophi != 1 && (i - 1).is_multiple_of(cophi) {
                 println!("{i}: {}, {}", i - 1, cophi);
                 sum += i;
                 count += 1;
