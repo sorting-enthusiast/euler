@@ -1,7 +1,7 @@
 use itertools::Itertools;
 // change according to usecase
 
-const MOD: i64 = 998244353; // u64::MAX - u32::MAX as u64 + 1
+const MOD: i64 = 998_244_353; // u64::MAX - u32::MAX as u64 + 1
 const ROOT: i64 = powmod(3, 119);
 const ROOT_1: i64 = modinv(ROOT);
 const ROOT_PW: usize = 1 << 23;
@@ -92,10 +92,10 @@ pub fn polymul(a: &[i32], b: &[i32]) -> Vec<i32> {
     let mut fa = a.iter().copied().collect_vec();
     let mut fb = b.iter().copied().collect_vec();
     let Some(trunc_a) = a.iter().rposition(|&e| e != 0) else {
-        return vec![0];
+        return vec![];
     };
     let Some(trunc_b) = b.iter().rposition(|&e| e != 0) else {
-        return vec![0];
+        return vec![];
     };
 
     let n = (trunc_a + 1 + trunc_b + 1 - 1).next_power_of_two();

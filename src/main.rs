@@ -9,7 +9,11 @@
 
 use chrono::Local;
 
-use crate::utils::polymul::{ntt, polymul};
+use crate::utils::{
+    factorint::{factor, print_factors},
+    polymul::{ntt, polymul},
+    primality::is_prime,
+};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -47,8 +51,11 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e269::main();
     //p500_599::e548::main();
-    p900_999::e967::main();
+    //p900_999::e967::main();
     //utils::primecount::main();
+    dbg!(is_prime(MOD as _));
+    print_factors(MOD as u64 + 1);
+    println!();
     /*let n = 2e4 as i64;
     let prime_pi = utils::primecount::lucy(n as usize);
     let sqfree_1 = count_squarefree(n.isqrt() as _) as usize;

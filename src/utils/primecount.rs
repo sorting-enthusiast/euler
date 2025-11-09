@@ -445,7 +445,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e6 as usize;
+    const N: usize = 1e13 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");

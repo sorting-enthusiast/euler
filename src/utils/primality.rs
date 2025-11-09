@@ -1,4 +1,5 @@
-const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
+#[must_use]
+pub const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
     if exp == 0 {
         return 1;
     }
@@ -13,7 +14,8 @@ const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
     }
     mulmod(r, x, modulo)
 }
-const fn mulmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
+#[must_use]
+pub const fn mulmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
     if exp == 0 {
         return 0;
     }
@@ -30,31 +32,30 @@ const fn mulmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
 }
 #[must_use]
 pub fn is_prime(n: u64) -> bool {
-    if n == 2 {
-        return true;
+    assert!(n <= 7e18 as u64);
+    if n < 2 || (n % 6) % 4 != 1 {
+        return (n | 1) == 3;
     }
-    if n & 1 == 0 {
-        return false;
-    }
-    let bases = //[2, 325, 9375, 28178, 450775, 9780504, 1795265022]; //
-    [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+    let bases = [2u64, 325, 9375, 28178, 450_775, 97_805_044, 1_795_265_022];
     let s = (n - 1).trailing_zeros();
     let d = (n - 1) >> s;
-    //dbg!(s, d);
+
     for a in bases {
-        if a >= n {
-            break;
+        if a.is_multiple_of(n) {
+            continue;
         }
-        let mut x = powmod(a, d, n);
-        let mut y = 1;
+        let mut p = powmod(a, d, n);
+        if p == 1 || p == n - 1 {
+            continue;
+        }
         for _ in 0..s {
-            y = mulmod(x, x, n);
-            if y == 1 && x != 1 && x != n - 1 {
-                return false;
+            p = mulmod(p, p, n);
+            if p == 1 || p == n - 1 {
+                break;
             }
-            x = y;
         }
-        if y != 1 {
+
+        if p != n - 1 {
             return false;
         }
     }
