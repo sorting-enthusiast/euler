@@ -1,11 +1,16 @@
-use crate::utils::{FIArray::FIArrayI64, multiplicative_function_summation::totient_sum};
+use itertools::Itertools;
+
+use crate::utils::{
+    FIArray::FIArrayI64,
+    multiplicative_function_summation::{dirichlet_div_i64, totient_sum},
+};
 use std::{collections::HashMap, time::Instant};
 
 const MOD: i64 = 1e9 as i64;
 const N: usize = 510_510;
 const PHI_N: usize = 92160;
 
-const M: i64 = 1e12 as i64;
+const M: i64 = 1e11 as i64;
 
 const PRIMES: [i64; 7] = [2, 3, 5, 7, 11, 13, 17];
 const fn lookup_create() -> [(i64, i64); 128] {

@@ -7,12 +7,9 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use std::u64;
-
 use chrono::Local;
-use itertools::Itertools;
 
-use crate::utils::{factorint::factor, multiplicative_function_summation::sum_n_u64};
+use crate::utils::factorint::factor;
 
 pub mod p0_99;
 pub mod p100_199;
@@ -31,13 +28,7 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e269::main();
     //p500_599::e548::main();
-    //p900_999::e967::main();
     //utils::primecount::main();
-    dbg!(factor((1 << 15) + 1).iter().sorted_unstable());
-    /*let n = 2e4 as i64;
-    let prime_pi = utils::primecount::lucy(n as usize);
-    let sqfree_1 = count_squarefree(n.isqrt() as _) as usize;
-    let sqfree_2 = count_squarefree((n as f64).cbrt() as _) as usize;
-    dbg!(dbg!(PowerfulExt::<_, 2>::new(n, |_, _| 1).count()) - dbg!(sqfree_1) - dbg!(sqfree_2) + 1); */
+
     println!("Finished running at: {} ", Local::now().time());
 }

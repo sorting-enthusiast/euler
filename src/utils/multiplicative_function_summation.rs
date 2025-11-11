@@ -283,7 +283,23 @@ pub fn sum_over_primes<const MOD: i64>(
     s
 }
 
-//
+pub fn trick<const MOD: i64>(
+    n: i64,
+    mut g: impl FnMut(i64) -> i64,
+    mut F: impl FnMut(i64) -> i64,
+) -> i64 {
+    let mut res = 0;
+    let mut m = n;
+    while m > 0 {
+        res += ((F(n / m) + MOD - F(n / (m + 1))) % MOD * g(m)) % MOD;
+        if res >= MOD {
+            res -= MOD;
+        }
+        m = n / (n / m + 1);
+    }
+    res
+}
+
 use paste::paste;
 macro_rules! min25_sieve_impl_for {
     ($($type:ty),+) => { $(
