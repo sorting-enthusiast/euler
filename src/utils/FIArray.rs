@@ -11,7 +11,7 @@ macro_rules! FIArray_impl_for {
             pub struct [<FIArray $type:camel>] {
                 x: $type,
                 isqrt: $type,
-                pub arr: Vec<$type>,
+                pub arr: Box<[$type]>,
             }
 
             impl [<FIArray $type:camel>] {
@@ -21,17 +21,17 @@ macro_rules! FIArray_impl_for {
                     Self {
                         x,
                         isqrt,
-                        arr: vec![0; l as usize],
+                        arr: vec![0; l as usize].into_boxed_slice(),
                     }
                 }
                 #[must_use] pub fn unit(x: $type) -> Self {
                     let isqrt = x.isqrt();
-                    let arr = Self::keys(x).collect_vec();
+                    let arr = Self::keys(x).collect_vec().into_boxed_slice();
                     Self { x, isqrt, arr }
                 }
                 #[must_use] pub fn id<const MOD: $type>(x: $type) -> Self {
                     let isqrt = x.isqrt();
-                    let arr = Self::keys(x).map(|v| [<sum_n_ $type>]::<MOD>(v)).collect_vec();
+                    let arr = Self::keys(x).map(|v| [<sum_n_ $type>]::<MOD>(v)).collect_vec().into_boxed_slice();
                     Self { x, isqrt, arr }
                 }
                 #[must_use] pub fn eps(x: $type) -> Self {
@@ -40,7 +40,7 @@ macro_rules! FIArray_impl_for {
                     Self {
                         x,
                         isqrt,
-                        arr: vec![1; l as usize],
+                        arr: vec![1; l as usize].into_boxed_slice(),
                     }
                 }
                 #[must_use] pub fn keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {

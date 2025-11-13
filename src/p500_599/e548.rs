@@ -5,6 +5,7 @@ use crate::utils::{factorint::print_factors, primality::is_prime, prime_sieves::
 // let f(n) count the # of gozinta chains for n:
 // f(n) = sum over d|n, d<n of f(d)
 // f(p^e) = 2^(e-1)
+// up to 10^16 have at most 13 distinct prime factors
 const N: usize = 1e9 as _;
 pub fn main() {
     let mut goz = vec![1; N + 1];
