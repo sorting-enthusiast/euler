@@ -26,15 +26,15 @@ pub fn main() {
 
     let mut keys = keys.into_iter().collect_vec();
     keys.sort_unstable();
-    let keys = keys;
+    let keys = keys.into_boxed_slice();
 
     let get_index = |v| keys.partition_point(|&e| e < v);
 
     let mut c = [
         keys.clone(),
-        vec![0; keys.len()],
-        vec![0; keys.len()],
-        vec![0; keys.len()],
+        vec![0; keys.len()].into_boxed_slice(),
+        vec![0; keys.len()].into_boxed_slice(),
+        vec![0; keys.len()].into_boxed_slice(),
     ];
     for p in PRIMES {
         for (i, &v) in keys.iter().enumerate().rev() {
@@ -54,6 +54,10 @@ pub fn main() {
             c[3][i] += c[2][j];
         }
     }
-    let res = N - c[0][get_index(N)] - c[1][get_index(N)] - c[2][get_index(N)] - c[3][get_index(N)];
+    let res = N
+        - c[0][keys.len() - 1]
+        - c[1][keys.len() - 1]
+        - c[2][keys.len() - 1]
+        - c[3][keys.len() - 1];
     println!("res = {res}, took {:?}", start.elapsed());
 }
