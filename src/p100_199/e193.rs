@@ -104,8 +104,9 @@ fn dirichlet_mul_based_opt(x: u64) -> u64 {
     let xsqrt = x.isqrt();
     let primes = sift(xsqrt).into_boxed_slice();
     let xcbrt = (x as f64).cbrt() as u64;
-    let mut keys = (1..=xcbrt)
+    let mut keys = (1..xcbrt)
         .map(|d| x / (d * d))
+        .chain((xcbrt != x / (xcbrt * xcbrt)).then_some(x / (xcbrt * xcbrt)))
         .chain((1..=xcbrt).rev())
         .collect_vec(); // can probably reduce the number of keys
     keys.reverse();
@@ -139,11 +140,12 @@ fn dirimul_opt(N: u64) -> u64 {
     let xsqrt = N.isqrt();
     let primes = sift(xsqrt);
     let xcbrt = (N as f64).cbrt() as u64;
-    let large_keys = (1..=xcbrt)
+    let large_keys = (1..xcbrt)
         .map(|d| N / (d * d))
+        .chain((xcbrt != N / (xcbrt * xcbrt)).then_some(N / (xcbrt * xcbrt)))
         .collect_vec()
         .into_boxed_slice();
-    let mut large_sqf = vec![0; xcbrt as usize].into_boxed_slice();
+    let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
     let mut small_sqf = vec![0; xcbrt as usize].into_boxed_slice();
 
     for v in 1..=xcbrt {

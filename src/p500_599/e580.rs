@@ -9,8 +9,8 @@ use crate::utils::{FIArray::FIArrayU64, prime_sieves::sift};
 const N: u64 = 1e16 as _;
 pub fn main() {
     println!("res = {}", 2_327_213_148_095_366_u64);
-    solve(); // can definitely optimize this more
     solve_alt(); // case in point
+    solve(); // can definitely optimize this more
     trivial();
     let start = std::time::Instant::now();
     let res = lucy_based_2(N as _);
