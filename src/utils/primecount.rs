@@ -117,10 +117,14 @@ pub fn lucy_non_fiarray(x: usize) -> usize {
     let isqrt = x.isqrt();
 
     let mut small_s = vec![0; isqrt].into_boxed_slice();
-    let mut large_s = vec![0; isqrt].into_boxed_slice();
-    for v in 1..=isqrt {
+    let mut large_s = vec![0; isqrt - usize::from(isqrt == x / isqrt)].into_boxed_slice();
+    for v in 1..isqrt {
         small_s[v - 1] = (v + 1) >> 1;
         large_s[v - 1] = (x / v + 1) >> 1;
+    }
+    small_s[isqrt - 1] = (isqrt + 1) >> 1;
+    if isqrt != x / isqrt {
+        large_s[isqrt - 1] = (x / isqrt + 1) >> 1;
     }
 
     small_s[0] = 0;
@@ -133,16 +137,28 @@ pub fn lucy_non_fiarray(x: usize) -> usize {
             continue;
         }
         let mut dp = 0;
-        let mut dpp = 0;
-        for d in 1..=isqrt {
+        let xp = x / p;
+        for d in 1..isqrt {
             dp += p;
-            dpp += pp;
 
-            if x < dpp {
+            if xp < dp {
                 break;
             }
-            large_s[d - 1] -= if x / dp <= isqrt {
-                small_s[(x / dp) - 1]
+            large_s[d - 1] -= if xp / d <= isqrt {
+                small_s[(xp / d) - 1]
+            } else {
+                large_s[dp - 1]
+            } - sp;
+        }
+        if isqrt != x / isqrt {
+            let d = isqrt;
+            dp += p;
+
+            if xp < dp {
+                break;
+            }
+            large_s[d - 1] -= if xp / d <= isqrt {
+                small_s[(xp / d) - 1]
             } else {
                 large_s[dp - 1]
             } - sp;
@@ -439,7 +455,7 @@ pub fn lucy_strengthreduce(x: usize) -> FIArray {
     for (i, v) in keys.iter().enumerate() {
         s.arr[i] = (v + 1) >> 1;
     }
-    s.arr[2] = 2;
+
     s.arr[0] = 0;
 
     let mut pp = 1;
@@ -593,10 +609,10 @@ pub fn main() {
     println!("res = {count}, took {end:?}"); */
 
     println!("standard-ish lucy");
-    let start = Instant::now();
+    /* let start = Instant::now();
     let count = lucy_dumber(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
     let start = Instant::now();
     let count = lucy(N as _)[N as _];
