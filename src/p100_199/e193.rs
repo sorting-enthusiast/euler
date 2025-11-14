@@ -201,6 +201,7 @@ fn dirichlet_mul_based(x: u64) -> FIArrayU64 {
 }
 
 // https://arxiv.org/pdf/1107.4890
+// essentially just leverages the dirichlet hyperbola method
 // becomes faster than incl-excl somewhere between 2^34 and 2^35
 // O(n^0.4) space and time
 #[must_use]

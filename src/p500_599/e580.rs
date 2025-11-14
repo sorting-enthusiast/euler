@@ -1,6 +1,9 @@
 use itertools::Itertools;
 
-use crate::utils::{FIArray::FIArrayU64, prime_sieves::sift};
+use crate::utils::{
+    FIArray::FIArrayU64,
+    prime_sieves::{sieve_it, sift},
+};
 
 // Hilbert numbers are numbers that are products of any number of primes equivalent to 1 mod 4,
 // and an even number of primes equivalent to 3 mod 4
@@ -12,10 +15,6 @@ pub fn main() {
     solve_alt(); // case in point
     solve(); // can definitely optimize this more
     trivial();
-    let start = std::time::Instant::now();
-    let res = lucy_based_2(N as _);
-    let end = start.elapsed();
-    println!("res = {res}, took {end:?}");
 }
 
 fn trivial() {
@@ -142,6 +141,62 @@ fn solve() {
         .fold(squarefree[keys.len() - 1], |acc, p| {
             acc + squarefree[rank(N / (p * p))]
         });
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+}
+
+fn solve_alt2() {
+    let start = std::time::Instant::now();
+    let xsqrt = N.isqrt();
+    let xcbrt = (N as f64).cbrt() as u64;
+    let large_keys = (1..=xcbrt)
+        .step_by(2)
+        .map(|d| N / (d * d))
+        .collect_vec()
+        .into_boxed_slice();
+    //let small_keys = (1..=xcbrt).collect_vec().into_boxed_slice();
+
+    let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
+    let mut small_sqf = vec![0; xcbrt as usize].into_boxed_slice();
+
+    for v in 1..=xcbrt {
+        small_sqf[v as usize - 1] = (v + 3) >> 2;
+    }
+    for (i, &v) in large_keys.iter().enumerate() {
+        large_sqf[i] = (v + 3) >> 2;
+    }
+    for p in sieve_it().skip(1).take_while(|&p| p <= xsqrt as usize) {
+        let p = p as u64;
+        for (i, &v) in large_keys.iter().enumerate() {
+            if v < p * p {
+                break;
+            }
+            large_sqf[i] -= if v / (p * p) <= xcbrt {
+                small_sqf[(v / (p * p)) as usize - 1]
+            } else {
+                large_sqf[((2 * i + 1) * (p as usize)) >> 1]
+            };
+        }
+        for v in (1..=xcbrt).rev() {
+            if v < p * p {
+                break;
+            }
+            small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
+        }
+    }
+    let mut res = large_sqf[0];
+    for p in sieve_it().take_while(|&p| p <= xsqrt as usize) {
+        let p = p as u64;
+
+        if p & 3 != 3 {
+            continue;
+        }
+        res += if N / (p * p) <= xcbrt {
+            small_sqf[(N / (p * p)) as usize - 1]
+        } else {
+            large_sqf[p as usize >> 1]
+        }
+    }
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }
