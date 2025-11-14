@@ -1,11 +1,12 @@
 use itertools::Itertools;
 // change according to usecase
-
-const MOD: i64 = 998_244_353; // u64::MAX - u32::MAX as u64 + 1
-const ROOT: i64 = powmod(3, 119);
+//3221225473 = (3<<30)+1
+// (7<<26)+1
+const MOD: i64 = (7 << 26) + 1; //998_244_353; // u64::MAX - u32::MAX as u64 + 1
+const ROOT: i64 = powmod(3, 7); //powmod(3, 119);
 const ROOT_1: i64 = modinv(ROOT);
-const ROOT_PW: usize = 1 << 23;
-const ROOT_EXP: usize = 23;
+const ROOT_PW: usize = 1 << 26;
+const ROOT_EXP: usize = 26;
 const ROOT_POWS: [[i64; ROOT_EXP + 1]; 2] = {
     let mut ret = [[0; ROOT_EXP + 1]; 2];
     ret[0][0] = 1;

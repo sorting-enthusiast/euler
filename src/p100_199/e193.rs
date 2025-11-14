@@ -26,13 +26,17 @@ fn count_squarefree(limit: u64) -> u64 {
 }
 
 pub fn main() {
-    const N: i64 = (1i64 << 63) as _;
+    const N: i64 = 1e18 as _;
     let start = Instant::now();
     let res = opt(N as _);
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
     let start = Instant::now();
     let res = opt2(N as _);
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+    let start = Instant::now();
+    let res = dirimul_opt(N as _);
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
     let start = Instant::now();
@@ -113,12 +117,6 @@ fn dirichlet_mul_based_opt(x: u64) -> u64 {
         if e <= xcbrt {
             e as usize - 1
         } else {
-            /* xcbrt as usize
-            + binsearch(
-                keys.len() - xcbrt as usize,
-                |i| keys[xcbrt as usize..][i],
-                |v| v < e,
-            ) */
             xcbrt as usize + keys[xcbrt as usize..].partition_point(|&v| v < e)
         }
     };
@@ -137,7 +135,51 @@ fn dirichlet_mul_based_opt(x: u64) -> u64 {
     }
     s[keys.len() - 1] //- s[keys.len() - 2]
 }
+fn dirimul_opt(N: u64) -> u64 {
+    let xsqrt = N.isqrt();
+    let primes = sift(xsqrt);
+    let xcbrt = (N as f64).cbrt() as u64;
+    let large_keys = (1..=xcbrt)
+        .map(|d| N / (d * d))
+        .collect_vec()
+        .into_boxed_slice();
+    let mut large_sqf = vec![0; xcbrt as usize].into_boxed_slice();
+    let mut small_sqf = vec![0; xcbrt as usize].into_boxed_slice();
 
+    for v in 1..=xcbrt {
+        small_sqf[v as usize - 1] = v;
+    }
+    for (i, &v) in large_keys.iter().enumerate() {
+        large_sqf[i] = v;
+    }
+    let lim = primes.partition_point(|&p| p <= xsqrt.isqrt());
+    for &p in &primes[..lim] {
+        for (i, &v) in large_keys.iter().enumerate() {
+            if v < p * p {
+                break;
+            }
+            large_sqf[i] -= if v / (p * p) <= xcbrt {
+                small_sqf[(v / (p * p)) as usize - 1]
+            } else {
+                large_sqf[((i + 1) * (p as usize)) - 1]
+            };
+        }
+        for v in (1..=xcbrt).rev() {
+            if v < p * p {
+                break;
+            }
+            small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
+        }
+    }
+    for &p in &primes[lim..] {
+        large_sqf[0] -= if N / (p * p) <= xcbrt {
+            small_sqf[(N / (p * p)) as usize - 1]
+        } else {
+            large_sqf[p as usize - 1]
+        };
+    }
+    large_sqf[0]
+}
 // computation of zeta(2)/zeta(2s)
 #[must_use]
 fn dirichlet_mul_based(x: u64) -> FIArrayU64 {

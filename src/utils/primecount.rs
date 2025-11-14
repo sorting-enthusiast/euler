@@ -51,7 +51,7 @@ pub fn lucy(x: usize) -> FIArray {
         s.arr[i] = (v + 1) >> 1;
     }
     s.arr[0] = 0;
-    s.arr[2] = 2; // deal with 3 separately
+    //s.arr[2] = 2; // deal with 3 separately
     let mut pp = 1;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     for p in (3..=x.isqrt()).step_by(2) {
@@ -70,6 +70,93 @@ pub fn lucy(x: usize) -> FIArray {
     }
     s
 }
+
+#[must_use]
+pub fn lucy_non_fiarray_alt(x: usize) -> usize {
+    let isqrt = x.isqrt();
+    let primes = sift(isqrt as u64);
+
+    let mut small_s = vec![0; isqrt].into_boxed_slice();
+    let mut large_s = vec![0; isqrt].into_boxed_slice();
+    for v in 1..=isqrt {
+        small_s[v - 1] = (v + 1) >> 1;
+        large_s[v - 1] = (x / v + 1) >> 1;
+    }
+    small_s[0] = 0;
+    for &p in &primes[1..] {
+        let p = p as usize;
+        let pp = p * p;
+        let sp = small_s[p - 2];
+        let mut dp = 0;
+        let mut dpp = 0;
+        for d in 1..=isqrt {
+            dp += p;
+            dpp += pp;
+
+            if x < dpp {
+                break;
+            }
+            large_s[d - 1] -= if x / dp <= isqrt {
+                small_s[(x / dp) - 1]
+            } else {
+                large_s[dp - 1]
+            } - sp;
+        }
+        for v in (1..=isqrt).rev() {
+            if v < pp {
+                break;
+            }
+            small_s[v - 1] -= small_s[(v / p) - 1] - sp;
+        }
+    }
+    large_s[0]
+}
+
+#[must_use]
+pub fn lucy_non_fiarray(x: usize) -> usize {
+    let isqrt = x.isqrt();
+
+    let mut small_s = vec![0; isqrt].into_boxed_slice();
+    let mut large_s = vec![0; isqrt].into_boxed_slice();
+    for v in 1..=isqrt {
+        small_s[v - 1] = (v + 1) >> 1;
+        large_s[v - 1] = (x / v + 1) >> 1;
+    }
+
+    small_s[0] = 0;
+    let mut pp = 1;
+
+    for p in (3..=x.isqrt()).step_by(2) {
+        pp += (p << 2) - 4;
+        let sp = small_s[p - 2];
+        if small_s[p - 1] == sp {
+            continue;
+        }
+        let mut dp = 0;
+        let mut dpp = 0;
+        for d in 1..=isqrt {
+            dp += p;
+            dpp += pp;
+
+            if x < dpp {
+                break;
+            }
+            large_s[d - 1] -= if x / dp <= isqrt {
+                small_s[(x / dp) - 1]
+            } else {
+                large_s[dp - 1]
+            } - sp;
+        }
+        for v in (1..=isqrt).rev() {
+            if v < pp {
+                break;
+            }
+            small_s[v - 1] -= small_s[(v / p) - 1] - sp;
+        }
+    }
+    large_s[0]
+}
+
 #[must_use]
 pub fn lucy_alt(x: usize) -> FIArray {
     let primes = sift(x.isqrt() as u64);
@@ -81,7 +168,7 @@ pub fn lucy_alt(x: usize) -> FIArray {
         s.arr[i] = (v + 1) >> 1;
     }
     s.arr[0] = 0;
-    s.arr[2] = 2;
+
     for &p in &primes[1..] {
         let p = p as usize;
         let sp = s.arr[p - 2];
@@ -458,7 +545,7 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e13 as usize;
+    const N: usize = 1e14 as usize;
 
     println!("{N}");
     println!("logarithmic integral:");
@@ -517,6 +604,11 @@ pub fn main() {
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
+    let count = lucy_non_fiarray(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
     let count = lucy_wheel(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
@@ -528,6 +620,11 @@ pub fn main() {
 
     let start = Instant::now();
     let count = lucy_alt(N)[N];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = lucy_non_fiarray_alt(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 

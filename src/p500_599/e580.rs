@@ -10,6 +10,7 @@ const N: u64 = 1e16 as _;
 pub fn main() {
     println!("res = {}", 2_327_213_148_095_366_u64);
     solve(); // can definitely optimize this more
+    solve_alt(); // case in point
     trivial();
     let start = std::time::Instant::now();
     let res = lucy_based_2(N as _);
@@ -42,12 +43,66 @@ fn trivial() {
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }
+fn solve_alt() {
+    let start = std::time::Instant::now();
+    let xsqrt = N.isqrt();
+    let primes = sift(xsqrt);
+    let xcbrt = (N as f64).cbrt() as u64;
+    let large_keys = (1..=xcbrt)
+        .step_by(2)
+        .map(|d| N / (d * d))
+        .collect_vec()
+        .into_boxed_slice();
+    //let small_keys = (1..=xcbrt).collect_vec().into_boxed_slice();
+
+    let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
+    let mut small_sqf = vec![0; xcbrt as usize].into_boxed_slice();
+
+    for v in 1..=xcbrt {
+        small_sqf[v as usize - 1] = (v + 3) >> 2;
+    }
+    for (i, &v) in large_keys.iter().enumerate() {
+        large_sqf[i] = (v + 3) >> 2;
+    }
+    for &p in &primes[1..] {
+        for (i, &v) in large_keys.iter().enumerate() {
+            if v < p * p {
+                break;
+            }
+            large_sqf[i] -= if v / (p * p) <= xcbrt {
+                small_sqf[(v / (p * p)) as usize - 1]
+            } else {
+                large_sqf[((2 * i + 1) * (p as usize)) >> 1]
+            };
+        }
+        for v in (1..=xcbrt).rev() {
+            if v < p * p {
+                break;
+            }
+            small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
+        }
+    }
+    let mut res = large_sqf[0];
+    for p in primes {
+        if p & 3 != 3 {
+            continue;
+        }
+        res += if N / (p * p) <= xcbrt {
+            small_sqf[(N / (p * p)) as usize - 1]
+        } else {
+            large_sqf[p as usize >> 1]
+        }
+    }
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+}
 fn solve() {
     let start = std::time::Instant::now();
     let xsqrt = N.isqrt();
     let primes = sift(xsqrt);
     let xcbrt = (N as f64).cbrt() as u64;
     let mut keys = (1..=xcbrt)
+        .step_by(2)
         .map(|d| N / (d * d))
         .chain((1..=xcbrt).rev())
         .collect_vec();

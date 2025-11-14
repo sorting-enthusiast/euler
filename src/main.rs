@@ -7,19 +7,7 @@
 #![allow(clippy::cast_sign_loss)]
 #![allow(clippy::cast_precision_loss)]
 
-use std::collections::HashMap;
-
 use chrono::Local;
-use itertools::Itertools;
-use rand::{Rng, RngCore, distr::Uniform, rng};
-
-use crate::utils::{
-    FIArray::{FIArrayI64, FIArrayU64},
-    factorint::{factor, print_factors},
-    multiplicative_function_summation::mertens,
-    primality::is_prime,
-    prime_sieves::sift,
-};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -37,8 +25,8 @@ pub mod utils;
 pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e268::main();
-    p500_599::e580::main();
-    p100_199::e193::main();
+    //p500_599::e580::main();
+    //p100_199::e193::main();
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
     let keys = FIArrayI64::keys(n).collect_vec().into_boxed_slice();
@@ -52,6 +40,6 @@ pub fn main() {
         }
     }
     assert_eq!(s, mertens(n)); */
-    //utils::primecount::main();
+    utils::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
