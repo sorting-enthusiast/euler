@@ -102,9 +102,9 @@ fn delete(bitmap: *mut u8, p: u64, length: u64) {
         maxf_on_p -= 1;
     }
     let kmid = maxf_on_p / 240;
-    let bit64_mid =
-        (maxf_on_p % 240 / 30 * 8).wrapping_add(MOD30_TO_BIT8[(maxf_on_p % 240 % 30) as usize]);
-    let mut c_stack = Vec::with_capacity((((maxf - 1) / 30 + 1) * 8) as usize);
+    let bit64_mid = (((maxf_on_p % 240) / 30) << 3)
+        .wrapping_add(MOD30_TO_BIT8[(maxf_on_p % 240 % 30) as usize]);
+    let mut c_stack = Vec::with_capacity((((maxf - 1) / 30 + 1) << 3) as usize);
     for k in kmin..kmid {
         let mut bitset = unsafe { *bitmap64.add(k as usize) };
         while bitset != 0 {

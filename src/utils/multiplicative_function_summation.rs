@@ -189,7 +189,7 @@ pub fn mertens(x: i64) -> FIArrayI64 {
         mu_v -= v;
 
         for i in 2..=vsqrt {
-            mu_v -= i64::from(small_m[i as usize] - small_m[i as usize - 1]) * (v / i);
+            mu_v -= i64::from(M.arr[i as usize - 1] - M.arr[i as usize - 2]) * (v / i);
             mu_v -= M[v / i];
         }
         mu_v += vsqrt * M[vsqrt];

@@ -10,6 +10,7 @@ use crate::utils::{
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
+const N: usize = 1e13 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -33,6 +34,7 @@ pub fn legendre(x: usize) -> usize {
 }
 
 // O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
+// kinda simulates pritchard's wheel sieve
 // 1e17: prime counting took 4042.9456095s: 2623557157654233
 // 1e16: prime counting took 525.8536176s: 279238341033925
 // 1e15: prime counting took 102.6765764s: 29844570422669
@@ -44,17 +46,24 @@ pub fn legendre(x: usize) -> usize {
 // 1e9: prime counting took 4.6073ms: 50847534
 #[must_use]
 pub fn lucy(x: usize) -> FIArray {
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
+        //s.arr[i] = (v + 1) >> 1;
+        s.arr[i] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3;
     }
     s.arr[0] = 0;
-    //s.arr[2] = 2; // deal with 3 separately
-    let mut pp = 1;
+    s.arr[1] = 1;
+    s.arr[2] = 2;
+    s.arr[3] = 2;
+    s.arr[4] = 3;
+    let mut pp = 25;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in (3..=x.isqrt()).step_by(2) {
+    for p in (7..=x.isqrt()).step_by(2) {
         pp += (p << 2) - 4;
         let sp = s.arr[p - 2];
         if s.arr[p - 1] == sp {
@@ -114,23 +123,31 @@ pub fn lucy_non_fiarray_alt(x: usize) -> usize {
 
 #[must_use]
 pub fn lucy_non_fiarray(x: usize) -> usize {
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
     let isqrt = x.isqrt();
 
     let mut small_s = vec![0; isqrt].into_boxed_slice();
     let mut large_s = vec![0; isqrt - usize::from(isqrt == x / isqrt)].into_boxed_slice();
+
     for v in 1..isqrt {
-        small_s[v - 1] = (v + 1) >> 1;
-        large_s[v - 1] = (x / v + 1) >> 1;
+        small_s[v - 1] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3; //(v + 1) >> 1;
+        large_s[v - 1] = (((x / v) / 30) << 3) + LUT[(x / v) % 30] - 1 + 3; //(x / v + 1) >> 1;
     }
-    small_s[isqrt - 1] = (isqrt + 1) >> 1;
+    small_s[isqrt - 1] = ((isqrt / 30) << 3) + LUT[isqrt % 30] - 1 + 3; //(isqrt + 1) >> 1;
     if isqrt != x / isqrt {
-        large_s[isqrt - 1] = (x / isqrt + 1) >> 1;
+        large_s[isqrt - 1] = (((x / isqrt) / 30) << 3) + LUT[(x / isqrt) % 30] - 1 + 3; //(x / isqrt + 1) >> 1;
     }
 
     small_s[0] = 0;
-    let mut pp = 1;
+    small_s[1] = 1;
+    small_s[2] = 2;
+    small_s[3] = 2;
+    small_s[4] = 3;
+    let mut pp = 25;
 
-    for p in (3..=x.isqrt()).step_by(2) {
+    for p in (7..=x.isqrt()).step_by(2) {
         pp += (p << 2) - 4;
         let sp = small_s[p - 2];
         if small_s[p - 1] == sp {
@@ -138,20 +155,7 @@ pub fn lucy_non_fiarray(x: usize) -> usize {
         }
         let mut dp = 0;
         let xp = x / p;
-        for d in 1..isqrt {
-            dp += p;
-
-            if xp < dp {
-                break;
-            }
-            large_s[d - 1] -= if xp / d <= isqrt {
-                small_s[(xp / d) - 1]
-            } else {
-                large_s[dp - 1]
-            } - sp;
-        }
-        if isqrt != x / isqrt {
-            let d = isqrt;
+        for d in (1..isqrt).chain((isqrt != x / isqrt).then_some(isqrt)) {
             dp += p;
 
             if xp < dp {
@@ -197,23 +201,31 @@ pub fn lucy_alt(x: usize) -> FIArray {
     }
     s
 }
+
 #[must_use]
-pub fn lucy_wheel(x: usize) -> FIArray {
+pub fn lucy_alt_single(x: usize) -> usize {
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
+    let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::new(x);
     let keys = FIArray::keys(x).collect_vec();
 
     unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
     for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
+        //s.arr[i] = (v + 1) >> 1;
+        s.arr[i] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3;
     }
-    s.arr[0] = 0;
-    s.arr[2] = 2;
-    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    let lim = x.isqrt();
-    assert!(lim >= 5);
-    for p in [3, 5] {
-        let sp = s.arr[p - 2];
+    s[1] = 0;
+    s[2] = 1;
+    s[3] = 2;
+    s[4] = 2;
+    s[5] = 3;
 
+    let lim = primes.partition_point(|p| p.pow(3) <= x as u64);
+    for &p in &primes[3..lim] {
+        let p = p as usize;
+        let sp = s.arr[p - 2];
         for (i, &v) in keys.iter().enumerate().rev() {
             if v < p * p {
                 break;
@@ -221,6 +233,95 @@ pub fn lucy_wheel(x: usize) -> FIArray {
             s.arr[i] -= s[v / p] - sp;
         }
     }
+    let mut res = s[x];
+    for (i, &p) in primes[lim..].iter().enumerate() {
+        let p = p as usize;
+        res -= s[x / p] - lim - i;
+    }
+    res
+}
+
+#[must_use]
+pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
+    let isqrt = x.isqrt();
+    let primes = sift(isqrt as u64);
+
+    let mut small_s = vec![0; isqrt].into_boxed_slice();
+    let mut large_s = vec![0; isqrt].into_boxed_slice();
+    for v in 1..=isqrt {
+        //((v / 30) << 3) + LUT[v % 30] - 1 + 3
+        small_s[v - 1] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3; //(v + 1) >> 1;
+        large_s[v - 1] = (((x / v) / 30) << 3) + LUT[(x / v) % 30] - 1 + 3; //(x / v + 1) >> 1;
+    }
+    small_s[0] = 0;
+    small_s[1] = 1;
+    small_s[2] = 2;
+    small_s[3] = 2;
+    let lim = primes.partition_point(|p| p.pow(3) <= x as u64);
+
+    for &p in &primes[3..lim] {
+        let p = p as usize;
+        let pp = p * p;
+        let sp = small_s[p - 2];
+        let mut dp = 0;
+        let mut dpp = 0;
+        for d in 1..=isqrt {
+            dp += p;
+            dpp += pp;
+
+            if x < dpp {
+                break;
+            }
+            large_s[d - 1] -= if x / dp <= isqrt {
+                small_s[(x / dp) - 1]
+            } else {
+                large_s[dp - 1]
+            } - sp;
+        }
+        for v in (1..=isqrt).rev() {
+            if v < pp {
+                break;
+            }
+            small_s[v - 1] -= small_s[(v / p) - 1] - sp;
+        }
+    }
+    let mut res = large_s[0];
+    for (i, &p) in primes[lim..].iter().enumerate() {
+        let p = p as usize;
+        res -= if x / p <= isqrt {
+            small_s[(x / p) - 1]
+        } else {
+            large_s[p - 1]
+        } - lim
+            - i;
+    }
+    res
+}
+
+#[must_use]
+pub fn lucy_wheel(x: usize) -> FIArray {
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
+    let mut s = FIArray::new(x);
+    let keys = FIArray::keys(x).collect_vec();
+
+    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
+    for (i, v) in keys.iter().enumerate() {
+        //s.arr[i] = (v + 1) >> 1;
+        s.arr[i] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3;
+    }
+    s[1] = 0;
+    s[2] = 1;
+    s[3] = 2;
+    s[4] = 2;
+    s[5] = 3;
+    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
+    let lim = x.isqrt();
+    assert!(lim >= 5);
     let mut p = 1;
     let mut incrs = WHEEL_2_3_5.into_iter().cycle();
     loop {
@@ -561,8 +662,6 @@ pub fn lucy_dumber(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e10 as usize;
-
     println!("{N}");
     println!("logarithmic integral:");
     let start = Instant::now();
@@ -576,7 +675,7 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    println!("lucy fenwick:");
+    /* println!("lucy fenwick:");
     let start = Instant::now();
     let count = lucy_fenwick_trick(N as _);
     let end = start.elapsed();
@@ -589,9 +688,9 @@ pub fn main() {
     let start = Instant::now();
     let count = lucy_fenwick(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
-    println!("prime counting using the logarithm of the zeta function:");
+    /* println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
     let count = log_zeta_reordered(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
@@ -600,7 +699,7 @@ pub fn main() {
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
     /* println!("legendre:");
     let start = Instant::now();
@@ -613,6 +712,16 @@ pub fn main() {
     let count = lucy_dumber(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
+
+    let start = Instant::now();
+    let count = lucy_alt_single(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = lucy_non_fiarray_alt_single(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
     let count = lucy(N as _)[N as _];

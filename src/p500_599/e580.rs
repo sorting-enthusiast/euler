@@ -177,6 +177,7 @@ fn solve_alt2() {
                 large_sqf[((2 * i + 1) * (p as usize)) >> 1]
             };
         }
+        // xcbrt < p^2 => p>x^1/6
         for v in (1..=xcbrt).rev() {
             if v < p * p {
                 break;

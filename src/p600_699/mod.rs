@@ -1,5 +1,7 @@
 pub mod e606;
 pub mod e625;
+pub mod e632;
+pub mod e634;
 pub mod e635;
 pub mod e639;
 pub mod e642;
