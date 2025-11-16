@@ -10,7 +10,7 @@ use crate::utils::{
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e13 as usize;
+const N: usize = 1e12 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -60,7 +60,7 @@ pub fn lucy(x: usize) -> FIArray {
     s.arr[1] = 1;
     s.arr[2] = 2;
     s.arr[3] = 2;
-    s.arr[4] = 3;
+
     let mut pp = 25;
     unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     for p in (7..=x.isqrt()).step_by(2) {
@@ -144,7 +144,7 @@ pub fn lucy_non_fiarray(x: usize) -> usize {
     small_s[1] = 1;
     small_s[2] = 2;
     small_s[3] = 2;
-    small_s[4] = 3;
+
     let mut pp = 25;
 
     for p in (7..=x.isqrt()).step_by(2) {
@@ -266,20 +266,51 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
         let p = p as usize;
         let pp = p * p;
         let sp = small_s[p - 2];
-        let mut dp = 0;
-        let mut dpp = 0;
-        for d in 1..=isqrt {
-            dp += p;
-            dpp += pp;
-
-            if x < dpp {
-                break;
+        let mut d = p;
+        let mut dp = pp;
+        let mut dpp = dp * p;
+        large_s[0] -= if x / p <= isqrt {
+            small_s[(x / p) - 1]
+        } else {
+            large_s[p - 1]
+        } - sp;
+        if p == 7 {
+            let mut incrs = WHEEL_2_3_5.into_iter().cycle();
+            unsafe { incrs.next().unwrap_unchecked() };
+            while d <= isqrt {
+                if x < dpp {
+                    break;
+                }
+                large_s[d - 1] -= if x / dp <= isqrt {
+                    small_s[(x / dp) - 1]
+                } else {
+                    large_s[dp - 1]
+                } - sp;
+                let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+                d += incr;
+                dp += incr * p;
+                dpp += incr * pp;
             }
-            large_s[d - 1] -= if x / dp <= isqrt {
-                small_s[(x / dp) - 1]
-            } else {
-                large_s[dp - 1]
-            } - sp;
+        } else {
+            let mut incrs = WHEEL_2_3_5_7.into_iter().cycle();
+            let mut m = (p % 210) - 1;
+            while m != 0 {
+                m -= usize::from(unsafe { incrs.next().unwrap_unchecked() });
+            }
+            while d <= isqrt {
+                if x < dpp {
+                    break;
+                }
+                large_s[d - 1] -= if x / dp <= isqrt {
+                    small_s[(x / dp) - 1]
+                } else {
+                    large_s[dp - 1]
+                } - sp;
+                let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+                d += incr;
+                dp += incr * p;
+                dpp += incr * pp;
+            }
         }
         for v in (1..=isqrt).rev() {
             if v < pp {
@@ -289,14 +320,11 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
         }
     }
     let mut res = large_s[0];
-    for (i, &p) in primes[lim..].iter().enumerate() {
+
+    // compute P2
+    for &p in &primes[lim..] {
         let p = p as usize;
-        res -= if x / p <= isqrt {
-            small_s[(x / p) - 1]
-        } else {
-            large_s[p - 1]
-        } - lim
-            - i;
+        res -= large_s[p - 1] - small_s[p - 1] + 1;
     }
     res
 }
@@ -675,7 +703,7 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    /* println!("lucy fenwick:");
+    /*println!("lucy fenwick:");
     let start = Instant::now();
     let count = lucy_fenwick_trick(N as _);
     let end = start.elapsed();
@@ -688,9 +716,9 @@ pub fn main() {
     let start = Instant::now();
     let count = lucy_fenwick(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");*/
 
-    /* println!("prime counting using the logarithm of the zeta function:");
+    /*println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
     let count = log_zeta_reordered(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
@@ -699,7 +727,7 @@ pub fn main() {
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");*/
 
     /* println!("legendre:");
     let start = Instant::now();
@@ -708,6 +736,10 @@ pub fn main() {
     println!("res = {count}, took {end:?}"); */
 
     println!("standard-ish lucy");
+    let start = Instant::now();
+    let count = lucy_non_fiarray_alt_single(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
     /* let start = Instant::now();
     let count = lucy_dumber(N as _)[N as _];
     let end = start.elapsed();
@@ -715,11 +747,6 @@ pub fn main() {
 
     let start = Instant::now();
     let count = lucy_alt_single(N as _);
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
-
-    let start = Instant::now();
-    let count = lucy_non_fiarray_alt_single(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 

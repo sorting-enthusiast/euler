@@ -26,11 +26,11 @@ fn count_squarefree(limit: u64) -> u64 {
 }
 
 pub fn main() {
-    const N: i64 = 1e17 as _;
-    /* let start = Instant::now();
+    const N: u64 = 1e19 as _;
+    /*let start = Instant::now();
     let res = opt_blocked(N as _);
     let end = start.elapsed();
-    println!("res = {res}, took {end:?}"); */
+    println!("res = {res}, took {end:?}");*/
     let start = Instant::now();
     let res = opt(N as _);
     let end = start.elapsed();
@@ -228,7 +228,7 @@ fn opt(x: usize) -> usize {
                     break;
                 }
                 composite.set(i * p);
-                if i % p == 0 {
+                if i.is_multiple_of(p) {
                     res[i * p] = 0;
                     break;
                 }

@@ -26,7 +26,7 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e268::main();
     //p500_599::e580::main();
-    p100_199::e193::main();
+    //p100_199::e193::main();
     //p600_699::e632::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
@@ -46,6 +46,6 @@ pub fn main() {
         .map(usize::isqrt)
         .collect::<HashSet<_>>();
     dbg!(set.len()); */
-    //utils::primecount::main();
+    utils::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
