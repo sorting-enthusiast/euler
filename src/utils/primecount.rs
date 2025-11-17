@@ -8,9 +8,9 @@ use crate::utils::{
     bit_array::BitArray,
     fenwick::FenwickTree,
     multiplicative_function_summation::mobius_sieve,
-    prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
+    prime_sieves::{BIT64TOVAL240, WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e12 as usize;
+const N: usize = 1e17 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -242,12 +242,12 @@ pub fn lucy_alt_single(x: usize) -> usize {
 // 1e15: 58.8811143s
 // 1e12: 345.7069ms
 #[must_use]
-pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
+pub fn prime_pi(x: usize) -> usize {
     const LUT: [usize; 30] = [
         0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
     ];
     let isqrt = x.isqrt();
-    let primes = sift(isqrt as u64);
+    let primes = sift(isqrt as u64); // technically unnecessary, algorithm already sieves
 
     let mut small_s = vec![0; isqrt].into_boxed_slice();
     let mut large_s = vec![0; isqrt].into_boxed_slice();
@@ -264,28 +264,29 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
     let pi_cbrt = primes.partition_point(|p| p.pow(3) <= x as u64);
     for &p in &primes[3..pi_4th_root] {
         let p = p as usize;
+        let xp = x / p;
         let pp = p * p;
         let sp = small_s[p - 2];
         let mut d = p;
         let mut dp = pp;
-        let mut dpp = dp * p;
         large_s[0] -= large_s[p - 1] - sp;
         if p == 7 {
             let mut incrs = WHEEL_2_3_5.into_iter().cycle();
             incrs.next();
+            let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+            d += incr;
+            dp += incr * p;
             while d <= isqrt {
-                if x < dpp {
-                    break;
+                if small_s[d - 1] != small_s[d - 2] {
+                    large_s[d - 1] -= if xp / d <= isqrt {
+                        small_s[(xp / d) - 1]
+                    } else {
+                        large_s[dp - 1]
+                    } - sp;
                 }
-                large_s[d - 1] -= if x / dp <= isqrt {
-                    small_s[(x / dp) - 1]
-                } else {
-                    large_s[dp - 1]
-                } - sp;
                 let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
                 d += incr;
                 dp += incr * p;
-                dpp += incr * pp;
             }
         } else {
             let mut incrs = WHEEL_2_3_5_7.into_iter().cycle();
@@ -293,46 +294,42 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
             while m != 0 {
                 m -= usize::from(unsafe { incrs.next().unwrap_unchecked() });
             }
+            let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+            d += incr;
+            dp += incr * p;
+            //assert!(isqrt < xpp);
             while d <= isqrt {
-                if x < dpp {
-                    break;
+                if small_s[d - 1] != small_s[d - 2] {
+                    large_s[d - 1] -= if xp / d <= isqrt {
+                        small_s[(xp / d) - 1]
+                    } else {
+                        large_s[dp - 1]
+                    } - sp;
                 }
-                large_s[d - 1] -= if x / dp <= isqrt {
-                    small_s[(x / dp) - 1]
-                } else {
-                    large_s[dp - 1]
-                } - sp;
                 let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
                 d += incr;
                 dp += incr * p;
-                dpp += incr * pp;
             }
         }
+        // todo: replace with fenwick tree
         for v in (pp..=isqrt).rev() {
             small_s[v - 1] -= small_s[(v / p) - 1] - sp;
         }
     }
-    for &p in &primes[pi_4th_root..pi_cbrt] {
+    // flatten tree here, no longer update small_s
+    for (i, &p) in primes[pi_4th_root..pi_cbrt].iter().enumerate() {
         let p = p as usize;
-        let pp = p * p;
+        let xp = x / p;
+        let xpp = xp / p;
         let sp = small_s[p - 2];
-        let mut d = p;
-        let mut dp = pp;
-        let mut dpp = dp * p;
         large_s[0] -= large_s[p - 1] - sp;
-
-        let mut incrs = WHEEL_2_3_5_7.into_iter().cycle();
-        let mut m = (p % 210) - 1;
-        while m != 0 {
-            m -= usize::from(unsafe { incrs.next().unwrap_unchecked() });
-        }
-        // dpp >= x^0.75, grows by at least 2x^0.5 each iteration
-        while x >= dpp {
-            large_s[d - 1] -= small_s[(x / dp) - 1] - sp;
-            let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
-            d += incr;
-            dp += incr * p;
-            dpp += incr * pp;
+        // each iteration does pi(x/(p*p)) - pi(p) work, x^1/4<=p<x^1/3
+        for &d in &primes[pi_4th_root..][i + 1..] {
+            let d = d as usize;
+            if d > xpp {
+                break;
+            }
+            large_s[d - 1] -= small_s[(xp / d) - 1] - sp;
         }
     }
     let mut res = large_s[0];
@@ -340,6 +337,193 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
     // compute P2
     for &p in &primes[pi_cbrt..] {
         let p = p as usize;
+        res -= large_s[p - 1] - small_s[p - 1] + 1;
+    }
+    res
+}
+
+// fucks up for small inputs
+// starts being faster at around 10^11
+// 1e17: 1440.8879979s
+#[must_use]
+pub fn prime_pi_fenwick(x: usize) -> usize {
+    const WHEEL: u32 =
+        (1 << 1) | (1 << 7) | (1 << 11) | (1 << 13) | (1 << 17) | (1 << 19) | (1 << 23) | (1 << 29);
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
+    const MOD30_TO_MASK: [u8; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 8, 8, 8, 8, 16, 16, 32, 32, 32, 32, 64, 64, 64, 64,
+        64, 64, 128,
+    ];
+    let isqrt = x.isqrt();
+    let bitmap_size = (((isqrt / 30) >> 3) + 1) << 3;
+    let mut sieve_raw = vec![0u8; bitmap_size].into_boxed_slice();
+    sieve_raw[0] = 1;
+
+    let bitmap = sieve_raw.as_mut_ptr();
+
+    let mut large_s = vec![0; isqrt].into_boxed_slice();
+    for v in 1..=isqrt {
+        large_s[v - 1] = (((x / v) / 30) << 3) + LUT[(x / v) % 30] - 1 + 3;
+    }
+    let mut count = 0;
+    let mut sieve = FenwickTree::new_with(isqrt + 1, |i| i64::from((WHEEL >> (i % 30)) & 1 == 1));
+    sieve.add(1, -1);
+    sieve.add(2, 1);
+    sieve.add(3, 1);
+    sieve.add(5, 1);
+
+    let p = 7;
+    let xp = x / p;
+    let pp = 49;
+    let sp = 3;
+    let mut d = p;
+    let mut dp = pp;
+    large_s[0] -= large_s[p - 1] - sp;
+    let mut incrs = WHEEL_2_3_5.into_iter().cycle();
+    incrs.next();
+    let unmark_incrs = incrs.clone();
+    let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+    d += incr;
+    dp += incr * p;
+    while d <= isqrt {
+        large_s[d - 1] -= if xp / d <= isqrt {
+            count += 1;
+            sieve.sum(xp / d) as usize
+        } else {
+            large_s[dp - 1]
+        } - sp;
+
+        let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+        d += incr;
+        dp += incr * p;
+    }
+    let precomp = [0, 0, 14, 0, 28, 0, 42];
+    let mut multiple = pp;
+    for incr in unmark_incrs {
+        if multiple > isqrt {
+            break;
+        }
+        if unsafe { *bitmap.add(multiple / 30) } & MOD30_TO_MASK[multiple % 30] == 0 {
+            unsafe { *bitmap.add(multiple / 30) |= MOD30_TO_MASK[multiple % 30] };
+            sieve.add(multiple, -1);
+        }
+        multiple += precomp[incr as usize];
+    }
+
+    let mut pi = 4;
+    let mut p = 11;
+    let mut wheel_incr = WHEEL_2_3_5_7.into_iter().cycle();
+    wheel_incr.next();
+    while p * p <= isqrt {
+        if unsafe { *bitmap.add(p / 30) } & MOD30_TO_MASK[p % 30] == 0 {
+            let xp = x / p;
+            let pp = p * p;
+            let sp = pi;
+            pi += 1;
+            let mut d = p;
+            let mut dp = pp;
+            large_s[0] -= large_s[p - 1] - sp;
+            let precomp = [
+                0,
+                0,
+                p << 1,
+                0,
+                p << 2,
+                0,
+                (p << 2) + (p << 1),
+                0,
+                p << 3,
+                0,
+                (p << 1) + (p << 3),
+            ];
+            let mut incrs = wheel_incr.clone();
+
+            let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+            d += incr;
+            dp += incr * p;
+            //assert!(isqrt < xpp);
+            while d <= isqrt {
+                if unsafe { *bitmap.add(d / 30) } & MOD30_TO_MASK[d % 30] == 0 {
+                    large_s[d - 1] -= if xp / d <= isqrt {
+                        count += 1;
+                        sieve.sum(xp / d) as usize
+                    } else {
+                        large_s[dp - 1]
+                    } - sp;
+                }
+                let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+                d += incr;
+                dp += precomp[incr];
+            }
+            let mut multiple = pp;
+            for incr in wheel_incr.clone() {
+                if multiple > isqrt {
+                    break;
+                }
+                if unsafe { *bitmap.add(multiple / 30) } & MOD30_TO_MASK[multiple % 30] == 0 {
+                    unsafe { *bitmap.add(multiple / 30) |= MOD30_TO_MASK[multiple % 30] };
+                    sieve.add(multiple, -1);
+                }
+                multiple += precomp[incr as usize];
+            }
+        }
+        p += usize::from(unsafe { wheel_incr.next().unwrap_unchecked() });
+    }
+    // flatten tree here, no longer update small_s
+    /* for i in 1..=isqrt {
+        small_s[i - 1] = sieve.sum(i) as usize;
+    } */
+    let small_s = (1..=isqrt).map(|i| sieve.sum(i) as usize).collect_vec();
+    count += isqrt;
+    dbg!(count);
+    let mut primes = Vec::with_capacity(small_s[isqrt - 1]);
+    //primes.extend([2, 3, 5]);
+    let bitmap64: *const u64 = bitmap.cast();
+    let mut base = 0;
+    for k in 0..bitmap_size / 8 - 1 {
+        let mut bitset = unsafe { *bitmap64.add(k) };
+        bitset = !bitset;
+        while bitset != 0 {
+            let r = bitset.trailing_zeros() as usize;
+            primes.push(base + BIT64TOVAL240[r] as usize);
+            bitset &= bitset - 1;
+        }
+
+        base += 240;
+    }
+    let mut bitset = unsafe { *bitmap64.add(bitmap_size / 8 - 1) };
+    bitset = !bitset;
+    while bitset != 0 {
+        let r = bitset.trailing_zeros() as usize;
+        let prime_cand = base + BIT64TOVAL240[r] as usize;
+        if prime_cand > isqrt {
+            break;
+        }
+        primes.push(prime_cand);
+        bitset &= bitset - 1;
+    }
+    let pi_4th_root = primes.partition_point(|p| p.pow(2) <= isqrt);
+    let pi_cbrt = primes.partition_point(|p| p.pow(3) <= x);
+    dbg!(pi_4th_root, pi_cbrt);
+    for (i, &p) in primes[pi_4th_root..pi_cbrt].iter().enumerate() {
+        let xp = x / p;
+        let xpp = xp / p;
+        let sp = small_s[p - 2];
+        large_s[0] -= large_s[p - 1] - sp;
+        // each iteration does pi(x/(p*p)) - pi(p) work, x^1/4<=p<x^1/3
+        for &d in &primes[pi_4th_root..][i + 1..] {
+            if d > xpp {
+                break;
+            }
+            large_s[d - 1] -= small_s[(xp / d) - 1] - sp;
+        }
+    }
+    let mut res = large_s[0];
+    dbg!(res);
+    // compute P2
+    for &p in &primes[pi_cbrt..] {
         res -= large_s[p - 1] - small_s[p - 1] + 1;
     }
     res
@@ -719,20 +903,16 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    /*println!("lucy fenwick:");
+    /*  println!("lucy fenwick:");
     let start = Instant::now();
     let count = lucy_fenwick_trick(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
-    let count = lucy_trick(N as _);
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
-    let start = Instant::now();
     let count = lucy_fenwick(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");*/
+    println!("res = {count}, took {end:?}"); */
 
     /*println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
@@ -752,8 +932,14 @@ pub fn main() {
     println!("res = {count}, took {end:?}"); */
 
     println!("standard-ish lucy");
+
     let start = Instant::now();
-    let count = lucy_non_fiarray_alt_single(N as _);
+    let count = prime_pi_fenwick(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = prime_pi(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
     /* let start = Instant::now();
@@ -863,14 +1049,12 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
                     s[xip]
                 } - sp;
             }
-            let mut j = p * p;
-            while j <= y {
+            for j in (p * p..=y).step_by(p) {
                 if !sieve_raw.get(j) {
                     sieve_raw.set(j);
                     sieve.add(j, -1);
                     count_add += 1;
                 }
-                j += p;
             }
         }
     }
@@ -940,65 +1124,6 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
     /* dbg!((count_sum, count_add));
        dbg!(y * (y as f64).ln().ln() as usize);
     */
-    s[x]
-}
-
-#[must_use]
-pub fn lucy_trick(x: usize) -> usize {
-    let mut s = FIArray::new(x);
-    let sqrtx = x.isqrt();
-    let len = s.arr.len();
-    let y = sqrtx;
-    let mut sieve_raw = BitArray::zeroed(y + 1);
-    let mut sieve = FenwickTree::new(y + 1, 1);
-    sieve.add(1, -1);
-    sieve.add(0, -1);
-
-    for (i, v) in FIArray::keys(x).enumerate() {
-        s.arr[i] = v - 1;
-    }
-    let mut count_sum = 0usize;
-    let mut count_add = 0usize;
-
-    for p in 2..=sqrtx {
-        if sieve_raw.get(p) {
-            continue;
-        }
-        count_sum += 1;
-
-        let sp = sieve.sum(p - 1) as usize;
-        let lim = (x / y).min(x / (p * p));
-        let xp = x / p;
-        s.arr[len - 1] -= if xp <= y {
-            count_sum += 1;
-
-            sieve.sum(xp) as usize
-        } else {
-            s[xp]
-        } - sp;
-        for i in p..=lim {
-            if sieve_raw.get(i) {
-                continue;
-            }
-            let xip = xp / i;
-            s.arr[len - i] -= if xip <= y {
-                count_sum += 1;
-                sieve.sum(xip) as usize
-            } else {
-                s[xip]
-            } - sp;
-        }
-        for j in (p * p..=y).step_by(p) {
-            if !sieve_raw.get(j) {
-                sieve_raw.set(j);
-                sieve.add(j, -1);
-                count_add += 1;
-            }
-        }
-    }
-    /* dbg!((count_sum, count_add));
-    dbg!(y * (y as f64).ln().ln() as usize); */
-
     s[x]
 }
 

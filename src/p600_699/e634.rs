@@ -1,6 +1,4 @@
-use crate::utils::{
-    multiplicative_function_summation::mobius_sieve, primecount::lucy_non_fiarray_alt_single,
-};
+use crate::utils::{multiplicative_function_summation::mobius_sieve, primecount::prime_pi};
 
 const N: usize = 9e18 as _;
 fn icbrt(x: usize) -> usize {
@@ -37,7 +35,7 @@ pub fn main() {
             }
         }
     }
-    res -= lucy_non_fiarray_alt_single(sixth_root);
+    res -= prime_pi(sixth_root);
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }
