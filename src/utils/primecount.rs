@@ -10,7 +10,7 @@ use crate::utils::{
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e12 as usize;
+const N: usize = 1e15 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -241,6 +241,9 @@ pub fn lucy_alt_single(x: usize) -> usize {
     res
 }
 
+// 1e16: 300s
+// 1e15: 58.8811143s
+// 1e12: 345.7069ms
 #[must_use]
 pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
     const LUT: [usize; 30] = [
@@ -276,7 +279,7 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
         } - sp;
         if p == 7 {
             let mut incrs = WHEEL_2_3_5.into_iter().cycle();
-            unsafe { incrs.next().unwrap_unchecked() };
+            incrs.next();
             while d <= isqrt {
                 if x < dpp {
                     break;
