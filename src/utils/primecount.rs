@@ -10,7 +10,7 @@ use crate::utils::{
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e15 as usize;
+const N: usize = 1e12 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -167,10 +167,7 @@ pub fn lucy_non_fiarray(x: usize) -> usize {
                 large_s[dp - 1]
             } - sp;
         }
-        for v in (1..=isqrt).rev() {
-            if v < pp {
-                break;
-            }
+        for v in (pp..=isqrt).rev() {
             small_s[v - 1] -= small_s[(v / p) - 1] - sp;
         }
     }
@@ -263,20 +260,16 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
     small_s[1] = 1;
     small_s[2] = 2;
     small_s[3] = 2;
-    let lim = primes.partition_point(|p| p.pow(3) <= x as u64);
-
-    for &p in &primes[3..lim] {
+    let pi_4th_root = primes.partition_point(|p| p.pow(2) <= isqrt as u64);
+    let pi_cbrt = primes.partition_point(|p| p.pow(3) <= x as u64);
+    for &p in &primes[3..pi_4th_root] {
         let p = p as usize;
         let pp = p * p;
         let sp = small_s[p - 2];
         let mut d = p;
         let mut dp = pp;
         let mut dpp = dp * p;
-        large_s[0] -= if x / p <= isqrt {
-            small_s[(x / p) - 1]
-        } else {
-            large_s[p - 1]
-        } - sp;
+        large_s[0] -= large_s[p - 1] - sp;
         if p == 7 {
             let mut incrs = WHEEL_2_3_5.into_iter().cycle();
             incrs.next();
@@ -315,17 +308,37 @@ pub fn lucy_non_fiarray_alt_single(x: usize) -> usize {
                 dpp += incr * pp;
             }
         }
-        for v in (1..=isqrt).rev() {
-            if v < pp {
-                break;
-            }
+        for v in (pp..=isqrt).rev() {
             small_s[v - 1] -= small_s[(v / p) - 1] - sp;
+        }
+    }
+    for &p in &primes[pi_4th_root..pi_cbrt] {
+        let p = p as usize;
+        let pp = p * p;
+        let sp = small_s[p - 2];
+        let mut d = p;
+        let mut dp = pp;
+        let mut dpp = dp * p;
+        large_s[0] -= large_s[p - 1] - sp;
+
+        let mut incrs = WHEEL_2_3_5_7.into_iter().cycle();
+        let mut m = (p % 210) - 1;
+        while m != 0 {
+            m -= usize::from(unsafe { incrs.next().unwrap_unchecked() });
+        }
+        // dpp >= x^0.75, grows by at least 2x^0.5 each iteration
+        while x >= dpp {
+            large_s[d - 1] -= small_s[(x / dp) - 1] - sp;
+            let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
+            d += incr;
+            dp += incr * p;
+            dpp += incr * pp;
         }
     }
     let mut res = large_s[0];
 
     // compute P2
-    for &p in &primes[lim..] {
+    for &p in &primes[pi_cbrt..] {
         let p = p as usize;
         res -= large_s[p - 1] - small_s[p - 1] + 1;
     }
