@@ -10,7 +10,7 @@ use crate::utils::{
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{BIT64TOVAL240, WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e17 as usize;
+const N: usize = 1e16 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -35,8 +35,8 @@ pub fn legendre(x: usize) -> usize {
 
 // O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
 // kinda simulates pritchard's wheel sieve
-// 1e17: prime counting took 4042.9456095s: 2623557157654233
-// 1e16: prime counting took 525.8536176s: 279238341033925
+// 1e17: prime counting took 3071.1531213s: 2623557157654233
+// 1e16: prime counting took 501.5590413s: 279238341033925
 // 1e15: prime counting took 102.6765764s: 29844570422669
 // 1e14: prime counting took 19.8688139s: 3204941750802
 // 1e13: prime counting took 3.527102s: 346065536839
@@ -344,7 +344,8 @@ pub fn prime_pi(x: usize) -> usize {
 
 // fucks up for small inputs
 // starts being faster at around 10^11
-// 1e17: 1440.8879979s
+// 1e17: 1231.2415746s
+// 1e16: 236.6590369s
 #[must_use]
 pub fn prime_pi_fenwick(x: usize) -> usize {
     const WHEEL: u32 =
@@ -1137,6 +1138,17 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
 // Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
 // over the primes, though tbh you should probably just use lucy's algorithm for that.
 // TODO: try to speed up the convolution steps more somehow, as they are the main bottleneck
+const fn icbrt(x: usize) -> usize {
+    let mut rt = 0;
+    let mut rt_squared = 0;
+    let mut rt_cubed = 0;
+    while rt_cubed <= x {
+        rt += 1;
+        rt_squared += 2 * rt - 1;
+        rt_cubed += 3 * rt_squared - 3 * rt + 1;
+    }
+    rt - 1
+}
 #[must_use]
 pub fn log_zeta(n: usize) -> FIArray {
     const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
@@ -1147,15 +1159,7 @@ pub fn log_zeta(n: usize) -> FIArray {
     let mut buffer = zeta.clone();
 
     let mut ret = FIArray::new(n);
-    let x = {
-        let mut x = 2;
-        let mut x_cubed = 8;
-        while x_cubed <= rt {
-            x += 1;
-            x_cubed += 3 * x * (x - 1) + 1;
-        }
-        x
-    } * (n as f64).ln() as usize;
+    let x = icbrt(rt) * (n as f64).ln() as usize;
     // remove contributions of small primes
     for p in 2..x {
         let val = zeta.arr[p - 1] - 1;
