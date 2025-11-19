@@ -9,6 +9,8 @@
 
 use chrono::Local;
 
+use crate::utils::fenwick::FenwickTree;
+
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -22,7 +24,11 @@ pub mod p900_999;
 pub mod utils;
 
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
+const fn is_target_little_endian() -> bool {
+    u16::from_ne_bytes([1, 0]) == 1
+}
 pub fn main() {
+    const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e268::main();
     //p500_599::e580::main();
@@ -48,5 +54,9 @@ pub fn main() {
     dbg!(set.len()); */
     //utils::prime_sieves::main();
     utils::primecount::main();
+    let mut v = vec![0u8; 8].into_boxed_slice();
+    let p = v.as_mut_ptr().cast::<u64>();
+    unsafe { *p = 1 };
+    dbg!(v);
     println!("Finished running at: {} ", Local::now().time());
 }

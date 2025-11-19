@@ -43,4 +43,93 @@ impl FenwickTree {
             k += k & (!k + 1);
         }
     }
+    #[must_use]
+    pub fn flatten(self) -> Vec<i64> {
+        let mut ret = self.0;
+        for i in 2..ret.len() {
+            let j = i & (i + 1);
+            if j != 0 {
+                ret[i] += ret[j - 1];
+            }
+        }
+        ret
+    }
+}
+#[derive(Clone)]
+pub struct FenwickTreeUsize(pub Vec<usize>);
+
+impl FenwickTreeUsize {
+    #[must_use]
+    pub fn new(len: usize, init: usize) -> Self {
+        let mut v = vec![init; len];
+        if init != 0 {
+            for i in 1..len {
+                let r = i + (i & (!i + 1));
+                if r <= len {
+                    v[r - 1] += v[i - 1];
+                }
+            }
+        }
+        Self(v)
+    }
+    pub fn new_with(len: usize, init: impl FnMut(usize) -> usize) -> Self {
+        let mut v = (0..len).map(init).collect_vec();
+        for i in 1..len {
+            let r = i + (i & (!i + 1));
+            if r <= len {
+                v[r - 1] += v[i - 1];
+            }
+        }
+        Self(v)
+    }
+    #[must_use]
+    pub fn sum(&self, i: usize) -> usize {
+        let mut i = i + 1;
+        let mut sum = 0;
+        while i != 0 {
+            sum += self.0[i - 1];
+            i &= i - 1;
+        }
+        sum
+    }
+    pub fn add(&mut self, i: usize, v: usize) {
+        let mut k = i + 1;
+        while k <= self.0.len() {
+            self.0[k - 1] += v;
+            k += k & (!k + 1);
+        }
+    }
+    pub fn sub(&mut self, i: usize, v: usize) {
+        let mut k = i + 1;
+        while k <= self.0.len() {
+            self.0[k - 1] -= v;
+            k += k & (!k + 1);
+        }
+    }
+
+    pub fn inc(&mut self, i: usize) {
+        let mut k = i + 1;
+        while k <= self.0.len() {
+            self.0[k - 1] += 1;
+            k += k & (!k + 1);
+        }
+    }
+    pub fn dec(&mut self, i: usize) {
+        let mut k = i + 1;
+        while k <= self.0.len() {
+            self.0[k - 1] -= 1;
+            k += k & (!k + 1);
+        }
+    }
+    #[must_use]
+    pub fn flatten(self) -> Vec<usize> {
+        let mut ret = self.0;
+        for i in 2..ret.len() {
+            let j = i & (i + 1);
+            if j != 0 {
+                ret[i] += ret[j - 1];
+            }
+        }
+        ret
+    }
 }
