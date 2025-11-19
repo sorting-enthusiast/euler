@@ -1,4 +1,4 @@
-use crate::utils::{prime_sieves::sift, primecount::log_zeta};
+use crate::utils::primes::{log_zeta::log_zeta, prime_sieves::sift};
 
 pub fn main() {
     let primes = sift(1_991_010);

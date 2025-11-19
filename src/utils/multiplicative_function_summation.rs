@@ -6,7 +6,7 @@ use crate::utils::{
         FIArrayUsize,
     },
     bit_array::BitArray,
-    prime_sieves::sift,
+    primes::prime_sieves::sift,
 };
 #[must_use]
 pub fn totient_sieve(n: usize) -> Vec<i64> {
@@ -329,7 +329,7 @@ macro_rules! min25_sieve_impl_for {
                 mut G: impl FnMut($type) -> $type,
                 mut f: impl FnMut($type, $type) -> $type,
             ) -> [<FIArray $type:camel>] {
-                let primes = super::prime_sieves::sift(x.isqrt() as u64 + 1);
+                let primes = super::primes::prime_sieves::sift(x.isqrt() as u64 + 1);
                 let mut s = [<FIArray $type:camel>]::new(x);
                 let keys = [<FIArray $type:camel>]::keys(x).collect_vec();
 

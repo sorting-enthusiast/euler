@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::FIArrayU64, bit_array::BitArray, multiplicative_function_summation::mobius_sieve,
-    sieve_of_pritchard::sift,
+    primes::prime_sieves::sift,
 };
 
 #[must_use]

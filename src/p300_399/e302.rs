@@ -1,4 +1,4 @@
-use crate::utils::{math, sieve_of_pritchard::sift};
+use crate::utils::{math, primes::prime_sieves::sift};
 use std::time::Instant;
 const N: u64 = 1e18 as u64;
 

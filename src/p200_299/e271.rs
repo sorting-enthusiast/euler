@@ -1,4 +1,4 @@
-use crate::utils::prime_sieves::sieve_it;
+use crate::utils::primes::prime_sieves::sieve_it;
 
 const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
     if exp == 0 {

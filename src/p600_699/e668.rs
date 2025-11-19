@@ -1,4 +1,4 @@
-use crate::utils::primecount::lucy_fastdivide_alt;
+use crate::utils::primes::primecount::lucy_fastdivide_alt;
 
 // n is not square root smooth iff x=py for some prime p and p>=y
 // for given y <= N.isqrt(), subtract # of primes below N/y and above y: pi(x/y) - pi(y-1)

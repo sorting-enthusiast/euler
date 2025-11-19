@@ -1,4 +1,6 @@
-use crate::utils::{FIArray::FIArrayI64, powerful_numbers::PowerfulExtAlt, prime_sieves::sift};
+use crate::utils::{
+    FIArray::FIArrayI64, powerful_numbers::PowerfulExtAlt, primes::prime_sieves::sift,
+};
 
 const N: i64 = 1e12 as i64;
 const MOD: i64 = 1e9 as i64 + 7;

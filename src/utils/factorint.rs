@@ -2,7 +2,7 @@ use std::num::NonZeroU64;
 
 use crate::utils::{
     math::gcd,
-    primality::{is_prime, mulmod},
+    primes::primality::{is_prime, mulmod},
 };
 
 pub fn rho(n: u64) -> u64 {

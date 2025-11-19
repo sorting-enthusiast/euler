@@ -1,6 +1,9 @@
 use itertools::Itertools;
 
-use crate::utils::{gaussian_ints::GaussianI64, primality::powmod, prime_sieves::sift};
+use crate::utils::{
+    gaussian_ints::GaussianI64,
+    primes::{primality::powmod, prime_sieves::sift},
+};
 
 fn sum_of_squares(p: u64) -> (i64, i64) {
     assert_eq!(

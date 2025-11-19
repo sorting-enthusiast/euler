@@ -1,6 +1,9 @@
 use itertools::Itertools;
 
-use crate::utils::{factorint::print_factors, primality::is_prime, prime_sieves::sieve_it};
+use crate::utils::{
+    factorint::print_factors,
+    primes::{primality::is_prime, prime_sieves::sieve_it},
+};
 
 // let f(n) count the # of gozinta chains for n:
 // f(n) = sum over d|n, d<n of f(d)

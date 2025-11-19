@@ -1,4 +1,4 @@
-use crate::utils::{prime_sieves::sift, primecount::lucy};
+use crate::utils::primes::{prime_sieves::sift, primecount::lucy};
 const N: usize = 1e8 as _;
 pub fn main() {
     let start = std::time::Instant::now();

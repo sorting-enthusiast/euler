@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::utils::prime_sieves::sift;
+use crate::utils::primes::prime_sieves::sift;
 const N: u64 = 1e19 as _;
 const SQRT: u64 = N.isqrt();
 const CBRT: u64 = icbrt(N);

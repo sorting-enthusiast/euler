@@ -1,4 +1,4 @@
-use crate::utils::prime_sieves::sieve_it;
+use crate::utils::primes::prime_sieves::sieve_it;
 
 const MOD: i64 = 1e9 as i64 + 9;
 const N: usize = 1e8 as _;

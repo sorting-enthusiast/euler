@@ -1,4 +1,4 @@
-use crate::utils::prime_sieves::sift;
+use crate::utils::primes::prime_sieves::sift;
 
 const MOD: u64 = 1e9 as u64 + 7;
 const N: u64 = 1e14 as _;

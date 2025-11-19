@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::utils::FIArray::FIArray;
-use crate::utils::sieve_of_pritchard::sift;
+use crate::utils::primes::prime_sieves::sift;
 // 501
 // ez: count composites with either 3 distinct prime factors,
 // or 2 distinct prime factors, with one of them being of multplicity 3 and the other of 1,

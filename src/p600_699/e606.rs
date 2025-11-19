@@ -1,6 +1,6 @@
 use crate::utils::{
     multiplicative_function_summation::{sum_n_i64, sum_over_primes},
-    prime_sieves::sift,
+    primes::prime_sieves::sift,
 };
 const MOD: i64 = 1e9 as _;
 const N: i64 = 1e12 as i64;

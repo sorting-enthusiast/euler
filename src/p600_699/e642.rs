@@ -3,7 +3,7 @@ use itertools::Itertools;
 use crate::utils::{
     FIArray::{FIArray, FIArrayI64},
     multiplicative_function_summation::sum_n_i64,
-    prime_sieves::sift,
+    primes::prime_sieves::sift,
 };
 
 const N: usize = 2018_2018_2018;

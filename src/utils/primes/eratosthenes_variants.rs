@@ -1,4 +1,4 @@
-use super::bit_array::BitArray;
+use crate::utils::bit_array::BitArray;
 
 const WHEEL_2_3_5_7: [u8; 48] = [
     10, 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2, 4, 2, 4, 8, 6, 4, 6, 2,

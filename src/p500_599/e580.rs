@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::FIArrayU64,
-    prime_sieves::{sieve_it, sift},
+    primes::prime_sieves::{sieve_it, sift},
 };
 
 // Hilbert numbers are numbers that are products of any number of primes equivalent to 1 mod 4,

@@ -2,7 +2,9 @@ use itertools::{Either, Itertools};
 use std::collections::HashSet;
 
 use crate::utils::{
-    FIArray::FIArrayU64, bit_array::BitArray, primality::powmod, prime_sieves::sift,
+    FIArray::FIArrayU64,
+    bit_array::BitArray,
+    primes::{primality::powmod, prime_sieves::sift},
 };
 
 const fn modexp(mut x: usize, mut exp: usize, modulo: usize) -> usize {

@@ -1,4 +1,4 @@
-use crate::utils::{multiplicative_function_summation::mobius_sieve, primecount::prime_pi};
+use crate::utils::{multiplicative_function_summation::mobius_sieve, primes::primecount::prime_pi};
 
 const N: usize = 9e18 as _;
 fn icbrt(x: usize) -> usize {

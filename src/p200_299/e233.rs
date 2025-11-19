@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use itertools::{Either, Itertools};
 
-use crate::utils::{FIArray::FIArrayU64, prime_sieves::sift};
+use crate::utils::primes::prime_sieves::sift;
 const N: u64 = 1e11 as _;
 
 // sum all numbers below lim s.t. all their prime factors are from the prime set given

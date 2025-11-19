@@ -1,5 +1,5 @@
 use crate::utils::binary_search::binsearch;
-use crate::utils::sieve_of_pritchard::sift as sieve;
+use crate::utils::primes::prime_sieves::sift as sieve;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     fmt::Write,

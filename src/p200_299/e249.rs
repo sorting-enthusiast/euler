@@ -1,4 +1,4 @@
-use crate::utils::prime_sieves::erat_wheel210;
+use crate::utils::primes::prime_sieves::erat_wheel210;
 use std::time::Instant;
 // calculate product of (1+x^p) for all p < 5000, i.e. the generating function of all subsets of sum i, sum coefficients of prime powers
 pub fn main() {

@@ -1,4 +1,4 @@
-use crate::utils::prime_sieves::sift;
+use crate::utils::primes::prime_sieves::sift;
 
 //Yields (n, h(n) mod m) where n are the O(sqrt x) powerful numbers
 //up to x, and h is any multiplicative function.

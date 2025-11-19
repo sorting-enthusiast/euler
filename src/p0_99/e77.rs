@@ -1,4 +1,4 @@
-use crate::utils::prime_sieves::sift;
+use crate::utils::primes::prime_sieves::sift;
 //TODO
 pub fn main() {
     const MAX: usize = 1e5 as _;
