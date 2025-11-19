@@ -57,7 +57,7 @@ pub fn mobius_sieve(n: usize) -> Vec<i8> {
                 break;
             }
             composite.set(i * p);
-            if i % p == 0 {
+            if i.is_multiple_of(p) {
                 res[i * p] = 0;
                 break;
             }

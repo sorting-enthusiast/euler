@@ -54,9 +54,5 @@ pub fn main() {
     dbg!(set.len()); */
     //utils::prime_sieves::main();
     utils::primecount::main();
-    let mut v = vec![0u8; 8].into_boxed_slice();
-    let p = v.as_mut_ptr().cast::<u64>();
-    unsafe { *p = 1 };
-    dbg!(v);
     println!("Finished running at: {} ", Local::now().time());
 }

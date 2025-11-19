@@ -6,11 +6,11 @@ use itertools::Itertools;
 use crate::utils::{
     FIArray::{FIArray, FIArrayU64, FIArrayU128},
     bit_array::BitArray,
-    fenwick::{FenwickTree, FenwickTreeUsize},
+    fenwick::{FenwickTree, FenwickTreeU32, FenwickTreeUsize},
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{BIT64TOVAL240, MOD30_TO_MASK, WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e18 as usize;
+const N: usize = 1e16 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -773,6 +773,7 @@ const REMOVE_LESS: [u64; 240] = [
 ];
 // 1e18: res = 24739954287740860, took 7059.9063396s
 // 1e17: 1185.792844s
+// 1e16: res = 279238341033925, took 214.8473257s
 #[must_use]
 pub fn prime_pi_fenwick_2(x: usize) -> usize {
     const LUT: [usize; 30] = [
@@ -822,7 +823,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         large_s[v - 1] = (((x / v) / 30) << 3) + LUT[(x / v) % 30] - 1 + 3;
     }
     let mut count = 0usize;
-    let mut sieve = FenwickTreeUsize::new(bitmap_size, 64);
+    let mut sieve = FenwickTreeU32::new(bitmap_size, 64);
     sieve.dec(0); // remove 1
     // add 2,3,5 as necessary later
     println!("Initialized BIT");
@@ -844,7 +845,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         let xpd = xp / d;
         large_s[d - 1] -= if xpd <= isqrt {
             count += 1;
-            let mut ret = sieve.sum(xpd / 240)
+            let mut ret = sieve.sum(xpd / 240) as usize
                 - (sieve_raw[xpd / 240] | REMOVE_LESS[xpd % 240]).count_zeros() as usize;
             ret += usize::from(xpd > 1) + usize::from(xpd > 2) + usize::from(xpd > 4);
             ret
@@ -875,7 +876,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
     wheel_incr.next();
     while p * p <= isqrt {
         if unsafe { *bitmap.add(p / 30) } & MOD30_TO_MASK[p % 30] == 0 {
-            dbg!(p);
+            //dbg!(p,pi);
             let xp = x / p;
             let pp = p * p;
             let sp = pi;
@@ -907,7 +908,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
                     let xpd = xp / d;
                     large_s[d - 1] -= if xpd <= isqrt {
                         count += 1;
-                        let mut ret = sieve.sum(xpd / 240)
+                        let mut ret = sieve.sum(xpd / 240) as usize
                             - (sieve_raw[xpd / 240] | REMOVE_LESS[xpd % 240]).count_zeros()
                                 as usize;
                         ret += usize::from(xpd > 1) + usize::from(xpd > 2) + usize::from(xpd > 4);
@@ -938,7 +939,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
     println!("Flattening BIT");
     let small_s = sieve.flatten();
     dbg!(count, pi);
-    let mut primes = Vec::with_capacity(small_s[isqrt / 240]);
+    let mut primes = Vec::with_capacity(small_s[isqrt / 240] as usize);
     //primes.extend([2, 3, 5]);
     let bitmap64: *const u64 = bitmap.cast();
     let mut base = 0;
@@ -947,7 +948,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         bitset = !bitset;
         while bitset != 0 {
             let r = bitset.trailing_zeros() as usize;
-            primes.push(base + BIT64TOVAL240[r] as usize);
+            primes.push((base + BIT64TOVAL240[r] as usize) as u32);
             bitset &= bitset - 1;
         }
 
@@ -961,13 +962,14 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         if prime_cand > isqrt {
             break;
         }
-        primes.push(prime_cand);
+        primes.push(prime_cand as u32);
         bitset &= bitset - 1;
     }
-    let pi_4th_root = primes.partition_point(|p| p.pow(2) <= isqrt);
-    let pi_cbrt = primes.partition_point(|p| p.pow(3) <= x);
+    let pi_4th_root = pi - 3;
+    let pi_cbrt = primes.partition_point(|&p| (p as usize).pow(3) <= x);
     dbg!(pi_4th_root, pi_cbrt);
     for (i, &p) in primes[pi_4th_root..pi_cbrt].iter().enumerate() {
+        let p = p as usize;
         let xp = x / p;
         let xpp = xp / p;
         let sp = pi;
@@ -975,11 +977,12 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         large_s[0] -= large_s[p - 1] - sp;
         // each iteration does pi(x/(p*p)) - pi(p) work, x^1/4<=p<x^1/3
         for &d in &primes[pi_4th_root..][i + 1..] {
+            let d = d as usize;
             if d > xpp {
                 break;
             }
             let xpd = xp / d;
-            let ret = 3 + small_s[xpd / 240]
+            let ret = 3 + small_s[xpd / 240] as usize
                 - (sieve_raw[xpd / 240] | REMOVE_LESS[xpd % 240]).count_zeros() as usize;
             large_s[d - 1] -= ret - sp;
         }
@@ -988,6 +991,7 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
     dbg!(res);
     // compute P2
     for &p in &primes[pi_cbrt..] {
+        let p = p as usize;
         res -= large_s[p - 1] - pi;
         pi += 1;
     }
