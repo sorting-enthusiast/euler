@@ -26,7 +26,7 @@ fn count_squarefree(limit: u64) -> u64 {
 }
 
 pub fn main() {
-    const N: u64 = 1e19 as _;
+    const N: u64 = 1 << 63;
     /*let start = Instant::now();
     let res = opt_blocked(N as _);
     let end = start.elapsed();
@@ -160,7 +160,12 @@ fn dirimul_opt(N: u64) -> u64 {
     }
     let lim = primes.partition_point(|&p| p <= xsqrt.isqrt());
     for &p in &primes[..lim] {
-        for (i, &v) in large_keys.iter().enumerate() {
+        large_sqf[0] -= if N / (p * p) <= xcbrt {
+            small_sqf[(N / (p * p)) as usize - 1]
+        } else {
+            large_sqf[(p as usize) - 1]
+        };
+        for (i, &v) in large_keys.iter().enumerate().skip(p as usize) {
             if v < p * p {
                 break;
             }
@@ -170,10 +175,7 @@ fn dirimul_opt(N: u64) -> u64 {
                 large_sqf[((i + 1) * (p as usize)) - 1]
             };
         }
-        for v in (1..=xcbrt).rev() {
-            if v < p * p {
-                break;
-            }
+        for v in (p * p..=xcbrt).rev() {
             small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
         }
     }

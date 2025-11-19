@@ -149,6 +149,7 @@ where
     type Item = (i64, i64);
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((n, hn, i)) = self.stack.pop() {
+            //assert_ne!(hn, 0);
             if let Some(&p) = self.ps.get(i) {
                 let xdivn = (self.x / n) as u64;
                 if p * p > xdivn {

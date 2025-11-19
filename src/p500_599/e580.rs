@@ -10,6 +10,7 @@ use crate::utils::{
 
 // a hilbert number is h-squarefree if it is either squarefree, or if only 1 of its prime factors = 3 mod 4 appears with multiplicity 1< <4
 const N: u64 = 1e16 as _;
+const SQRT_N: u64 = N.isqrt();
 pub fn main() {
     println!("res = {}", 2_327_213_148_095_366_u64);
     solve_alt(); // case in point
@@ -20,7 +21,7 @@ pub fn main() {
 fn trivial() {
     fn incl_excl(limit: u64, primes: &[u64]) -> u64 {
         let mut res = 0;
-        for (i, &p) in primes.iter().enumerate() {
+        for (i, p) in primes.iter().enumerate() {
             let prod = p * p;
             if prod > limit {
                 break;
@@ -32,8 +33,8 @@ fn trivial() {
     }
 
     let start = std::time::Instant::now();
-    let primes = sift(N.isqrt());
-    println!("Generated primes: {:?}", start.elapsed());
+    let primes = sift(SQRT_N);
+    println!("Generated primes up to {SQRT_N}: {:?}", start.elapsed());
     let squarefree = |x| ((x + 3) >> 2) - incl_excl(x, &primes[1..]);
     let res = primes
         .iter()
@@ -44,8 +45,7 @@ fn trivial() {
 }
 fn solve_alt() {
     let start = std::time::Instant::now();
-    let xsqrt = N.isqrt();
-    let primes = sift(xsqrt);
+    let primes = sift(SQRT_N);
     let xcbrt = (N as f64).cbrt() as u64;
     let large_keys = (1..=xcbrt)
         .step_by(2)
@@ -74,10 +74,7 @@ fn solve_alt() {
                 large_sqf[((2 * i + 1) * (p as usize)) >> 1]
             };
         }
-        for v in (1..=xcbrt).rev() {
-            if v < p * p {
-                break;
-            }
+        for v in (p * p..=xcbrt).rev() {
             small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
         }
     }
@@ -141,6 +138,68 @@ fn solve() {
         .fold(squarefree[keys.len() - 1], |acc, p| {
             acc + squarefree[rank(N / (p * p))]
         });
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+}
+fn solve_alt3() {
+    let start = std::time::Instant::now();
+    let xsqrt = N.isqrt();
+    let primes = sift(xsqrt);
+    let xcbrt = (N as f64).cbrt() as u64;
+    /* let large_keys = (1..=xcbrt)
+    .step_by(2)
+    .map(|d| N / (d * d))
+    .collect_vec()
+    .into_boxed_slice(); */
+    //let small_keys = (1..=xcbrt).collect_vec().into_boxed_slice();
+
+    let mut large_sqf = vec![0; (xcbrt + 1) as usize >> 1].into_boxed_slice();
+    let mut small_sqf = vec![0; xcbrt as usize].into_boxed_slice();
+
+    for v in 1..=xcbrt {
+        small_sqf[v as usize - 1] = (v + 3) >> 2;
+    }
+    for (i, v) in (1..=xcbrt).step_by(2).map(|d| N / (d * d)).enumerate() {
+        large_sqf[i] = (v + 3) >> 2;
+    }
+    for &p in &primes[1..] {
+        let pp = p * p;
+        let npp = N / pp;
+        large_sqf[0] -= if npp <= xcbrt {
+            small_sqf[npp as usize - 1]
+        } else {
+            large_sqf[p as usize >> 1]
+        };
+        let mut dp = 3 * p;
+        let mut dd = 1;
+        // (d+2)^2 = d^2 + 4d+4 = d^2 + 4(d+2 - 1)
+        for d in (3..=xcbrt).step_by(2) {
+            dd += (d - 1) << 2;
+            if d * d > npp {
+                break;
+            }
+            large_sqf[d as usize >> 1] -= if npp / dd <= xcbrt {
+                small_sqf[(npp / dd) as usize - 1]
+            } else {
+                large_sqf[dp as usize >> 1]
+            };
+            dp += p << 1;
+        }
+        for v in (pp..=xcbrt).rev() {
+            small_sqf[v as usize - 1] -= small_sqf[(v / pp) as usize - 1];
+        }
+    }
+    let mut res = large_sqf[0];
+    for p in primes {
+        if p & 3 != 3 {
+            continue;
+        }
+        res += if N / (p * p) <= xcbrt {
+            small_sqf[(N / (p * p)) as usize - 1]
+        } else {
+            large_sqf[p as usize >> 1]
+        }
+    }
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }

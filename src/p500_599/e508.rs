@@ -189,7 +189,7 @@ fn B(mut L: i64) -> u128 {
 }
 
 pub fn main() {
-    const L: i64 = 1e15 as i64;
+    const L: i64 = 1e15 as _;
     const MOD: u128 = 1e9 as u128 + 7;
 
     let start = Instant::now();

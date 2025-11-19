@@ -10,7 +10,7 @@ use crate::utils::{
     multiplicative_function_summation::mobius_sieve,
     prime_sieves::{BIT64TOVAL240, MOD30_TO_MASK, WHEEL_2_3_5, WHEEL_2_3_5_7, sift},
 };
-const N: usize = 1e16 as usize;
+const N: usize = 5e15 as usize;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -374,7 +374,6 @@ pub fn prime_pi_fenwick(x: usize) -> usize {
     sieve.inc(1);
     sieve.inc(2);
     sieve.inc(4);
-    println!("Initialized BIT");
 
     let p = 7;
     let xp = x / p;
@@ -412,7 +411,6 @@ pub fn prime_pi_fenwick(x: usize) -> usize {
         }
         multiple += precomp[incr as usize];
     }
-    println!("Sieved 7 out");
 
     let mut pi = 4;
     let mut p = 11;
@@ -474,7 +472,6 @@ pub fn prime_pi_fenwick(x: usize) -> usize {
         p += usize::from(unsafe { wheel_incr.next().unwrap_unchecked() });
     }
     // flatten tree here, no longer update small_s
-    println!("Flattening BIT");
     let small_s = sieve.flatten();
     dbg!(count, pi);
     let mut primes = Vec::with_capacity(small_s[isqrt - 1]);
@@ -503,7 +500,7 @@ pub fn prime_pi_fenwick(x: usize) -> usize {
         primes.push(prime_cand);
         bitset &= bitset - 1;
     }
-    let pi_4th_root = primes.partition_point(|p| p.pow(2) <= isqrt);
+    let pi_4th_root = pi - 3;
     let pi_cbrt = primes.partition_point(|p| p.pow(3) <= x);
     dbg!(pi_4th_root, pi_cbrt);
     for (i, &p) in primes[pi_4th_root..pi_cbrt].iter().enumerate() {
@@ -826,8 +823,6 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
     let mut sieve = FenwickTreeU32::new(bitmap_size, 64);
     sieve.dec(0); // remove 1
     // add 2,3,5 as necessary later
-    println!("Initialized BIT");
-
     let p = 7;
     let xp = x / p;
     let pp = 49;
@@ -868,7 +863,6 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         }
         multiple += precomp[incr as usize];
     }
-    println!("Sieved 7 out");
 
     let mut pi = 4;
     let mut p = 11;
@@ -936,7 +930,6 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
         p += usize::from(unsafe { wheel_incr.next().unwrap_unchecked() });
     }
     // flatten tree here, no longer update small_s
-    println!("Flattening BIT");
     let small_s = sieve.flatten();
     dbg!(count, pi);
     let mut primes = Vec::with_capacity(small_s[isqrt / 240] as usize);
