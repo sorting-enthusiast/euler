@@ -1,4 +1,5 @@
 use crate::utils::FIArray::FIArray;
+// TODO: optimize using fenwick trees as described in a comment in this post https://codeforces.com/blog/entry/117783
 
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
 // O(n^(2/3)) time, O(n^(1/2)) space. Pretty slow, despite noticeably superior time complexity.
