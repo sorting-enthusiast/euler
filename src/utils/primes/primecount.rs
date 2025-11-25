@@ -13,10 +13,20 @@ use crate::utils::{
 use fastdivide::DividerU64;
 use itertools::Itertools;
 const N: usize = 1e14 as usize;
+// todo:
+// calculate pi(n) the following way:
+// using fenwick tree fiarrays, multiple zeta(s) by 1-p^-s for each p < n^1/3
+// flatten fenwick tree into normal fiarray
+// this computes phi(n, pi(n^1/3)) for each floor(n/d), and we know pi(n^1/3).
+// all that is left is to evaluate P2(n, n^1/3), can be computed in O(sqrt(n))
+// first step takes \Theta(n^2/3), so the algorithm in total runs in that timee complexity
+
+// alternatively, try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
 // not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
+// can be optimised using fenwick trees and the sqrt trick
 #[must_use]
 pub fn legendre(x: usize) -> usize {
     let primes = sift(x.isqrt() as u64);
@@ -773,6 +783,7 @@ const REMOVE_LESS: [u64; 240] = [
 // 1e18: res = 24739954287740860, took 7059.9063396s
 // 1e17: 1185.792844s
 // 1e16: res = 279238341033925, took 214.8473257s
+// TODO: utilise sqrt trick, few possible values for xp/d
 #[must_use]
 pub fn prime_pi_fenwick_2(x: usize) -> usize {
     const LUT: [usize; 30] = [
