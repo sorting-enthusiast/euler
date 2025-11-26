@@ -22,7 +22,7 @@ const fn legendre_symbol(a: usize, p: usize) -> i32 {
 // https://en.wikipedia.org/wiki/Quadratic_Gauss_sum
 pub fn main() {
     const Q: usize = 74_207_281;
-    const CHI_Q_MINUS_2: i32 = legendre_symbol((Q + MOD - 2) % Q, Q); // = (q-2 | q)
+    const CHI_Q_MINUS_2: i32 = legendre_symbol(Q - 2, Q); // = (q-2 | q)
 
     // Two-level table for powers of 2 modulo MOD:
     // 2^e = big[e / B] * small[e % B]  (mod MOD)
@@ -48,7 +48,7 @@ pub fn main() {
 
     let pow2_at = |e| (big[e / B] * small[e % B]) % MOD;
 
-    let p = (pow2_at(Q) + MOD - 1) % MOD;
+    let p = pow2_at(Q) - 1;
 
     // 2 is an order q root of unity modulo p, and p = 1 mod 4, therefore
     // sqrt(q) = sum_{a=1}^{q-1} (a|q)2^a = 2 * sum_{t=1}^{(q-1)/2} 2^{t^2 mod q} - (2^q - 2)
