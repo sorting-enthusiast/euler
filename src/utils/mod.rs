@@ -9,6 +9,6 @@ pub mod multiplicative_function_summation;
 pub mod polymul;
 pub mod powerful_numbers;
 
+pub mod farey;
 pub mod primes;
-
 pub mod smooth;

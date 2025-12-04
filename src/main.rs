@@ -8,6 +8,8 @@
 #![allow(clippy::cast_precision_loss)]
 
 use chrono::Local;
+
+use crate::utils::{farey::farey, multiplicative_function_summation::totient_sum_single};
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -27,7 +29,7 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    //p200_299::e268::main();
+
     //p500_599::e580::main();
     //p100_199::e193::main();
     //p600_699::e634::main();
@@ -50,6 +52,6 @@ pub fn main() {
         .collect::<HashSet<_>>();
     dbg!(set.len()); */
     //utils::prime_sieves::main();
-    utils::primes::primecount::main();
+    //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
