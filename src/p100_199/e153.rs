@@ -4,11 +4,11 @@ const N: usize = 1e8 as _;
 
 // https://en.wikipedia.org/wiki/Coprime_integers#Generating_all_coprime_pairs
 fn calkin_wilf(m: usize, n: usize, sum_divisors: &FIArray) -> usize {
-    let mmnn = m * m + n * n;
-    if mmnn > N {
+    let norm = m * m + n * n;
+    if norm > N {
         return 0;
     }
-    (m + n) * sum_divisors[N / mmnn]
+    (m + n) * sum_divisors[N / norm]
         + calkin_wilf(m + n, m, sum_divisors)
         + calkin_wilf(m + n, n, sum_divisors)
 }
@@ -20,6 +20,5 @@ pub fn main() {
     let mut res = sum_divisors[N / 2] + calkin_wilf(2, 1, &sum_divisors);
     res <<= 1;
     res += sum_divisors[N];
-    let end = start.elapsed();
-    println!("res = {res}, took {end:?}");
+    println!("res = {res}, took {:?}", start.elapsed());
 }
