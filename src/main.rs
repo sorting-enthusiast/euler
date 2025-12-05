@@ -9,7 +9,6 @@
 
 use chrono::Local;
 
-use crate::utils::{farey::farey, multiplicative_function_summation::totient_sum_single};
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -29,9 +28,8 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-
     //p500_599::e580::main();
-    //p100_199::e193::main();
+    p100_199::e153::main();
     //p600_699::e634::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
