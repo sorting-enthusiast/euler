@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use crate::utils::FIArray::FIArray;
 // TODO: optimize using fenwick trees as described in a comment in this post https://codeforces.com/blog/entry/117783
 
@@ -163,7 +164,7 @@ pub fn log_zeta_reordered(n: usize) -> FIArray {
     let mut buffer = zeta.clone();
 
     let mut ret = FIArray::new(n);
-    let x = ((icbrt(rt) + 1) * (n as f64).ln() as usize); // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
+    let x = (icbrt(rt) + 1) * (n as f64).ln() as usize; // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
     // remove contributions of small primes (first ~n^1/6 of them)
     for p in 2..x {
         let val = zeta.arr[p - 1] - 1;

@@ -21,7 +21,7 @@ fn eval(p: &[u8; 16], x: i64) -> i64 {
     let mut res = 0;
     let mut pow = 1;
     for &c in p {
-        res += c as i64 * pow;
+        res += i64::from(c) * pow;
         pow *= x;
     }
     res

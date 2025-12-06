@@ -1390,17 +1390,13 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
         s.arr[i] = v - 1;
     }
 
-    let mut count_sum = 0usize;
-    let mut count_add = 0usize;
     for p in 2..=sqrtx {
         if !sieve_raw.get(p) {
-            count_sum += 1;
             let sp = sieve.sum(p - 1) as usize;
             let lim = (x / y).min(x / (p * p));
             for i in 1..=lim {
                 let xip = x / (i * p);
                 s.arr[len - i] -= if xip <= y {
-                    count_sum += 1;
                     sieve.sum(xip) as usize
                 } else {
                     s[xip]
@@ -1410,14 +1406,12 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
                 if !sieve_raw.get(j) {
                     sieve_raw.set(j);
                     sieve.add(j, -1);
-                    count_add += 1;
                 }
             }
         }
     }
     for (i, v) in FIArray::keys(x).take_while(|&v| v <= y).enumerate() {
         s.arr[i] = sieve.sum(v) as usize;
-        count_sum += 1;
     }
     /* dbg!((count_sum, count_add));
     dbg!(y * (y as f64).ln().ln() as usize); */
@@ -1441,19 +1435,15 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
         s.arr[i] = v - 1;
     }
 
-    let mut count_sum = 0usize;
-    let mut count_add = 0usize;
     for p in 2..=sqrtx {
         if sieve_raw.get(p) {
             continue;
         }
         let sp = sieve.sum(p - 1) as usize;
-        count_sum += 1;
 
         let lim = (x / y).min(x / (p * p));
         let xp = x / p;
         s.arr[len - 1] -= if xp <= y {
-            count_sum += 1;
             sieve.sum(xp) as usize
         } else {
             s[xp]
@@ -1464,7 +1454,6 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
             }
             let xip = xp / i;
             s.arr[len - i] -= if xip <= y {
-                count_sum += 1;
                 sieve.sum(xip) as usize
             } else {
                 s[xip]
@@ -1474,7 +1463,6 @@ pub fn lucy_fenwick_trick(x: usize) -> usize {
             if !sieve_raw.get(j) {
                 sieve_raw.set(j);
                 sieve.add(j, -1);
-                count_add += 1;
             }
         }
     }

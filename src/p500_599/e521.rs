@@ -14,6 +14,7 @@ const MOD30_TO_MASK: [u8; 30] = [
     64, 128,
 ];
 
+#[must_use]
 pub fn segmented_sieve_of_eratosthenes(n: usize) -> u128 {
     let limit = (n as f64).sqrt().floor() as usize + 1;
     let mut primes = Vec::with_capacity((limit as f64 / (limit as f64).log(3.0)) as usize);

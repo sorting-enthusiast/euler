@@ -8,6 +8,7 @@ pub fn main() {
         aviv(10_000_000_000_000_000_000_000_000_u128)
     );
 }
+#[must_use]
 pub const fn aviv_optimized(mut num: u128) -> u64 {
     let mut ans = 1;
     let mut dp = 0;
@@ -19,6 +20,7 @@ pub const fn aviv_optimized(mut num: u128) -> u64 {
     }
     ans
 }
+#[must_use]
 pub const fn aviv(mut num: u128) -> u64 {
     let mut ans = 1;
     let mut dp = 0;

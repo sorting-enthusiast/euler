@@ -1,9 +1,4 @@
-use itertools::Itertools;
-
-use crate::utils::{
-    FIArray::FIArrayI64,
-    multiplicative_function_summation::{dirichlet_div_i64, totient_sum},
-};
+use crate::utils::{FIArray::FIArrayI64, multiplicative_function_summation::totient_sum};
 use std::{collections::HashMap, time::Instant};
 
 const MOD: i64 = 1e9 as i64;

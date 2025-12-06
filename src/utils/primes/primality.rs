@@ -15,7 +15,7 @@ const fn powmod_(mut x: u128, mut exp: u128, modulo: u128) -> u128 {
     mulmod_(r, x, modulo)
 }
 #[must_use]
-pub const fn mulmod_(mut x: u128, mut exp: u128, modulo: u128) -> u128 {
+pub const fn mulmod_(x: u128, exp: u128, modulo: u128) -> u128 {
     /*if exp == 0 {
         return 0;
     }
@@ -34,7 +34,7 @@ pub const fn mulmod_(mut x: u128, mut exp: u128, modulo: u128) -> u128 {
 #[must_use]
 pub fn is_prime(n: u64) -> bool {
     assert!(n <= 7e18 as u64);
-    let n = n as u128;
+    let n = u128::from(n);
     if n < 2 || (n % 6) % 4 != 1 {
         return (n | 1) == 3;
     }
@@ -64,10 +64,10 @@ pub fn is_prime(n: u64) -> bool {
     true
 }
 #[must_use]
-pub const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
+pub const fn powmod(x: u64, exp: u64, modulo: u64) -> u64 {
     powmod_(x as _, exp as _, modulo as _) as _
 }
 #[must_use]
-pub const fn mulmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
+pub const fn mulmod(x: u64, exp: u64, modulo: u64) -> u64 {
     mulmod_(x as _, exp as _, modulo as _) as _
 }

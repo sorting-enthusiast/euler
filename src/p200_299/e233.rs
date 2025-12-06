@@ -29,13 +29,7 @@ pub fn main() {
 
     let limit = N / (5u64.pow(3) * 13u64.pow(2));
     let primes = sift(limit + 1);
-    let (primes_1mod4, rest): (Vec<_>, Vec<_>) = primes.into_iter().partition_map(|p| {
-        if p & 3 == 1 {
-            Either::Left(p)
-        } else {
-            Either::Right(p)
-        }
-    });
+    let (primes_1mod4, rest): (Vec<_>, Vec<_>) = primes.into_iter().partition(|p| p & 3 == 1);
     let mut sum = 0;
     let mut cache = BTreeMap::new(); // few possible values for N / init, may as well cache them. 5ms speedup, 25%
     //let mut count = 0;
