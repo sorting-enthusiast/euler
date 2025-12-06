@@ -1,45 +1,7 @@
-use crate::utils::primes::prime_sieves::{sieve_it, sift};
-
-const fn powmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
-    if exp == 0 {
-        return 1;
-    }
-    let mut r = 1;
-    x %= modulo;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r = mulmod(r, x, modulo);
-        }
-        x = mulmod(x, x, modulo);
-        exp >>= 1;
-    }
-    mulmod(r, x, modulo)
-}
-const fn mulmod(mut x: u64, mut exp: u64, modulo: u64) -> u64 {
-    if exp == 0 {
-        return 0;
-    }
-    let mut r = 0;
-    x %= modulo;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r += x;
-            if r >= modulo {
-                r -= modulo;
-            }
-        }
-        x <<= 1;
-        if x >= modulo {
-            x -= modulo;
-        }
-        exp >>= 1;
-    }
-    r += x;
-    if r >= modulo {
-        r -= modulo;
-    }
-    r
-}
+use crate::utils::primes::{
+    primality::powmod,
+    prime_sieves::{sieve_it, sift},
+};
 
 // f_3(n) counts # of cube roots of unity mod n, including 1
 // f_3(n) is multiplicative
