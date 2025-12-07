@@ -7,6 +7,7 @@ pub fn main() {
     dbg!(eval(&convert(1012), -1));
     dbg!(eval(&convert(2024), -2));
     dbg!(eval(&convert(1012 * 6), -1));
+    dbg!(eval(&convert(5703), -1));
 }
 fn convert(mut n: u64) -> [u8; 16] {
     let mut res = [0; 16];

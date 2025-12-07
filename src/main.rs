@@ -10,8 +10,6 @@
 #![allow(non_upper_case_globals)]
 use chrono::Local;
 
-use crate::utils::factorint::factor;
-
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -33,8 +31,9 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
 
     //p500_599::e580::main();
-    p200_299::e272::main();
-    //p600_699::e634::main();
+    //p100_199::e153::main();
+    p100_199::e122::main();
+    p200_299::e269::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);

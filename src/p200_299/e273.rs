@@ -75,7 +75,8 @@ fn alt() {
 
     let primes = sift(150)
         .into_iter()
-        .filter_map(|p| (p & 3 == 1).then(|| sum_of_squares(p)))
+        .filter(|&p| p & 3 == 1)
+        .map(sum_of_squares)
         .collect_vec();
     let mut solutions = vec![primes[0]];
     let mut buffer = vec![];

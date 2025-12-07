@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
 
-use itertools::{Either, Itertools};
-
 use crate::utils::primes::prime_sieves::sift;
 const N: u64 = 1e11 as _;
 
