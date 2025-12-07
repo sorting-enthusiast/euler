@@ -10,6 +10,8 @@
 #![allow(non_upper_case_globals)]
 use chrono::Local;
 
+use crate::utils::multiplicative_function_summation::{mertens, mertens_slow};
+
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -29,11 +31,10 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-
     //p500_599::e580::main();
     //p100_199::e153::main();
-    p100_199::e122::main();
-    p200_299::e269::main();
+    p300_399::e379::main();
+    //p200_299::e269::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
