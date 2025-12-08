@@ -1,7 +1,9 @@
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::FIArrayI64, multiplicative_function_summation::divisor_summatory, primes::wheel_sieve,
+    FIArray::FIArrayI64,
+    multiplicative_function_summation::{dirichlet_mul_i64, divisor_summatory, mobius_sieve},
+    primes::wheel_sieve,
 };
 
 // can/should replace to something based on dirichlet hyperbola
@@ -43,4 +45,19 @@ pub fn main() {
     d2 += N;
     d2 >>= 1;
     println!("res = {d2}, took {:?}", start.elapsed());
+    alt();
+}
+fn alt() {
+    let start = std::time::Instant::now();
+    let u = FIArrayI64::unit(N);
+    let d = dirichlet_mul_i64(&u, &u, N as _);
+    let d3 = dirichlet_mul_i64(&u, &d, N as _);
+    dbg!(start.elapsed());
+    let mob = mobius_sieve(SQRT_N as usize + 1);
+    let mut res = N;
+    for i in 1..=SQRT_N as usize {
+        res += i64::from(mob[i]) * d3[N / (i * i) as i64];
+    }
+    res >>= 1;
+    println!("res = {res}, took {:?}", start.elapsed());
 }

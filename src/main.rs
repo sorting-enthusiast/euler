@@ -10,8 +10,6 @@
 #![allow(non_upper_case_globals)]
 use chrono::Local;
 
-use crate::utils::multiplicative_function_summation::{mertens, mertens_slow};
-
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
