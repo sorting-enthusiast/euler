@@ -12,7 +12,20 @@ fn calkin_wilf(m: usize, n: usize, sum_divisors: &FIArray) -> usize {
         + calkin_wilf(m + n, m, sum_divisors)
         + calkin_wilf(m + n, n, sum_divisors)
 }
-
+fn calkin_wilf_iter(m: usize, n: usize, sum_divisors: &FIArray) -> usize {
+    let mut res = 0;
+    let mut stack = Vec::with_capacity(16);
+    stack.push((m, n));
+    while let Some((m, n)) = stack.pop() {
+        let norm = m * m + n * n;
+        if norm <= N {
+            res += (m + n) * sum_divisors[N / norm];
+            stack.push((m + n, m));
+            stack.push((m + n, n));
+        }
+    }
+    res
+}
 pub fn main() {
     let start = std::time::Instant::now();
     let sum_divisors =
