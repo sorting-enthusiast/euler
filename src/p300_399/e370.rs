@@ -1,6 +1,6 @@
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-const N: usize = 1e12 as _;
+const N: usize = 2.5e13 as _;
 
 // https://en.wikipedia.org/wiki/Coprime_integers#Generating_all_coprime_pairs
 fn calkin_wilf(x: usize, y: usize) -> usize {
