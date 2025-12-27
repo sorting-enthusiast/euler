@@ -821,7 +821,7 @@ pub fn dijkstra_sieve(limit: usize) -> Vec<usize> {
 
 pub fn main() {
     use std::time::Instant;
-    const N: usize = 1e9 as usize;
+    const N: usize = 5e8 as usize;
     //dbg!(hprime_sieve(500));
     /* {
          use rand::distr::uniform::{UniformSampler, UniformUsize};

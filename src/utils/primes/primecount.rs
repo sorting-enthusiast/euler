@@ -12,7 +12,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e16 as usize;
+const N: usize = 5e8 as usize;
 // todo:
 // calculate pi(n) the following way:
 // using fenwick tree fiarrays, multiple zeta(s) by 1-p^-s for each p < n^1/3
