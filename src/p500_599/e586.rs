@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::utils::primes::wheel_sieve;
 
 const N: u64 = 1e15 as _;
@@ -223,6 +225,7 @@ pub fn main() {
     }
     dbg!(start.elapsed());
     // 4 1 1 1 1
+    // oddly slow, can probably be optimised
     for &p1 in &splitting {
         if p1.pow(4) > N {
             break;
@@ -238,14 +241,14 @@ pub fn main() {
                 if p1 == p3 {
                     continue;
                 }
-                if p3 > N / (p2 * p1.pow(4)) {
+                if p2 * p3 > (N / p1.pow(4)) {
                     break;
                 }
                 for (k, &p4) in splitting[i + j + 2..].iter().enumerate() {
                     if p1 == p4 {
                         continue;
                     }
-                    if p4 > N / (p3 * p2 * p1.pow(4)) {
+                    if p2 * p3 * p4 > (N / p1.pow(4)) {
                         break;
                     }
                     for &p5 in &splitting[i + j + k + 3..] {
