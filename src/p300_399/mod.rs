@@ -1,5 +1,6 @@
 pub mod e302;
 pub mod e351;
+pub mod e354;
 pub mod e355;
 pub mod e362;
 pub mod e370;
