@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 use crate::utils::primes::wheel_sieve;
 
 const N: u64 = 1e15 as _;
@@ -227,39 +225,43 @@ pub fn main() {
     // 4 1 1 1 1
     // oddly slow, can probably be optimised
     for &p1 in &splitting {
-        if p1.pow(4) > N {
+        let lim = N / p1.pow(4);
+        if lim == 0 {
             break;
         }
         for (i, &p2) in splitting.iter().enumerate() {
             if p1 == p2 {
                 continue;
             }
-            if p2 > N / p1.pow(4) {
+            let lim = lim / p2;
+            if lim == 0 {
                 break;
             }
             for (j, &p3) in splitting[i + 1..].iter().enumerate() {
                 if p1 == p3 {
                     continue;
                 }
-                if p2 * p3 > (N / p1.pow(4)) {
+                let lim = lim / p3;
+                if lim == 0 {
                     break;
                 }
                 for (k, &p4) in splitting[i + j + 2..].iter().enumerate() {
                     if p1 == p4 {
                         continue;
                     }
-                    if p2 * p3 * p4 > (N / p1.pow(4)) {
+                    let lim = lim / p4;
+                    if lim == 0 {
                         break;
                     }
                     for &p5 in &splitting[i + j + k + 3..] {
                         if p1 == p5 {
                             continue;
                         }
-                        let val = N / (p4 * p3 * p2 * p1.pow(4));
-                        if p5 > val {
+                        let lim = lim / p5;
+                        if lim == 0 {
                             break;
                         }
-                        res += smooth[(val / p5) as usize - 1];
+                        res += smooth[lim as usize - 1];
                     }
                 }
             }
