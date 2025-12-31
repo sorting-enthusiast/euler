@@ -1,7 +1,6 @@
-use std::collections::BTreeMap;
-
 use crate::utils::primes::prime_sieves::sift;
 const N: u64 = 1e11 as _;
+const LIMIT: u64 = N / (5u64.pow(3) * 13u64.pow(2));
 
 // sum all numbers below lim s.t. all their prime factors are from the prime set given
 fn dfs(acc: u64, lim: u64, primes: &[u64]) -> u64 {
@@ -25,11 +24,10 @@ fn dfs(acc: u64, lim: u64, primes: &[u64]) -> u64 {
 pub fn main() {
     let start = std::time::Instant::now();
 
-    let limit = N / (5u64.pow(3) * 13u64.pow(2));
-    let primes = sift(limit + 1);
+    let primes = sift(LIMIT);
     let (primes_1mod4, rest): (Vec<_>, Vec<_>) = primes.into_iter().partition(|p| p & 3 == 1);
     let mut sum = 0;
-    let mut cache = BTreeMap::new(); // few possible values for N / init, may as well cache them. 5ms speedup, 25%
+    let mut cache = vec![None; LIMIT as usize]; // few possible values for N / init, may as well cache them. 5ms speedup, 25%
     //let mut count = 0;
     // one prime contributes 7, one 5, one 3 for product of 105
     for p1 in &primes_1mod4 {
@@ -54,9 +52,8 @@ pub fn main() {
                     break;
                 }
                 sum += init
-                    * *cache
-                        .entry(N / init)
-                        .or_insert_with(|| dfs(1, N / init, &rest));
+                    * *cache[(N / init) as usize - 1]
+                        .get_or_insert_with(|| dfs(1, N / init, &rest));
 
                 //count += 1;
             }
@@ -80,9 +77,8 @@ pub fn main() {
                 break;
             }
             sum += init
-                * *cache
-                    .entry(N / init)
-                    .or_insert_with(|| dfs(1, N / init, &rest));
+                * *cache[(N / init) as usize - 1].get_or_insert_with(|| dfs(1, N / init, &rest));
+
             //count += 1;
         }
     }
@@ -102,9 +98,8 @@ pub fn main() {
                 break;
             }
             sum += init
-                * *cache
-                    .entry(N / init)
-                    .or_insert_with(|| dfs(1, N / init, &rest));
+                * *cache[(N / init) as usize - 1].get_or_insert_with(|| dfs(1, N / init, &rest));
+
             //count += 1;
         }
     }
@@ -112,5 +107,5 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {sum}, took {end:?}");
     //dbg!(count);
-    dbg!(cache.len());
+    dbg!(cache.iter().flatten().count());
 }
