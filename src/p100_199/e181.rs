@@ -8,8 +8,8 @@ pub fn main() {
     const W: usize = 40;
 
     let start = std::time::Instant::now();
-    let mut gf = vec![[0u128; W + 1]; B + 1].into_boxed_slice();
-    gf[0][0] = 1;
+    let mut gf = vec![[0; W + 1]; B + 1].into_boxed_slice();
+    gf[0][0] = 1u64;
 
     for i in 0..=B {
         for j in 0..=W {
