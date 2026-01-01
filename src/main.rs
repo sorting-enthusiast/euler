@@ -8,6 +8,7 @@
 #![allow(clippy::cast_precision_loss)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![allow(clippy::large_stack_arrays)]
 use chrono::Local;
 
 pub mod p0_99;
