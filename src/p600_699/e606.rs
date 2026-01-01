@@ -4,6 +4,8 @@ use crate::utils::{
 };
 const MOD: i64 = 1e9 as _;
 const N: i64 = 1e12 as i64;
+// A034776
+
 // finding the actual solution was quite easy,
 // although I wasted an unbelievable amount of time debugging the code,
 // turns out i was subtracting 1 from the sum in F wrong,
