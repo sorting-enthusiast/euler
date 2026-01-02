@@ -15,62 +15,67 @@ const fn icbrt(x: i64) -> i64 {
     rt - 1
 }
 
+// runs in O(n^2/3)
 fn inner(n: i64) -> i64 {
-    #[inline(always)]
-    fn s(lim: i64, x1: i64, x2: i64) -> i64 {
+    // inner2 is around 4 times faster than inner1
+    fn inner1(n: i64) -> i64 {
+        #[inline(always)]
+        fn s(lim: i64, x1: i64, x2: i64) -> i64 {
+            let mut ret = 0;
+            let mut q = x1;
+            while q <= lim.min(x2) {
+                let k = lim / q;
+                let q_next = 1 + (lim / k).min(x2);
+
+                ret += (q_next - q) * k;
+
+                q = q_next;
+            }
+            ret
+        }
         let mut ret = 0;
-        let mut q = x1;
-        while q <= lim.min(x2) {
-            let k = lim / q;
-            let q_next = 1 + (lim / k).min(x2);
-
-            ret += (q_next - q) * k;
-
-            q = q_next;
+        let nsqrt = n.isqrt();
+        for i in 1..=nsqrt {
+            let lim = n / i;
+            ret += s(lim, i + 1, 2 * i - 1);
         }
         ret
     }
-    let mut ret = 0;
-    let nsqrt = n.isqrt();
-    for i in 1..=nsqrt {
-        let lim = n / i;
-        ret += s(lim, i + 1, 2 * i - 1);
-    }
-    ret
-}
 
-fn inner_alt(n: i64) -> i64 {
-    #[inline(always)]
-    fn s_alt(lim: i64, x1: i64, x2: i64) -> i64 {
-        let mut ret = 0;
-        let mut prev = x1 - 1;
-        let z = lim / x1;
-        let zL = lim / x2;
+    fn inner2(n: i64) -> i64 {
+        #[inline(always)]
+        fn s(lim: i64, x1: i64, x2: i64) -> i64 {
+            let mut ret = 0;
+            let mut prev = x1 - 1;
+            let z = lim / x1;
+            let zL = lim / x2;
 
-        for z in (zL + 1..=z).rev() {
-            let curr = lim / z;
-            ret += z * (curr - prev);
-            prev = curr;
+            for z in (zL + 1..=z).rev() {
+                let curr = lim / z;
+                ret += z * (curr - prev);
+                prev = curr;
+            }
+
+            ret += zL * (x2 - prev);
+            ret
         }
 
-        ret += zL * (x2 - prev);
+        let mut ret = 0;
+        let nsqrt = n.isqrt();
+        let ncbrt = icbrt(n);
+        for i in 1..=ncbrt {
+            let lim = n / i;
+            for j in i + 1..2 * i {
+                ret += lim / j;
+            }
+        }
+        for i in ncbrt + 1..=nsqrt {
+            let lim = n / i;
+            ret += s(lim, i + 1, 2 * i - 1);
+        }
         ret
     }
-
-    let mut ret = 0;
-    let nsqrt = n.isqrt();
-    let ncbrt = icbrt(n);
-    for i in 1..=ncbrt {
-        let lim = n / i;
-        for j in i + 1..2 * i {
-            ret += lim / j;
-        }
-    }
-    for i in ncbrt + 1..=nsqrt {
-        let lim = n / i;
-        ret += s_alt(lim, i + 1, 2 * i - 1);
-    }
-    ret
+    inner2(n)
 }
 
 pub fn main() {
@@ -86,6 +91,7 @@ pub fn main() {
     println!("res = {res}, took {:?}", start.elapsed());
 }
 
+// O(n^2/3) time, O(n^1/3) space
 fn solve() {
     fn mobius_sieve(n: usize) -> Vec<i64> {
         let mut res = vec![0; n];
