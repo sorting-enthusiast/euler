@@ -207,7 +207,8 @@ fn dirichlet_mul_based(x: u64) -> FIArrayU64 {
 }
 
 // https://arxiv.org/pdf/1107.4890
-// essentially just leverages the dirichlet hyperbola method
+// essentially just leverages the dirichlet hyperbola method:
+// sqf = mu_sqrt * u, \alpha = n^(4/5), \beta = n^(1/5)
 // becomes faster than incl-excl somewhere between 2^34 and 2^35
 // O(n^0.4) space and time
 #[must_use]
