@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::FIArrayI64,
-    multiplicative_function_summation::{dirichlet_mul_i64, divisor_summatory, mobius_sieve},
+    multiplicative_function_summation::{divisor_summatory, mobius_sieve},
     primes::wheel_sieve,
 };
 
@@ -47,16 +47,25 @@ pub fn main() {
     println!("res = {d2}, took {:?}", start.elapsed());
     alt();
 }
+// can optimise even more, to O(n^5/9) time and O(n^1/3) memory,
+// using a combination of a better D3 summation function and Jakub Pawlewicz's squarefree counting method (i.e. just smarter dirichlet hyperbola)
 fn alt() {
     let start = std::time::Instant::now();
-    let u = FIArrayI64::unit(N);
-    let d = dirichlet_mul_i64(&u, &u, N as _);
-    let d3 = dirichlet_mul_i64(&u, &d, N as _);
+    let d = divisor_summatory(N);
+    let d3 = |x: i64| {
+        let xsqrt = x.isqrt();
+        let mut ret = x + d[x] - xsqrt * d[xsqrt];
+        for i in 2..=xsqrt {
+            ret += d[x / i];
+            ret += (d.arr[i as usize - 1] - d.arr[i as usize - 2]) * (x / i);
+        }
+        ret
+    };
     dbg!(start.elapsed());
     let mob = mobius_sieve(SQRT_N as usize + 1);
-    let mut res = N;
-    for i in 1..=SQRT_N as usize {
-        res += i64::from(mob[i]) * d3[N / (i * i) as i64];
+    let mut res = N + d3(N);
+    for i in 2..=SQRT_N as usize {
+        res += i64::from(mob[i]) * d3(N / (i * i) as i64);
     }
     res >>= 1;
     println!("res = {res}, took {:?}", start.elapsed());
