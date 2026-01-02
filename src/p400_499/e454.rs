@@ -1,19 +1,7 @@
-use crate::utils::multiplicative_function_summation::mobius_sieve;
+use crate::utils::{fast_divisor_sums::icbrt, multiplicative_function_summation::mobius_sieve};
 
 const N: i64 = 1e12 as _;
 const SQRT_N: i64 = N.isqrt();
-
-const fn icbrt(x: i64) -> i64 {
-    let mut rt = 0;
-    let mut rt_squared = 0;
-    let mut rt_cubed = 0;
-    while rt_cubed <= x {
-        rt += 1;
-        rt_squared += 2 * rt - 1;
-        rt_cubed += 3 * rt_squared - 3 * rt + 1;
-    }
-    rt - 1
-}
 
 // runs in O(n^2/3)
 fn inner(n: i64) -> i64 {

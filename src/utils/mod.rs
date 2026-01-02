@@ -2,13 +2,13 @@ pub mod FIArray;
 pub mod binary_search;
 pub mod bit_array;
 pub mod factorint;
+pub mod farey;
+pub mod fast_divisor_sums;
 pub mod fenwick;
 pub mod gaussian_ints;
 pub mod math;
 pub mod multiplicative_function_summation;
 pub mod polymul;
 pub mod powerful_numbers;
-
-pub mod farey;
 pub mod primes;
 pub mod smooth;
