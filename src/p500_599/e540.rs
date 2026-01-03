@@ -41,9 +41,10 @@ pub fn main() {
     for i in 1..=SQRT_N as usize {
         mu[i] += mu[i - 1];
     }
-    let mut a_p_cache = HashMap::new();
+    let mut cache = HashMap::new();
+    // |{(x,y): x > 0, y >= 0, x^2 + y^2 <= t}| a.k.a. sum of u * \chi_4
     let mut all_points = |t: i64| {
-        *a_p_cache.entry(t).or_insert_with(|| {
+        *cache.entry(t).or_insert_with(|| {
             let mut res = 0;
             let tsqrt = t.isqrt();
             for k in 1..=tsqrt {
@@ -51,13 +52,13 @@ pub fn main() {
                 res += [0, 1, 1, 0][tk as usize & 3];
                 res += [0, 1, 0, -1][k as usize & 3] * tk;
             }
-            res -= [0, 1, 1, 0][tsqrt as usize & 3] * tsqrt;
-            res - tsqrt
+            res - [0, 1, 1, 0][tsqrt as usize & 3] * tsqrt
         })
     };
+    // |{(x,y): x > 0, y >= 0, gcd(x, y) = 1, x^2 + y^2 <= t}|
     let mut coprime_points = |t: i64| {
-        let I: i64 = icbrt(t);
-        let D: i64 = (t / I).isqrt();
+        let I = icbrt(t);
+        let D = (t / I).isqrt();
         let mut res = all_points(t);
         for d in 2..=D {
             let mu_d = mu[d as usize] - mu[d as usize - 1];
@@ -70,7 +71,7 @@ pub fn main() {
             res += mu[v] * (all_points(i) - all_points(i - 1));
         }
         res -= mu[D as usize] * all_points(I - 1);
-        (res - 1) >> 1
+        res
     };
     let mut res = 0;
     let mut lim = N;
@@ -80,5 +81,8 @@ pub fn main() {
         sign = -sign;
         lim >>= 1;
     }
+    // res = |{(x,y): x > 0, y >= 0, gcd(x, y) = 1, (x ^ y) & 1 = 0, x^2 + y^2 <= t}|
+    res -= 1; // remove (1, 0)
+    res >>= 1; // remove order between remaining (x,y) pairs
     println!("res = {res}, took {:?}", start.elapsed());
 }
