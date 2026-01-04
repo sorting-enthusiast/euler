@@ -5,7 +5,7 @@ const SQRT_N: i64 = N.isqrt();
 
 // runs in O(n^2/3)
 fn inner(n: i64) -> i64 {
-    // inner2 is around 4 times faster than inner1
+    // using inner2 instead of inner1 gives a 4x speedup
     fn inner1(n: i64) -> i64 {
         #[inline(always)]
         fn s(lim: i64, x1: i64, x2: i64) -> i64 {
@@ -30,6 +30,7 @@ fn inner(n: i64) -> i64 {
         ret
     }
 
+    // adapted from fakesson's forum post
     fn inner2(n: i64) -> i64 {
         #[inline(always)]
         fn s(lim: i64, x1: i64, x2: i64) -> i64 {
