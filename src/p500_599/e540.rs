@@ -34,7 +34,9 @@ fn mobius_sieve(n: usize) -> Vec<i64> {
 // can optimize to O(n^1/3) space, but I'm lazy:
 // all calls to coprime points is with input N/2^2k or (N/2)/2^2k
 // can precompute M for all values of N/d^2 and (N/2)/d^2 in O(n^1/3) space
-// same for all values of all_points
+// same for all values of all_points.
+// alternatively, can optimize to O(n^2/5) time and space, using an O(n^1/3) time algorithm for summation of u * \chi_4
+// and a different dirichlet hyperbola split
 pub fn main() {
     let start = std::time::Instant::now();
     let mut mu = mobius_sieve(SQRT_N as usize + 1);
@@ -49,10 +51,10 @@ pub fn main() {
             let tsqrt = t.isqrt();
             for k in 1..=tsqrt {
                 let tk = t / k;
-                res += [0, 1, 1, 0][tk as usize & 3];
-                res += [0, 1, 0, -1][k as usize & 3] * tk;
+                res += [0, 1, 1, 0][(tk & 3) as usize];
+                res += [0, 1, 0, -1][(k & 3) as usize] * tk;
             }
-            res - [0, 1, 1, 0][tsqrt as usize & 3] * tsqrt
+            res - [0, 1, 1, 0][(tsqrt & 3) as usize] * tsqrt
         })
     };
     // |{(x,y): x > 0, y >= 0, gcd(x, y) = 1, x^2 + y^2 <= t}|
