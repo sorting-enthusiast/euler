@@ -1,111 +1,103 @@
 use itertools::Itertools;
 
-use crate::utils::primes::prime_sieves::sift;
-const N: u64 = 1e19 as _;
-const SQRT: u64 = N.isqrt();
-const CBRT: u64 = icbrt(N);
-const MOD: u64 = 1e9 as u64 + 7;
-const fn icbrt(x: u64) -> u64 {
-    let mut rt = 0;
-    let mut rt_squared = 0;
-    let mut rt_cubed = 0;
-    while rt_cubed <= x {
-        rt += 1;
-        rt_squared += 2 * rt - 1;
-        rt_cubed += 3 * rt_squared - 3 * rt + 1;
+const N: usize = 1e16 as _;
+const SQRT: usize = N.isqrt();
+const B: usize = icbrt(N);
+const A: usize = N / (B * B);
+const MOD: usize = 1e9 as usize + 7;
+
+const fn icbrt(x: usize) -> usize {
+    let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
+    let mut x_div_rt2 = (x / rt) / rt;
+    while rt > x_div_rt2 {
+        rt = ((rt << 1) + x_div_rt2) / 3;
+        x_div_rt2 = (x / rt) / rt;
     }
-    rt - 1
+    rt
+}
+fn sqf_sieve(n: usize) -> Vec<usize> {
+    unsafe { core::hint::assert_unchecked(n >= 1) };
+    let mut sqf = vec![1; n];
+    sqf[0] = 0;
+    if n < 2 {
+        return sqf;
+    }
+    let sqrtn = n.isqrt();
+    let mut d2 = 1;
+    for d in 2..=sqrtn {
+        d2 += (d << 1) - 1;
+        for m in (d2..n).step_by(d2) {
+            sqf[m] = 0;
+        }
+    }
+    sqf
+}
+fn omega_sieve(n: usize) -> Vec<u8> {
+    unsafe { core::hint::assert_unchecked(n >= 1) };
+    let mut omega = vec![0; n];
+    if n < 2 {
+        return omega;
+    }
+    for p in 2..n {
+        if omega[p] == 0 {
+            for m in (p..n).step_by(p) {
+                omega[m] += 1;
+            }
+        }
+    }
+    omega
 }
 pub fn main() {
     let start = std::time::Instant::now();
-    let primes = sift(SQRT).into_boxed_slice();
-    println!("Generated primes: {:?}", start.elapsed());
-    let large_keys = (1..CBRT)
-        .map(|d| N / (d * d))
-        .chain((CBRT != N / (CBRT * CBRT)).then_some(N / (CBRT * CBRT)))
+    let mut small_sqf = sqf_sieve(A + 1);
+    for i in 2..=A {
+        small_sqf[i] += small_sqf[i - 1];
+    }
+    let sqrts = (2..=A)
+        .map(|i| (N / i).isqrt())
         .collect_vec()
-        .into_boxed_slice();
-    let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
-    let mut small_sqf = vec![0; CBRT as usize].into_boxed_slice();
+        .into_boxed_slice(); // precompute once, used very often
+    let mut large_sqf = vec![0; B - 1].into_boxed_slice(); // indexed by denominator
+    for d in (1..B).rev() {
+        let v = N / (d * d);
+        let b = icbrt(v);
+        let a = v / (b * b);
 
-    for v in 1..=CBRT {
-        small_sqf[v as usize - 1] = v;
-    }
-    for (i, &v) in large_keys.iter().enumerate() {
-        large_sqf[i] = v;
-    }
-    for &p in &primes {
-        for (i, &v) in large_keys.iter().enumerate() {
-            if v < p * p {
-                break;
-            }
-            large_sqf[i] -= if v / (p * p) <= CBRT {
-                small_sqf[(v / (p * p)) as usize - 1]
+        let mut sqf = v + small_sqf[a] * b - SQRT / d;
+        for i in 2..=a {
+            sqf -= (small_sqf[i] - small_sqf[i - 1]) * sqrts[i - 2] / d; //(v / i).isqrt();
+        }
+        for i in 2..=b {
+            sqf -= if d * i < B {
+                large_sqf[(i * d) - 1]
             } else {
-                large_sqf[((i + 1) * (p as usize)) - 1]
+                small_sqf[v / (i * i)]
             };
         }
-        for v in (1..=CBRT).rev() {
-            if v < p * p {
-                break;
-            }
-            small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
-        }
+        large_sqf[d - 1] = sqf;
     }
     println!("Counted squarefree numbers: {:?}", start.elapsed());
-    let mut sum = 0;
+    let omega = omega_sieve(SQRT + 1);
+    println!("Counted distinct prime factors: {:?}", start.elapsed());
+
+    let mut C = [0; N.ilog2() as usize + 1];
+    let mut ii = 0;
+    for i in 1..B {
+        ii += (i << 1) - 1;
+        C[omega[i] as usize] += large_sqf[i - 1];
+    }
+    for i in B..=SQRT {
+        ii += (i << 1) - 1;
+        C[omega[i] as usize] += small_sqf[N / ii];
+    }
     let mut res = 1;
-    for k in 0.. {
-        let c_k = squarefree(N, 1, k, &primes, &small_sqf, &large_sqf);
-        if c_k == 0 {
+    for (k, c) in C.into_iter().enumerate() {
+        if c == 0 {
             break;
         }
-        sum += c_k;
-        println!("C{k} = {c_k}");
-        res *= c_k % MOD;
+        println!("C_{k} = {c}");
+        res *= c % MOD;
         res %= MOD;
     }
     println!("res = {res}, took {:?}", start.elapsed());
-    dbg!(N - sum);
-}
-fn squarefree(
-    limit: u64,
-    div: u64,
-    k: u8,
-    primes: &[u64],
-    small_sqf: &[u64],
-    large_sqf: &[u64],
-) -> u64 {
-    if k == 0 {
-        return if limit <= CBRT {
-            small_sqf[limit as usize - 1]
-        } else {
-            large_sqf[div as usize - 1]
-        };
-    }
-    let mut res = 0;
-    for (i, &p) in primes.iter().enumerate() {
-        let pp = p * p;
-        if pp > limit {
-            break;
-        }
-        let mut new_lim = limit / pp;
-        let mut new_div = div * p;
-        loop {
-            res += squarefree(
-                new_lim,
-                new_div,
-                k - 1,
-                &primes[i + 1..],
-                small_sqf,
-                large_sqf,
-            );
-            new_lim /= pp;
-            new_div *= p;
-            if new_lim == 0 {
-                break;
-            }
-        }
-    }
-    res
 }

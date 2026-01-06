@@ -214,15 +214,14 @@ fn d(n: i64) -> i64 {
 }
 #[must_use]
 pub const fn icbrt(x: i64) -> i64 {
-    let mut rt = 0;
-    let mut rt_squared = 0;
-    let mut rt_cubed = 0;
-    while rt_cubed <= x {
-        rt += 1;
-        rt_squared += 2 * rt - 1;
-        rt_cubed += 3 * rt_squared - 3 * rt + 1;
+    unsafe { core::hint::assert_unchecked(x >= 1) };
+    let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
+    let mut x_div_rt2 = (x / rt) / rt;
+    while rt > x_div_rt2 {
+        rt = ((rt << 1) + x_div_rt2) / 3;
+        x_div_rt2 = (x / rt) / rt;
     }
-    rt - 1
+    rt
 }
 /// Based on identity for `T_3(n)` in <https://arxiv.org/pdf/1206.3369>
 /// O(n^2/3) time, O(1) space

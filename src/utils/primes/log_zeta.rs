@@ -13,15 +13,13 @@ use crate::utils::FIArray::FIArray;
 // over the primes, though tbh you should probably just use lucy's algorithm for that.
 // TODO: try to speed up the convolution steps more somehow, as they are the main bottleneck
 const fn icbrt(x: usize) -> usize {
-    let mut rt = 0;
-    let mut rt_squared = 0;
-    let mut rt_cubed = 0;
-    while rt_cubed <= x {
-        rt += 1;
-        rt_squared += 2 * rt - 1;
-        rt_cubed += 3 * rt_squared - 3 * rt + 1;
+    let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
+    let mut x_div_rt2 = (x / rt) / rt;
+    while rt > x_div_rt2 {
+        rt = ((rt << 1) + x_div_rt2) / 3;
+        x_div_rt2 = (x / rt) / rt;
     }
-    rt - 1
+    rt
 }
 #[must_use]
 pub fn log_zeta(n: usize) -> FIArray {

@@ -9,11 +9,12 @@ use crate::utils::{
 // and an even number of primes equivalent to 3 mod 4
 
 // a hilbert number is h-squarefree if it is either squarefree, or if only 1 of its prime factors = 3 mod 4 appears with multiplicity 1< <4
-const N: u64 = 1e16 as _;
+const N: u64 = 1e18 as _;
 const SQRT_N: u64 = N.isqrt();
 pub fn main() {
     println!("res = {}", 2_327_213_148_095_366_u64);
-    solve_alt(); // case in point
+    count_sqf(); // lol, can be made even faster using methods for counting primes in arithmetic progressions
+    //solve_alt(); // case in point
     solve(); // can definitely optimize this more
     trivial();
 }
@@ -55,10 +56,10 @@ fn solve_alt() {
     //let small_keys = (1..=xcbrt).collect_vec().into_boxed_slice();
 
     let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
-    let mut small_sqf = vec![0; xcbrt as usize].into_boxed_slice();
+    let mut small_sqf = vec![0; 1 + ((xcbrt as usize - 1) >> 2)].into_boxed_slice();
 
-    for v in 1..=xcbrt {
-        small_sqf[v as usize - 1] = (v + 3) >> 2;
+    for v in (1..=xcbrt).step_by(4) {
+        small_sqf[(v as usize - 1) >> 2] = (v + 3) >> 2;
     }
     for (i, &v) in large_keys.iter().enumerate() {
         large_sqf[i] = (v + 3) >> 2;
@@ -69,13 +70,13 @@ fn solve_alt() {
                 break;
             }
             large_sqf[i] -= if v / (p * p) <= xcbrt {
-                small_sqf[(v / (p * p)) as usize - 1]
+                small_sqf[((v / (p * p)) as usize - 1) >> 2]
             } else {
                 large_sqf[((2 * i + 1) * (p as usize)) >> 1]
             };
         }
-        for v in (p * p..=xcbrt).rev() {
-            small_sqf[v as usize - 1] -= small_sqf[(v / (p * p)) as usize - 1];
+        for v in (p * p..=(xcbrt & !3) | 1).rev().step_by(4) {
+            small_sqf[(v as usize - 1) >> 2] -= small_sqf[((v / (p * p)) as usize - 1) >> 2];
         }
     }
     let mut res = large_sqf[0];
@@ -84,10 +85,10 @@ fn solve_alt() {
             continue;
         }
         res += if N / (p * p) <= xcbrt {
-            small_sqf[(N / (p * p)) as usize - 1]
+            small_sqf[((N / (p * p)) as usize - 1) >> 2]
         } else {
             large_sqf[p as usize >> 1]
-        }
+        };
     }
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
@@ -289,4 +290,110 @@ fn lucy_based_2(x: u64) -> u64 {
         .iter()
         .filter(|&&p| p & 3 == 3)
         .fold(squarefree[x], |acc, p| acc + squarefree[x / (p * p)])
+}
+
+fn count_sqf() {
+    const N: usize = self::N as _;
+    const SQRT_N: usize = N.isqrt();
+    const fn icbrt(x: usize) -> usize {
+        let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
+        let mut x_div_rt2 = (x / rt) / rt;
+        while rt > x_div_rt2 {
+            rt = ((rt << 1) + x_div_rt2) / 3;
+            x_div_rt2 = (x / rt) / rt;
+        }
+        rt
+    }
+    const B: usize = icbrt(N);
+    const A: usize = N / (B * B);
+
+    let start = std::time::Instant::now();
+    let primes = sift(SQRT_N as u64);
+    dbg!(start.elapsed());
+    let mut sqf_small = vec![1; 1 + ((A - 1) >> 2)].into_boxed_slice();
+    for &p in &primes[1..] {
+        let p = p as usize;
+        let pp = p * p;
+        if pp > A {
+            break;
+        }
+        for m in (pp..=A).step_by(4 * pp) {
+            sqf_small[(m - 1) >> 2] = 0;
+        }
+    }
+    for i in 1..sqf_small.len() {
+        sqf_small[i] += sqf_small[i - 1];
+    }
+    let sqrts = (1..=A)
+        .step_by(4)
+        .map(|i| (N / i).isqrt())
+        .collect_vec()
+        .into_boxed_slice(); // precompute once, used very often
+
+    let mut sqf_big = vec![0; B >> 1].into_boxed_slice(); // indexed by denominator
+    for d in (1..B).step_by(2).rev() {
+        let v = N / (d * d);
+        let b = icbrt(v);
+        let a = v / (b * b);
+
+        let mut sqf =
+            ((v + 3) >> 2) + sqf_small[(a - 1) >> 2] * ((b + 1) >> 1) - (((SQRT_N / d) + 1) >> 1);
+
+        /* for i in (5..=a).step_by(4) {
+            if sqf_small[(i - 1) >> 2] != sqf_small[(i - 2) >> 2] {
+                sqf -= ((sqrts[(i - 1) >> 2] / d) + 1) >> 1;
+            }
+        } */
+        for i in 1..=(a - 1) >> 2 {
+            if sqf_small[i] != sqf_small[i - 1] {
+                sqf -= ((sqrts[i] / d) + 1) >> 1;
+            }
+        }
+        for i in (3..=b).step_by(2) {
+            sqf -= if i * d < B {
+                sqf_big[(i * d) >> 1]
+            } else {
+                sqf_small[((v / (i * i)) - 1) >> 2]
+            };
+        }
+        sqf_big[d >> 1] = sqf;
+    }
+
+    let mut res = sqf_big[0];
+    let mut primes = primes;
+    primes.retain(|&p| p & 3 == 3);
+    let primes = primes;
+
+    for &p in &primes {
+        let p = p as usize;
+        if p >= B {
+            break;
+        }
+        res += sqf_big[p >> 1];
+    }
+    for (i, &v) in sqrts.iter().enumerate() {
+        if i == 0 {
+            res += primes.len();
+            continue;
+        }
+        if sqf_small[i] != sqf_small[i - 1] {
+            res += primes.partition_point(|&p| p <= v as u64);
+        }
+    }
+
+    res -= sqf_small[(A - 1) >> 2] * primes.partition_point(|&p| p < B as u64);
+    /* for &p in &primes[1..] {
+        let p = p as usize;
+        if p & 3 != 3 {
+            continue;
+        }
+        res += if p < B {
+            sqf_big[p >> 1]
+        } else {
+            sqf_small[((N / (p * p)) - 1) >> 2]
+        };
+    } */
+
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
 }
