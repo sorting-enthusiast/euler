@@ -228,7 +228,7 @@ fn pseudo_euler_transform_based() {
     //println!("bello");
     let keys = FIArrayU128::keys(N as _).collect_vec().into_boxed_slice();
 
-    for q in (2..x).rev() {
+    for q in 2..x {
         if a_vals.arr[q - 1] == 0 {
             continue;
         }
