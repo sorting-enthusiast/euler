@@ -382,7 +382,7 @@ pub fn dirichlet_mul_zero_prefix(
     assert!(prefix_f <= prefix_g);
     let mut H = FIArray::new(n as _);
     let len = H.arr.len();
-    let rt_n = n.isqrt();
+    let rt_n = H.isqrt;
 
     let real_pref_f = if prefix_f <= rt_n {
         prefix_f

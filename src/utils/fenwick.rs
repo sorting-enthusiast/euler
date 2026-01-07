@@ -56,37 +56,37 @@ impl FenwickTree {
     }
 }
 #[derive(Clone)]
-pub struct FenwickTreeUsize(pub Vec<usize>);
+pub struct FenwickTreeUsize(pub Box<[usize]>);
 
 impl FenwickTreeUsize {
     #[must_use]
     pub fn new(len: usize, init: usize) -> Self {
-        let mut v = vec![init; len];
+        let mut ret = Self(vec![init; len].into_boxed_slice());
         if init != 0 {
-            for i in 1..len {
-                let r = i + (i & (!i + 1));
-                if r <= len {
-                    v[r - 1] += v[i - 1];
-                }
-            }
+            ret.construct();
         }
-        Self(v)
+        ret
     }
-    pub fn new_with(len: usize, init: impl FnMut(usize) -> usize) -> Self {
-        let mut v = (0..len).map(init).collect_vec();
+    pub fn construct(&mut self) {
+        let len = self.0.len();
         for i in 1..len {
             let r = i + (i & (!i + 1));
             if r <= len {
-                v[r - 1] += v[i - 1];
+                self.0[r - 1] += self.0[i - 1];
             }
         }
-        Self(v)
+    }
+    #[must_use]
+    pub fn new_with(len: usize, init: impl FnMut(usize) -> usize) -> Self {
+        let mut ret = Self((0..len).map(init).collect_vec().into_boxed_slice());
+        ret.construct();
+        ret
     }
     #[must_use]
     pub fn sum(&self, i: usize) -> usize {
         let mut i = i + 1;
         let mut sum = 0;
-        while i != 0 {
+        while i > 0 {
             sum += self.0[i - 1];
             i &= i - 1;
         }
@@ -122,7 +122,7 @@ impl FenwickTreeUsize {
         }
     }
     #[must_use]
-    pub fn flatten(self) -> Vec<usize> {
+    pub fn flatten(self) -> Box<[usize]> {
         let mut ret = self.0;
         for i in 2..ret.len() {
             let j = i & (i + 1);

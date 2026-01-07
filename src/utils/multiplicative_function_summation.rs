@@ -2,8 +2,8 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::{
-        FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize, FIArrayU32, FIArrayU64, FIArrayU128,
-        FIArrayUsize,
+        FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize, FIArrayU32, FIArrayU64,
+        FIArrayU128, FIArrayUsize,
     },
     bit_array::BitArray,
     primes::prime_sieves::sift,
@@ -203,6 +203,53 @@ pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     dirichlet_mul_i64(&u, &u, x as _)
 }
 
+#[must_use]
+pub fn sqf(x: usize) -> FIArray {
+    const fn icbrt(x: usize) -> usize {
+        let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
+        let mut x_div_rt2 = (x / rt) / rt;
+        while rt > x_div_rt2 {
+            rt = ((rt << 1) + x_div_rt2) / 3;
+            x_div_rt2 = (x / rt) / rt;
+        }
+        rt
+    }
+    let mut Sqf = FIArray::eps(x);
+    let xsqrt = Sqf.isqrt;
+    let mut d2 = 1;
+    for d in 2..=xsqrt.isqrt() {
+        d2 += (d << 1) - 1;
+        if Sqf.arr[d2 - 1] == 0 {
+            continue;
+        }
+        for m in (d2..=xsqrt).step_by(d2) {
+            Sqf.arr[m - 1] = 0;
+        }
+    }
+    let mut sqrts = FIArray::unit(x);
+    for v in &mut sqrts.arr {
+        *v = v.isqrt();
+    }
+    for (i, v) in FIArray::keys(x).enumerate().skip(1) {
+        if v <= xsqrt {
+            Sqf.arr[i] += Sqf.arr[i - 1];
+            continue;
+        }
+        let b = icbrt(v);
+        let a = v / (b * b);
+        let mut sqf = v + Sqf.arr[a - 1] * b - sqrts[v]; // v.isqrt();
+        for i in 2..=a {
+            if Sqf.arr[i - 1] != Sqf.arr[i - 2] {
+                sqf -= sqrts[v / i]; //(v / i).isqrt();
+            }
+        }
+        for i in 2..=b {
+            sqf -= Sqf[v / (i * i)];
+        }
+        Sqf.arr[i] = sqf;
+    }
+    Sqf
+}
 #[must_use]
 pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     let M = mertens(x);
