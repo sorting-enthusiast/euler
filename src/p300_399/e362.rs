@@ -8,7 +8,7 @@ use crate::utils::{
     },
 };
 // 1e13: 1107277852610310, 127.1574871s
-const N: usize = 1e5 as _;
+const N: usize = 1e10 as _;
 const SQRT_N: usize = N.isqrt();
 const fn icbrt(x: usize) -> usize {
     let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
