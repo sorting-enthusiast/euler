@@ -298,7 +298,7 @@ fn pseudo_euler_transform_based_alt() {
     dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
     core::mem::swap(&mut r.arr, &mut tmp.arr);
 
-    for i in x..=len {
+    for i in 1..=len {
         fsf.arr[i - 1] += r.arr[i - 1];
         assert_eq!(fsf.arr[i - 1] % (6 * INVS[1].pow(3)), 0, "{i}");
         fsf.arr[i - 1] /= 6 * INVS[1].pow(3);
