@@ -1,10 +1,12 @@
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::FIArray,
-    multiplicative_function_summation::{dirichlet_mul_usize, dirichlet_mul_with_buffer_usize},
-    primes::log_zeta::dirichlet_mul_zero_prefix,
+    FIArray::{FIArray, FIArrayU128},
+    multiplicative_function_summation::{dirichlet_mul_u128, dirichlet_mul_with_buffer_u128},
 };
+// 1e13: 1107277852610310, 127.1574871s
+const N: usize = 1e10 as _;
+const SQRT_N: usize = N.isqrt();
 const fn icbrt(x: usize) -> usize {
     let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
     let mut x_div_rt2 = (x / rt) / rt;
@@ -73,8 +75,7 @@ fn sqf(x: usize) -> FIArray {
 // can optimize using fenwick trees, but the code is fast enough as is
 pub fn main() {
     pseudo_euler_transform_based();
-    const N: usize = 1e10 as _;
-    const SQRT_N: usize = N.isqrt();
+
     let start = std::time::Instant::now();
     let sqf = sqf(N); //sqf(N as u64);
     dbg!(start.elapsed());
@@ -87,8 +88,8 @@ pub fn main() {
         if sqf.arr[q - 1] == sqf.arr[q - 2] {
             continue;
         }
-        for (i, &v) in keys[..=len - q].iter().enumerate().skip(q - 1) {
-            fsf.arr[i] += fsf[v / q];
+        for (i, &v) in keys[q - 1..=len - q].iter().enumerate() {
+            fsf.arr[i + q - 1] += fsf[v / q];
         }
         res += fsf[N / q];
     }
@@ -151,96 +152,91 @@ fn test1() {
 
 // fsf is just the euler transform of sqf
 fn pseudo_euler_transform_based() {
-    const N: usize = 1e10 as _;
-    const SQRT_N: usize = N.isqrt();
+    const x: usize = 1 + icbrt(SQRT_N);
+    const INVS: [u128; 6] = [0, 60, 30, 20, 15, 12];
+
     let start = std::time::Instant::now();
-    let sqf = sqf(N);
+    let sqf_ = sqf(N);
+    let mut sqf = FIArrayU128::new(N as _);
+    for (e, &q) in sqf.arr.iter_mut().zip(&sqf_.arr) {
+        *e = q as u128;
+    }
     dbg!(start.elapsed());
 
-    const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
     let len = sqf.arr.len();
-
     let mut a_vals = sqf.clone();
+
     for i in (1..len).rev() {
-        a_vals[i] -= a_vals[i - 1];
+        a_vals.arr[i] -= a_vals.arr[i - 1];
+        a_vals.arr[i] *= INVS[1];
     }
-    const x: usize = 1 + icbrt(SQRT_N);
+    a_vals.arr[0] *= INVS[1]; // kinda pointless tbh
     for i in (x..=SQRT_N).rev() {
         let v = a_vals.arr[i - 1];
         if v == 0 {
             continue;
         }
-        assert_eq!(a_vals.arr[i - 1], 1);
-        a_vals.arr[i - 1] = INVS[1];
+        assert_eq!(a_vals.arr[i - 1], INVS[1]);
         let mut e = 1;
         let mut pi = i;
         while pi <= N / i {
             e += 1;
             pi *= i;
-            a_vals[pi] += INVS[e];
+            a_vals[pi as _] += INVS[e];
         }
     }
-    println!("bello");
-    let mut tmp = FIArray::new(N);
+    //println!("bello");
+    let mut tmp = FIArrayU128::new(N as _);
 
-    let mut v = FIArray::new(N);
+    let mut v = FIArrayU128::new(N as _);
     for i in x..=len {
         v.arr[i - 1] += v.arr[i - 2] + a_vals.arr[i - 1];
     }
     let v = v;
-    let mut ret = v.clone();
-    for e in &mut ret.arr {
-        *e = (*e + INVS[1]) * 120;
+    let mut fsf = v.clone();
+    for e in &mut fsf.arr {
+        *e = (*e + INVS[1]) * 120 * INVS[1].pow(4);
     }
-    let mut r = dirichlet_mul_zero_prefix(&v, &v, N, x, x);
-    for i in x..=len {
-        ret.arr[i - 1] += r.arr[i - 1] * 60;
-    }
-    println!("bello");
 
-    dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
+    let mut r = dirichlet_mul_u128(&v, &v, N);
+    for i in x..=len {
+        fsf.arr[i - 1] += r.arr[i - 1] * 60 * INVS[1].pow(3);
+    }
+    //println!("bello");
+
+    dirichlet_mul_with_buffer_u128(&r, &v, N, &mut tmp);
     core::mem::swap(&mut r.arr, &mut tmp.arr);
 
     for i in x..=len {
-        ret.arr[i - 1] += r.arr[i - 1] * 20;
+        fsf.arr[i - 1] += r.arr[i - 1] * 20 * INVS[1].pow(2);
     }
-    println!("bello");
+    //println!("bello");
 
-    dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
+    dirichlet_mul_with_buffer_u128(&r, &v, N, &mut tmp);
     core::mem::swap(&mut r.arr, &mut tmp.arr);
     for i in x..=len {
-        ret.arr[i - 1] += r.arr[i - 1] * 5;
+        fsf.arr[i - 1] += r.arr[i - 1] * 5 * INVS[1];
     }
-    println!("bello");
+    //println!("bello");
 
-    dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
+    dirichlet_mul_with_buffer_u128(&r, &v, N, &mut tmp);
     core::mem::swap(&mut r.arr, &mut tmp.arr);
-    for i in x..=len {
-        ret.arr[i - 1] += r.arr[i - 1];
+    for i in 1..=len {
+        fsf.arr[i - 1] += r.arr[i - 1];
+        fsf.arr[i - 1] /= 120 * INVS[1].pow(5);
     }
-    println!("bello");
+    //println!("bello");
+    let keys = FIArrayU128::keys(N as _).collect_vec().into_boxed_slice();
 
-    for e in &mut r.arr {
-        assert_eq!(*e % 120, 0);
-        *e /= 120;
-    }
-    println!("bello");
-
-    for i in (2..x).rev() {
-        let ax = a_vals.arr[i - 1];
-        if ax == 0 {
+    for q in (2..x).rev() {
+        if a_vals.arr[q - 1] == 0 {
             continue;
         }
-        for j in i..=len {
-            r.arr[j - 1] += r[{
-                if j <= SQRT_N {
-                    j - 1
-                } else {
-                    N / (len - j + 1)
-                }
-            } / i];
+        //dbg!(q);
+        for (i, &v) in keys[q - 1..].iter().enumerate() {
+            fsf.arr[i + q - 1] += fsf[v / q as u128];
         }
     }
-    let res = r[N];
+    let res = fsf[N as _] - 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
