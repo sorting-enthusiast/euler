@@ -27,8 +27,7 @@ const N: usize = 5e8 as usize;
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
 // not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
 // can be optimised using fenwick trees and the sqrt trick
-#[must_use]
-pub fn legendre(x: usize) -> usize {
+fn legendre(x: usize) -> usize {
     let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::unit(x);
     let keys = FIArray::keys(x).collect_vec();
@@ -44,7 +43,57 @@ pub fn legendre(x: usize) -> usize {
     }
     s[x] + primes.len() - 1
 }
-
+fn legendre_fenwick(x: usize) -> usize {
+    todo!();
+    let mut s = FIArray::unit(x);
+    let xsqrt = s.isqrt;
+    let len = s.arr.len();
+    for i in (1..len).rev() {
+        s.arr[i] -= s.arr[i - 1];
+    }
+    let primes = sift(xsqrt as u64);
+    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    s_fenwick.construct();
+    assert_eq!(x, s_fenwick.sum(len - 1));
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    for &p in &primes {
+        let p = p as usize;
+        let lim = x / p;
+        let mut j = 1;
+        let mut cur = s_fenwick.sum(get_index(p));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(p * (j + 1)));
+            if next > cur {
+                s_fenwick.add(len - j, next - cur);
+                cur = next;
+            } else if next < cur {
+                s_fenwick.sub(len - j, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (1..=lim / j).rev() {
+            let next = if i > 1 { s_fenwick.sum(i - 2) } else { 0 };
+            if next > cur {
+                s_fenwick.add(get_index(p * i), next - cur);
+                cur = next;
+            } else if next < cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+    }
+    s_fenwick.sum(get_index(x)) + primes.len() - 1
+}
 // O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
 // kinda simulates pritchard's wheel sieve
 // 1e17: prime counting took 3071.1531213s: 2623557157654233
@@ -1323,11 +1372,11 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
 
-    /* println!("legendre:");
+    println!("legendre:");
     let start = Instant::now();
     let count = legendre(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");
 
     println!("standard-ish lucy");
     let start = Instant::now();

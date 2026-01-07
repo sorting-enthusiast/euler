@@ -33,5 +33,5 @@ pub fn main() {
         exp >>= 1;
     }
     polymulmod(r, x, tmp);
-    dbg!(tmp[MOD - 1]);
+    dbg!(start.elapsed(), tmp[MOD - 1]);
 }

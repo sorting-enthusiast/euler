@@ -307,8 +307,8 @@ fn initial_approach_fenwick() {
     let start = std::time::Instant::now();
     let sqf = sqf(N);
     let mut fsf = FIArray::new(N);
-    let keys = FIArray::keys(N).collect_vec().into_boxed_slice();
-    let len = keys.len();
+    //let keys = FIArray::keys(N).collect_vec().into_boxed_slice();
+    let len = fsf.arr.len();
 
     fsf.arr[0] = 1;
     let mut f = FenwickTreeUsize::new(0, 0);
