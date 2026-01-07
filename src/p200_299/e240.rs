@@ -1,6 +1,6 @@
-const MOD: usize = 15 + 1;
-const N: usize = 3;
-const SIDES: usize = 6;
+const MOD: usize = 70 + 1;
+const N: usize = 10;
+const SIDES: usize = 12;
 fn polymulmod(a: &[u128; MOD], b: &[u128; MOD], c: &mut [u128; MOD]) {
     c.fill(0);
     for i in 0..MOD {

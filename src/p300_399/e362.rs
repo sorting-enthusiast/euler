@@ -72,7 +72,7 @@ fn sqf(x: usize) -> FIArray {
 }
 // can optimize using fenwick trees, but the code is fast enough as is
 pub fn main() {
-    //pseudo_euler_transform_based();
+    pseudo_euler_transform_based();
     const N: usize = 1e10 as _;
     const SQRT_N: usize = N.isqrt();
     let start = std::time::Instant::now();
@@ -151,7 +151,6 @@ fn test1() {
 
 // fsf is just the euler transform of sqf
 fn pseudo_euler_transform_based() {
-    todo!();
     const N: usize = 1e10 as _;
     const SQRT_N: usize = N.isqrt();
     let start = std::time::Instant::now();
@@ -189,35 +188,41 @@ fn pseudo_euler_transform_based() {
         v.arr[i - 1] += v.arr[i - 2] + a_vals.arr[i - 1];
     }
     let v = v;
-
+    let mut ret = v.clone();
+    for e in &mut ret.arr {
+        *e = (*e + INVS[1]) * 120;
+    }
     let mut r = dirichlet_mul_zero_prefix(&v, &v, N, x, x);
     for i in x..=len {
-        r.arr[i - 1] = r.arr[i - 1] / 5 + v.arr[i - 1];
+        ret.arr[i - 1] += r.arr[i - 1] * 60;
     }
     println!("bello");
 
     dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
+    core::mem::swap(&mut r.arr, &mut tmp.arr);
+
     for i in x..=len {
-        r.arr[i - 1] = tmp.arr[i - 1] / 4 + v.arr[i - 1];
+        ret.arr[i - 1] += r.arr[i - 1] * 20;
     }
     println!("bello");
 
     dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
+    core::mem::swap(&mut r.arr, &mut tmp.arr);
     for i in x..=len {
-        r.arr[i - 1] = tmp.arr[i - 1] / 3 + v.arr[i - 1];
+        ret.arr[i - 1] += r.arr[i - 1] * 5;
     }
     println!("bello");
 
     dirichlet_mul_with_buffer_usize(&r, &v, N, &mut tmp);
+    core::mem::swap(&mut r.arr, &mut tmp.arr);
     for i in x..=len {
-        r.arr[i - 1] = tmp.arr[i - 1] / 2 + v.arr[i - 1];
+        ret.arr[i - 1] += r.arr[i - 1];
     }
     println!("bello");
 
     for e in &mut r.arr {
-        *e += INVS[1];
-        assert_eq!(*e % 60, 0);
-        *e /= 60;
+        assert_eq!(*e % 120, 0);
+        *e /= 120;
     }
     println!("bello");
 
