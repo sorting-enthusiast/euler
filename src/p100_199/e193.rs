@@ -26,7 +26,7 @@ fn count_squarefree(limit: u64) -> u64 {
 }
 
 pub fn main() {
-    const N: u64 = 1e16 as _;
+    const N: u64 = 1 << 62;
     /*let start = Instant::now();
     let res = opt_blocked(N as _);
     let end = start.elapsed();
@@ -232,6 +232,9 @@ fn count_sqf(x: usize) -> usize {
         let mut d2 = 1;
         for d in 2..=sqrtn {
             d2 += (d << 1) - 1;
+            if sqf[d2] == 0 {
+                continue;
+            }
             for m in (d2..n).step_by(d2) {
                 sqf[m] = 0;
             }

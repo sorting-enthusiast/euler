@@ -9,8 +9,8 @@ macro_rules! FIArray_impl_for {
         paste!{
             #[derive(Debug, Clone, PartialEq, Eq)]
             pub struct [<FIArray $type:camel>] {
-                x: $type,
-                isqrt: $type,
+                pub x: $type,
+                pub isqrt: $type,
                 pub arr: Box<[$type]>,
             }
 
@@ -48,6 +48,10 @@ macro_rules! FIArray_impl_for {
                     (1..=isqrt)
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
                         .chain((1..isqrt).rev().map(move |n| x / n))
+                }
+                #[must_use] pub fn large_keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
+                    let isqrt = x.isqrt();
+                    (1..isqrt).chain((isqrt != x / isqrt).then_some(isqrt))
                 }
                 #[must_use] pub fn get_index(&self, v: $type) -> usize {
                     if v <= 0 {
