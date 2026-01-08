@@ -6,17 +6,19 @@ use crate::utils::{
     multiplicative_function_summation::{dirichlet_mul_u128, dirichlet_mul_with_buffer_u128, sqf},
     primes::log_zeta::dirichlet_mul_zero_prefix,
 };
-// 1e15: 190257704293010022, 660.8096804s
-// 1e14: 14574188158034831, 131.0904804s
-// 1e13: 1107277852610310, 26.680555s
-// 1e11: 6213486362445, 979.8836ms
-const N: usize = 1e10 as _;
+// 1e15: 190257704293010022, 602.5667193s
+// 1e14: 14574188158034831, 115.9572641s
+// 1e13: 1107277852610310, 23.4764292s
+// 1e12: 83365737381734, 4.5431485s
+// 1e11: 6213486362445, 841.1917ms
+// 1e10: 457895958010, 180.7711ms
+const N: usize = 1e15 as _;
 const SQRT_N: usize = N.isqrt();
-// fsf is just the pseudo euler transform of sqf
+// fsf is just the pseudo-euler transform of sqf
 pub fn main() {
     dense_pseudo_euler_transform_based();
-    dense_pseudo_euler_transform_based_alt();
-    initial_approach_fenwick();
+    //dense_pseudo_euler_transform_based_alt();
+    //initial_approach_fenwick();
 }
 
 // Also O(n^2/3) time, but makes fewer expensive calls to dirichlet_mul, and has no overflow issues.
