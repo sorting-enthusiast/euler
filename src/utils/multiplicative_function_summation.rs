@@ -203,6 +203,24 @@ pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     dirichlet_mul_i64(&u, &u, x as _)
 }
 
+// TODO: try optimizing using fenwick trees, should be O(n^1/2 log^(1+\eps)(n))
+fn count_squarefree(x: i64) -> FIArrayI64 {
+    let mut s = FIArrayI64::unit(x);
+    let keys = FIArrayI64::keys(x).collect_vec().into_boxed_slice();
+    let primes = sift(x.isqrt() as _).into_boxed_slice();
+
+    for p in primes {
+        let p = p as i64;
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p * p {
+                break;
+            }
+            s.arr[i] -= s[v / (p * p)];
+        }
+    }
+    s
+}
+
 #[must_use]
 pub fn sqf(x: usize) -> FIArray {
     const fn icbrt(x: usize) -> usize {
@@ -828,7 +846,7 @@ min25_sieve_impl_for!(u32, i32, u64, i64, usize, isize, u128, i128);
 
 // O(log(k)x^(2/3)) time, O(x^(1/2)) space, specifically ~6x^(1/2) i64's
 #[must_use]
-pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI64 {
+pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: usize) -> FIArrayI64 {
     assert!(k > 1);
     let mut buffer = FIArrayI64::new(x);
     let mut u = FIArrayI64::unit(x);
@@ -857,7 +875,7 @@ pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI6
 }
 
 #[must_use]
-pub fn general_divisor_summatory_alt<const MOD: i64>(x: i64, mut k: u8) -> FIArrayI64 {
+pub fn general_divisor_summatory_alt<const MOD: i64>(x: i64, mut k: usize) -> FIArrayI64 {
     assert!(k > 1);
     let mut buffer = FIArrayI64::new(x);
     let mut u = FIArrayI64::unit(x);

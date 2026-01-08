@@ -12,13 +12,13 @@ use crate::utils::{
 // 1e12: 83365737381734, 4.5431485s
 // 1e11: 6213486362445, 841.1917ms
 // 1e10: 457895958010, 180.7711ms
-const N: usize = 1e15 as _;
+const N: usize = 1e10 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 pub fn main() {
     dense_pseudo_euler_transform_based();
-    //dense_pseudo_euler_transform_based_alt();
-    //initial_approach_fenwick();
+    dense_pseudo_euler_transform_based_alt();
+    initial_approach_fenwick();
 }
 
 // Also O(n^2/3) time, but makes fewer expensive calls to dirichlet_mul, and has no overflow issues.

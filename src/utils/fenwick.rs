@@ -1,30 +1,30 @@
 use itertools::Itertools;
 #[derive(Clone)]
-pub struct FenwickTree(pub Vec<i64>);
+pub struct FenwickTree(pub Box<[i64]>);
 
 impl FenwickTree {
     #[must_use]
     pub fn new(len: usize, init: i64) -> Self {
-        let mut v = vec![init; len];
+        let mut ret = Self(vec![init; len].into_boxed_slice());
         if init != 0 {
-            for i in 1..len {
-                let r = i + (i & (!i + 1));
-                if r <= len {
-                    v[r - 1] += v[i - 1];
-                }
-            }
+            ret.construct();
         }
-        Self(v)
+        ret
     }
-    pub fn new_with(len: usize, init: impl FnMut(usize) -> i64) -> Self {
-        let mut v = (0..len).map(init).collect_vec();
+    pub fn construct(&mut self) {
+        let len = self.0.len();
         for i in 1..len {
             let r = i + (i & (!i + 1));
             if r <= len {
-                v[r - 1] += v[i - 1];
+                self.0[r - 1] += self.0[i - 1];
             }
         }
-        Self(v)
+    }
+    #[must_use]
+    pub fn new_with(len: usize, init: impl FnMut(usize) -> i64) -> Self {
+        let mut ret = Self((0..len).map(init).collect_vec().into_boxed_slice());
+        ret.construct();
+        ret
     }
     #[must_use]
     pub fn sum(&self, i: usize) -> i64 {
@@ -44,7 +44,7 @@ impl FenwickTree {
         }
     }
     #[must_use]
-    pub fn flatten(self) -> Vec<i64> {
+    pub fn flatten(self) -> Box<[i64]> {
         let mut ret = self.0;
         for i in 2..ret.len() {
             let j = i & (i + 1);

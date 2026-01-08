@@ -58,13 +58,13 @@ pub fn main() {
     for &p in &primes[1..] {
         if p < primes[split] {
             let p = p as usize;
-            for (i, &v) in keys.iter().enumerate().skip(p - 1) {
+            for (i, &v) in keys[p - 1..].iter().enumerate() {
                 if v > N / p {
                     break; // will never read these values, can skip computing them
                 }
-                smooth.arr[i] += smooth[v / p];
-                if smooth.arr[i] >= MOD {
-                    smooth.arr[i] -= MOD;
+                smooth.arr[i + p - 1] += smooth[v / p];
+                if smooth.arr[i + p - 1] >= MOD {
+                    smooth.arr[i + p - 1] -= MOD;
                 }
             }
             //dbg!(p);

@@ -6,7 +6,9 @@ const N: i64 = 1e15 as i64;
 
 // powerful number trick
 // f(p) = d(p) => g = d
-// h(p^e) = f(p^e) - 2f(p^(e-1)) + f(p^(e-2)) = 0 for odd e, p^(e/2 - 1) * (p - 1) for even e
+// h(p^e) = f(p^e) - 2f(p^(e-1)) + f(p^(e-2)) = 0 for odd e, p^(e/2 - 1) * (p - 1) for even e, i.e. h = totient_sqrt
+// can be optimized to O(n^1/3) space, using similar tricks to counting squarefree numbers
+// DGF(f) = \frac{\zeta(s)^2\zeta(2s-1)}{\zeta(2s)}
 pub fn main() {
     let start = std::time::Instant::now();
 
