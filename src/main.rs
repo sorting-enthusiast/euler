@@ -32,7 +32,8 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e240::main();
     //p100_199::e184::main();
-    p300_399::e362::main();
+    p700_799::e738::main();
+    //p300_399::e362::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
