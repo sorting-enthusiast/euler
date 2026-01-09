@@ -17,6 +17,7 @@ fn calkin_wilf(x: usize, y: usize) -> usize {
         + calkin_wilf(y, x + y)
 }
 //1e12:1518637586385
+// TODO: optimize the crap out of this
 pub fn main() {
     let mut res = N / 3;
     let mut stack = vec![(1, 2)];

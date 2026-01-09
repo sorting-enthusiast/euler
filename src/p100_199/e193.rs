@@ -49,12 +49,6 @@ pub fn main() {
     let res = opt3(N as _);
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
-
-    /*let start = Instant::now();
-    let res = multiplicative_function_summation::count_squarefree(N as _)[N as _];
-    let end = start.elapsed();
-    println!("res = {res}, took {end:?}");*/
-
     let start = Instant::now();
     let res = dirimul_opt(N as _);
     let end = start.elapsed();
@@ -75,6 +69,10 @@ pub fn main() {
     let res = count_squarefree_mobius(N as _);
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
+    /* let start = Instant::now();
+    let res = multiplicative_function_summation::count_squarefree(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}"); */
 }
 #[must_use]
 fn count_squarefree_mobius(n: usize) -> usize {
