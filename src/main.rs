@@ -42,7 +42,7 @@ pub fn main() {
     dbg!(start.elapsed());
     assert_eq!(a.arr, b.arr);*/
     //p200_299::e240::main();
-    //p100_199::e193::main();
+    p100_199::e153::main();
     //p300_399::e386::main();
     //p300_399::e362::main();
     //dbg!(opt(1e16 as _));
@@ -64,6 +64,6 @@ pub fn main() {
         .collect::<HashSet<_>>();
     dbg!(set.len()); */
     //utils::primes::prime_sieves::main();
-    utils::primes::primecount::main();
+    //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
