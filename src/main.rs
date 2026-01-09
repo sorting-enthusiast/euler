@@ -40,9 +40,9 @@ pub fn main() {
     let start = std::time::Instant::now();
     let a = sqf(N);
     dbg!(start.elapsed());
-    assert_eq!(a.arr, b.arr); */
+    assert_eq!(a.arr, b.arr);*/
     //p200_299::e240::main();
-    p100_199::e193::main();
+    //p100_199::e193::main();
     //p300_399::e386::main();
     //p300_399::e362::main();
     //dbg!(opt(1e16 as _));

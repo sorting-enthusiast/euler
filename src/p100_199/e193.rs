@@ -50,10 +50,10 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 
-    let start = Instant::now();
+    /*let start = Instant::now();
     let res = multiplicative_function_summation::count_squarefree(N as _)[N as _];
     let end = start.elapsed();
-    println!("res = {res}, took {end:?}");
+    println!("res = {res}, took {end:?}");*/
 
     let start = Instant::now();
     let res = dirimul_opt(N as _);

@@ -12,7 +12,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 5e8 as usize;
+const N: usize = 1e12 as _;
 // todo:
 // calculate pi(n) the following way:
 // using fenwick tree fiarrays, multiple zeta(s) by 1-p^-s for each p < n^1/3
@@ -26,7 +26,7 @@ const N: usize = 5e8 as usize;
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
 // not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
-// can be optimised using fenwick trees and the sqrt trick
+// can be optimised using fenwick trees and the sqrt trick to O(n^3/4) time, see below
 fn legendre(x: usize) -> usize {
     let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::unit(x);
@@ -1366,6 +1366,10 @@ pub fn main() {
     println!("res = {count}, took {end:?}"); */
 
     println!("legendre:");
+    let start = Instant::now();
+    let count = legendre(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
     let start = Instant::now();
     let count = legendre_fenwick(N as _);
     let end = start.elapsed();

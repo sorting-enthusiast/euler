@@ -6,7 +6,7 @@ use crate::utils::{
         FIArrayU128, FIArrayUsize,
     },
     bit_array::BitArray,
-    fenwick::{FenwickTree, FenwickTreeUsize},
+    fenwick::FenwickTreeUsize,
     primes::prime_sieves::sift,
 };
 #[must_use]
@@ -248,12 +248,15 @@ pub fn count_squarefree(x: usize) -> FIArray {
             }
             j += 1;
         }
-        for i in (1..=lim / j).rev() {
-            let next = if i > 1 { s_fenwick.sum(i - 2) } else { 0 };
+        for i in (2..=lim / j).rev() {
+            let next = s_fenwick.sum(i - 2);
             if next != cur {
                 s_fenwick.sub(get_index(p * p * i), cur - next);
                 cur = next;
             }
+        }
+        if cur != 0 {
+            s_fenwick.sub(get_index(p * p), cur);
         }
     }
     s.arr = s_fenwick.flatten();
