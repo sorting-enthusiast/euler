@@ -6,6 +6,7 @@ use crate::utils::{
         FIArrayU128, FIArrayUsize,
     },
     bit_array::BitArray,
+    fenwick::{FenwickTree, FenwickTreeUsize},
     primes::prime_sieves::sift,
 };
 #[must_use]
@@ -203,21 +204,59 @@ pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     dirichlet_mul_i64(&u, &u, x as _)
 }
 
-// TODO: try optimizing using fenwick trees, should be O(n^1/2 log^(1+\eps)(n))
-fn count_squarefree(x: i64) -> FIArrayI64 {
-    let mut s = FIArrayI64::unit(x);
-    let keys = FIArrayI64::keys(x).collect_vec().into_boxed_slice();
-    let primes = sift(x.isqrt() as _).into_boxed_slice();
+#[must_use]
+pub fn count_squarefree(x: usize) -> FIArray {
+    let mut s = FIArray::unit(x);
+    let xsqrt = s.isqrt;
+    let len = s.arr.len();
+    for i in (1..len).rev() {
+        s.arr[i] -= s.arr[i - 1];
+    }
+    let primes = sift(xsqrt as u64).into_boxed_slice();
+    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    s_fenwick.construct();
+
+    let get_index = |v| {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
 
     for p in primes {
-        let p = p as i64;
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
+        let p = p as usize; // sparse_mul_at_most_one(p^2, -1)
+
+        let lim = x / (p * p);
+        let mut j = 1;
+        let mut cur = s_fenwick.sum(get_index(lim));
+        /*for v in FIArrayI64::keys(lim).rev().skip(1) {
+            let next = s_fenwick.sum(get_index(v));
+            if next != cur {
+                s_fenwick.add(get_index(lim/v), next - cur);
+                cur = next;
             }
-            s.arr[i] -= s[v / (p * p)];
+        }*/
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (1..=lim / j).rev() {
+            let next = if i > 1 { s_fenwick.sum(i - 2) } else { 0 };
+            if next != cur {
+                s_fenwick.sub(get_index(p * p * i), cur - next);
+                cur = next;
+            }
         }
     }
+    s.arr = s_fenwick.flatten();
     s
 }
 

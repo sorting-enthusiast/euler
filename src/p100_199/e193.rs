@@ -3,7 +3,9 @@ use std::time::Instant;
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::FIArrayU64, bit_array::BitArray, multiplicative_function_summation::mobius_sieve,
+    FIArray::FIArrayU64,
+    bit_array::BitArray,
+    multiplicative_function_summation::{self, mobius_sieve},
     primes::prime_sieves::sift,
 };
 
@@ -26,7 +28,7 @@ fn count_squarefree(limit: u64) -> u64 {
 }
 
 pub fn main() {
-    const N: u64 = 1 << 62;
+    const N: u64 = 1 << 50;
     /*let start = Instant::now();
     let res = opt_blocked(N as _);
     let end = start.elapsed();
@@ -47,6 +49,12 @@ pub fn main() {
     let res = opt3(N as _);
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
+
+    let start = Instant::now();
+    let res = multiplicative_function_summation::count_squarefree(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+
     let start = Instant::now();
     let res = dirimul_opt(N as _);
     let end = start.elapsed();

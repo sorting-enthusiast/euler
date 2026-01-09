@@ -44,7 +44,6 @@ fn legendre(x: usize) -> usize {
     s[x] + primes.len() - 1
 }
 fn legendre_fenwick(x: usize) -> usize {
-    todo!();
     let mut s = FIArray::unit(x);
     let xsqrt = s.isqrt;
     let len = s.arr.len();
@@ -69,13 +68,10 @@ fn legendre_fenwick(x: usize) -> usize {
         let p = p as usize;
         let lim = x / p;
         let mut j = 1;
-        let mut cur = s_fenwick.sum(get_index(p));
+        let mut cur = s_fenwick.sum(get_index(lim));
         while (j + 1) <= lim / (j + 1) {
-            let next = s_fenwick.sum(get_index(p * (j + 1)));
-            if next > cur {
-                s_fenwick.add(len - j, next - cur);
-                cur = next;
-            } else if next < cur {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
                 s_fenwick.sub(len - j, cur - next);
                 cur = next;
             }
@@ -83,10 +79,7 @@ fn legendre_fenwick(x: usize) -> usize {
         }
         for i in (1..=lim / j).rev() {
             let next = if i > 1 { s_fenwick.sum(i - 2) } else { 0 };
-            if next > cur {
-                s_fenwick.add(get_index(p * i), next - cur);
-                cur = next;
-            } else if next < cur {
+            if next != cur {
                 s_fenwick.sub(get_index(p * i), cur - next);
                 cur = next;
             }
@@ -1374,7 +1367,7 @@ pub fn main() {
 
     println!("legendre:");
     let start = Instant::now();
-    let count = legendre(N as _);
+    let count = legendre_fenwick(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
