@@ -263,7 +263,7 @@ pub fn count_squarefree(x: usize) -> FIArray {
     s
 }
 
-#[must_use]
+/* #[must_use]
 pub fn sqf(x: usize) -> FIArray {
     const fn icbrt(x: usize) -> usize {
         let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
@@ -309,7 +309,7 @@ pub fn sqf(x: usize) -> FIArray {
         Sqf.arr[i] = sqf;
     }
     Sqf
-}
+} */
 #[must_use]
 pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     let M = mertens(x);
@@ -541,11 +541,12 @@ macro_rules! min25_sieve_impl_for {
 
             pub fn [<dirichlet_mul_single_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> $type {
                 let rt_n = n.isqrt();
+                let len = F.arr.len();
+
                 let mut ret = F.arr[0] * G[n as $type] + G.arr[0] * F[n as $type] - F[rt_n as $type] * G[rt_n as $type];
                 for i in 2..=rt_n {
-                    let ni = n / i;
-                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G[ni as $type]
-                        + (G.arr[i - 1] - G.arr[i - 2]) * F[ni as $type];
+                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G.arr[len - i]
+                        + (G.arr[i - 1] - G.arr[i - 2]) * F.arr[len - i];
                 }
                 ret
             }

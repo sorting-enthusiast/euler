@@ -1366,10 +1366,10 @@ pub fn main() {
     println!("res = {count}, took {end:?}"); */
 
     println!("legendre:");
-    let start = Instant::now();
+    /* let start = Instant::now();
     let count = legendre(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
     let start = Instant::now();
     let count = legendre_fenwick(N as _);
     let end = start.elapsed();

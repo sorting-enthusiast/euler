@@ -11,8 +11,6 @@
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
 
-use crate::utils::multiplicative_function_summation::{count_squarefree, sqf};
-
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -32,19 +30,9 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    /*const N: usize = 1e15 as _;
 
-    let start = std::time::Instant::now();
-    let b = count_squarefree(N as _);
-    dbg!(start.elapsed());
-    let start = std::time::Instant::now();
-    let a = sqf(N);
-    dbg!(start.elapsed());
-    assert_eq!(a.arr, b.arr);*/
     //p200_299::e240::main();
-    p100_199::e153::main();
-    //p300_399::e386::main();
-    //p300_399::e362::main();
+    p300_399::e362::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
