@@ -54,7 +54,7 @@ fn legendre_fenwick(x: usize) -> usize {
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
     s_fenwick.construct();
-    assert_eq!(x, s_fenwick.sum(len - 1));
+
     let get_index = |v| -> usize {
         if v == 0 {
             unsafe { core::hint::unreachable_unchecked() };
@@ -291,7 +291,88 @@ pub fn lucy_alt_single(x: usize) -> usize {
     }
     res
 }
+// TODO: fix
+fn lucy_alt_single_fenwick(x: usize) -> usize {
+    const LUT: [usize; 30] = [
+        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
+    ];
+    let mut s = FIArray::new(x);
+    let xsqrt = s.isqrt;
+    let len = s.arr.len();
+    let primes = sift(xsqrt as u64);
 
+    let keys = FIArray::keys(x).collect_vec();
+
+    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
+    for (i, v) in keys.iter().enumerate() {
+        //s.arr[i] = (v + 1) >> 1;
+        s.arr[i] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3;
+    }
+    s[1] = 0;
+    s[2] = 1;
+    s[3] = 2;
+    s[4] = 2;
+    s[5] = 3;
+
+    for i in (1..len).rev() {
+        s.arr[i] -= s.arr[i - 1];
+    }
+    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    s_fenwick.construct();
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    let lim = primes.partition_point(|p| p.pow(3) <= x as u64);
+    /*for &p in &primes[3..lim] {
+    let p = p as usize;
+    let sp = s.arr[p - 2];
+    for (i, &v) in keys.iter().enumerate().rev() {
+    if v < p * p {
+    break;
+    }
+    s.arr[i] -= s[v / p] - sp;
+    }
+    } */
+    for &p in &primes[3..lim] {
+        let p = p as usize;
+        let sp = s_fenwick.sum(p - 2);
+
+        let lim = x / p;
+        let mut j = 1;
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (p..=lim / j).rev() {
+            let next = s_fenwick.sum(i - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+        s_fenwick.add(get_index(p * p), sp);
+    }
+    s.arr = s_fenwick.flatten();
+    let mut res = s[x];
+    for (i, &p) in primes[lim..].iter().enumerate() {
+        let p = p as usize;
+        res -= s[x / p] - lim - i;
+    }
+    res
+}
 // 1e17: 1506.2394159s
 // 1e16: 300s
 // 1e15: 58.8811143s
@@ -1393,6 +1474,11 @@ pub fn main() {
 
     let start = Instant::now();
     let count = lucy_alt_single(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = lucy_alt_single_fenwick(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 

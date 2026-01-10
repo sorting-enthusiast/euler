@@ -53,6 +53,6 @@ pub fn main() {
         .collect::<HashSet<_>>();
     dbg!(set.len()); */
     //utils::primes::prime_sieves::main();
-    //utils::primes::primecount::main();
+    utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
