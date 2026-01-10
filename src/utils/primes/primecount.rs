@@ -11,7 +11,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e17 as _;
+const N: usize = 1e15 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -78,12 +78,15 @@ fn legendre_fenwick(x: usize) -> usize {
             }
             j += 1;
         }
-        for i in (1..=lim / j).rev() {
-            let next = if i > 1 { s_fenwick.sum(i - 2) } else { 0 };
+        for i in (2..=lim / j).rev() {
+            let next = s_fenwick.sum(i - 2);
             if next != cur {
                 s_fenwick.sub(get_index(p * i), cur - next);
                 cur = next;
             }
+        }
+        if cur != 0 {
+            s_fenwick.sub(p - 1, cur);
         }
     }
     s_fenwick.sum(get_index(x)) + primes.len() - 1
@@ -138,7 +141,7 @@ pub fn lucy(x: usize) -> FIArray {
 }
 
 // O(n^2/3) time, O(sqrt(n)) space prime counting function
-// 1e15: 86.795025s
+// 1e15: 65.5385876s
 #[must_use]
 pub fn lucy_fenwick(x: usize) -> FIArray {
     const LUT: [usize; 30] = [
@@ -175,8 +178,13 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
         }
     };
     let mut sp = s_fenwick.sum(7 - 2);
-    let xcbrt = icbrt(x) | 1;
-    for p in (7..=xcbrt).step_by(2) {
+
+    let cutoff = xsqrt
+        .isqrt()
+        .max(icbrt((xsqrt / x.ilog2() as usize).pow(2)))
+        | 1; // icbrt(x) | 1;
+    //dbg!(cutoff, icbrt(x) | 1);
+    for p in (7..=cutoff).step_by(2) {
         let sp1 = s_fenwick.sum(p - 1);
         if sp1 == sp {
             continue;
@@ -200,16 +208,14 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
                 cur = next;
             }
         }
-        s_fenwick.sub(get_index(p * p), sp - cur);
         sp = sp1;
     }
     s.arr = s_fenwick.flatten();
-    for p in (xcbrt + 2..=xsqrt).step_by(2) {
+    for p in (cutoff + 2..=xsqrt).step_by(2) {
         let sp1 = s.arr[p - 1];
         if sp1 == sp {
             continue;
         }
-
         let mut ip = 0;
         for i in 1..=(x / p) / p {
             ip += p;
@@ -501,11 +507,15 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
             len - (x / v)
         }
     };
-    let lim = primes.partition_point(|p| p.pow(3) <= x as u64);
-
-    for &p in &primes[3..lim] {
+    let cutoff = xsqrt
+        .isqrt()
+        .max(icbrt((xsqrt / x.ilog2() as usize).pow(2)))
+        | 1; // icbrt(x) | 1;
+    let lim1 = primes.partition_point(|&p| p <= cutoff as u64);
+    let lim2 = primes.partition_point(|&p| p <= icbrt(x) as u64);
+    for &p in &primes[3..lim1] {
         let p = p as usize;
-        let sp = s_fenwick.sum(p - 2);
+        //let sp = s_fenwick.sum(p - 2);
 
         let lim = x / p;
         let mut j = p;
@@ -525,13 +535,25 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
                 cur = next;
             }
         }
-        s_fenwick.sub(get_index(p * p), sp - cur);
     }
     s.arr = s_fenwick.flatten();
-    let mut res = s.arr[len - 1];
-    for (i, &p) in primes[lim..].iter().enumerate() {
+    for &p in &primes[lim1..lim2] {
         let p = p as usize;
-        res -= s.arr[len - p] - lim - i;
+        let sp = s.arr[p - 2];
+        let mut ip = 0;
+        for i in 1..=(x / p) / p {
+            ip += p;
+            s.arr[len - i] -= if ip <= xsqrt {
+                s.arr[len - ip]
+            } else {
+                s.arr[(x / ip) - 1]
+            } - sp;
+        }
+    }
+    let mut res = s.arr[len - 1];
+    for (i, &p) in primes[lim2..].iter().enumerate() {
+        let p = p as usize;
+        res -= s.arr[len - p] - lim2 - i;
     }
     res
 }
@@ -1603,10 +1625,10 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
     /* let start = Instant::now();
-       let count = legendre_fenwick(N as _);
-       let end = start.elapsed();
-       println!("res = {count}, took {end:?}");
-    */
+    let count = legendre_fenwick(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}"); */
+
     println!("standard-ish lucy");
     let start = Instant::now();
     let count = prime_pi_fenwick_2(N as _);

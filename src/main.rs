@@ -11,6 +11,8 @@
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
 
+use crate::utils::primes::primecount::{lucy, lucy_fenwick};
+
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -30,7 +32,7 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-
+    assert_eq!(lucy(1e14 as _), lucy_fenwick(1e14 as _));
     //p200_299::e240::main();
     //p100_199::e193::main();
     //p300_399::e362::main();
