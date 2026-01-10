@@ -13,14 +13,7 @@ use fastdivide::DividerU64;
 use itertools::Itertools;
 const N: usize = 1e17 as _;
 // todo:
-// calculate pi(n) the following way:
-// using fenwick tree fiarrays, multiple zeta(s) by 1-p^-s for each p < n^1/3
-// flatten fenwick tree into normal fiarray
-// this computes phi(n, pi(n^1/3)) for each floor(n/d), and we know pi(n^1/3).
-// all that is left is to evaluate P2(n, n^1/3), can be computed in O(sqrt(n))
-// first step takes \Theta(n^2/3), so the algorithm in total runs in that timee complexity
-
-// alternatively, try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
+// try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
 const fn icbrt(x: usize) -> usize {
     let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
