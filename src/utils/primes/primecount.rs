@@ -335,7 +335,7 @@ fn lucy_alt_single_fenwick(x: usize) -> usize {
     let p = p as usize;
     let sp = s.arr[p - 2];
     for (i, &v) in keys.iter().enumerate().rev() {
-    if v < p * p {
+    if v/p < p {
     break;
     }
     s.arr[i] -= s[v / p] - sp;
@@ -356,14 +356,14 @@ fn lucy_alt_single_fenwick(x: usize) -> usize {
             }
             j += 1;
         }
-        for i in (p..=lim / j).rev() {
+        for i in (p + 1..=lim / j).rev() {
             let next = s_fenwick.sum(i - 2);
             if next != cur {
                 s_fenwick.sub(get_index(p * i), cur - next);
                 cur = next;
             }
         }
-        s_fenwick.add(get_index(p * p), sp);
+        s_fenwick.add(get_index(p * p), sp); //35078740222
     }
     s.arr = s_fenwick.flatten();
     let mut res = s[x];
@@ -1451,11 +1451,11 @@ pub fn main() {
     let count = legendre(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
-    let start = Instant::now();
-    let count = legendre_fenwick(N as _);
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
-
+    /* let start = Instant::now();
+       let count = legendre_fenwick(N as _);
+       let end = start.elapsed();
+       println!("res = {count}, took {end:?}");
+    */
     println!("standard-ish lucy");
     let start = Instant::now();
     let count = prime_pi_fenwick_2(N as _);
