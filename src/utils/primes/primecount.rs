@@ -11,7 +11,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e15 as _;
+const N: usize = 1e17 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -93,7 +93,7 @@ fn legendre_fenwick(x: usize) -> usize {
 }
 // O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
 // can also be optimized using fenwick trees and the sqrt trick,
-// though to an even better complexity of O(n^2/3), see below
+// though to an even better complexity of O(n^2/3 / log^\eps(n)), see below
 // kinda simulates pritchard's wheel sieve
 // 1e17: prime counting took 3071.1531213s: 2623557157654233
 // 1e16: prime counting took 501.5590413s: 279238341033925
@@ -140,7 +140,8 @@ pub fn lucy(x: usize) -> FIArray {
     s
 }
 
-// O(n^2/3) time, O(sqrt(n)) space prime counting function
+// O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
+// 1e16: 299.0853702s
 // 1e15: 65.5385876s
 #[must_use]
 pub fn lucy_fenwick(x: usize) -> FIArray {
@@ -467,10 +468,11 @@ pub fn lucy_alt_single(x: usize) -> usize {
     res
 }
 
-// 1e16: 276.3451029s
-// 1e15: 63.0135255s
+// 1e16: 270.8847469s
+// 1e15: 61.7861026s
 // 1e14: 13.4536011s
 // 1e13: 2.8562765s
+// O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
 #[must_use]
 pub fn lucy_alt_single_fenwick(x: usize) -> usize {
     const LUT: [usize; 30] = [

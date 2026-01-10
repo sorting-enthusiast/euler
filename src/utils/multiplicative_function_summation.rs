@@ -7,7 +7,7 @@ use crate::utils::{
     },
     bit_array::BitArray,
     fenwick::FenwickTreeUsize,
-    primes::prime_sieves::sift,
+    primes::wheel_sieve,
 };
 #[must_use]
 pub fn totient_sieve(n: usize) -> Vec<i64> {
@@ -204,15 +204,18 @@ pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     dirichlet_mul_i64(&u, &u, x as _)
 }
 
+// O(n^1/2 logn loglogn) time, O(n^1/2) space
 #[must_use]
 pub fn count_squarefree(x: usize) -> FIArray {
     let mut s = FIArray::unit(x);
     let xsqrt = s.isqrt;
     let len = s.arr.len();
+    let primes = wheel_sieve(xsqrt as u64);
+
     for i in (1..len).rev() {
         s.arr[i] -= s.arr[i - 1];
     }
-    let primes = sift(xsqrt as u64).into_boxed_slice();
+
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
     s_fenwick.construct();
@@ -228,18 +231,12 @@ pub fn count_squarefree(x: usize) -> FIArray {
     };
 
     for p in primes {
-        let p = p as usize; // sparse_mul_at_most_one(p^2, -1)
+        let p = p as usize;
+        // sparse_mul_at_most_one(p^2, -1)
 
         let lim = x / (p * p);
         let mut j = 1;
         let mut cur = s_fenwick.sum(get_index(lim));
-        /*for v in FIArrayI64::keys(lim).rev().skip(1) {
-            let next = s_fenwick.sum(get_index(v));
-            if next != cur {
-                s_fenwick.add(get_index(lim/v), next - cur);
-                cur = next;
-            }
-        }*/
         while (j + 1) <= lim / (j + 1) {
             let next = s_fenwick.sum(get_index(lim / (j + 1)));
             if next != cur {
@@ -364,7 +361,7 @@ pub fn sum_over_primes<const MOD: i64>(
     mut f: impl FnMut(i64) -> i64,
     mut F: impl FnMut(i64) -> i64,
 ) -> FIArrayI64 {
-    let primes = sift(x.isqrt() as u64 + 1);
+    let primes = wheel_sieve(x.isqrt() as u64 + 1);
     let mut s = FIArrayI64::new(x);
     let keys = FIArrayI64::keys(x).collect_vec();
 
