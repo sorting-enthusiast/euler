@@ -141,6 +141,7 @@ pub fn lucy(x: usize) -> FIArray {
 }
 
 // O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
+// 1e17: 1307.6254913s
 // 1e16: 299.0853702s
 // 1e15: 65.5385876s
 #[must_use]
@@ -468,6 +469,7 @@ pub fn lucy_alt_single(x: usize) -> usize {
     res
 }
 
+// 1e17: 1203.111988s
 // 1e16: 270.8847469s
 // 1e15: 61.7861026s
 // 1e14: 13.4536011s
