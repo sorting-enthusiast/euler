@@ -11,7 +11,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e17 as _;
+const N: usize = 1e16 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -143,7 +143,8 @@ pub fn lucy(x: usize) -> FIArray {
 // O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
 // 1e17: 1307.6254913s
 // 1e16: 299.0853702s
-// 1e15: 65.5385876s
+// 1e15: 63.826748s
+// 1e14: 14.2095577s
 #[must_use]
 pub fn lucy_fenwick(x: usize) -> FIArray {
     const LUT: [usize; 30] = [
