@@ -28,7 +28,16 @@ pub const fn modexp<const MODULO: u128>(mut x: u128, mut exp: u128) -> u128 {
     }
     modmul::<MODULO>(r, x)
 }
-
+#[must_use]
+pub const fn iroot<const k: usize>(x: usize) -> usize {
+    let mut rt = 1usize << (1 + x.ilog2().div_ceil(k as _));
+    let mut x_div_rtk1 = x / rt.pow(k as u32 - 1);
+    while rt > x_div_rtk1 {
+        rt = (rt * (k - 1) + x_div_rtk1) / k;
+        x_div_rtk1 = x / rt.pow(k as u32 - 1);
+    }
+    rt
+}
 #[must_use]
 pub const fn prime_modinv<const MODULO: u128>(x: u128) -> u128 {
     modexp::<MODULO>(x, MODULO - 2)

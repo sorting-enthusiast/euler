@@ -21,8 +21,7 @@ pub fn count_signature(sig: &[u8], lim: usize, pis: &FIArray, primes: &[u64]) ->
     }
     rec(sig, lim, pis, primes, 0)
 }
-#[must_use]
-pub const fn iroot(x: usize, k: u8) -> usize {
+const fn iroot(x: usize, k: u8) -> usize {
     let k = k as usize;
     let mut rt = 1usize << (1 + x.ilog2().div_ceil(k as _));
     let mut x_div_rtk1 = x / rt.pow(k as u32 - 1);

@@ -4,6 +4,7 @@ use super::prime_sieves::{BIT64TOVAL240, MOD30_TO_MASK, WHEEL_2_3_5, WHEEL_2_3_5
 use crate::utils::{
     FIArray::{FIArray, FIArrayU64},
     fenwick::{FenwickTreeU32, FenwickTreeUsize},
+    math::iroot,
     primes::{
         log_zeta::{log_zeta, log_zeta_reordered},
         primepi_approx::{Li, R},
@@ -11,7 +12,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e11 as _;
+const N: usize = 1e12 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -1636,6 +1637,10 @@ pub fn main() {
 
     println!("standard-ish lucy");
     let start = Instant::now();
+    let count = test(N as _);
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+    let start = Instant::now();
     let count = prime_pi_fenwick_2(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
@@ -1680,4 +1685,89 @@ pub fn main() {
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
+}
+#[must_use]
+pub fn test(x: usize) -> usize {
+    let mut s = FIArray::unit(x);
+    let xsqrt = s.isqrt;
+    let len = s.arr.len();
+    let primes = sift(xsqrt as u64);
+    for e in &mut s.arr {
+        *e -= 1;
+    }
+    for i in (1..len).rev() {
+        s.arr[i] -= s.arr[i - 1];
+    }
+    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    s_fenwick.construct();
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    let cutoff = iroot::<4>(x);
+    let xcbrt = iroot::<3>(x);
+    dbg!(cutoff, xcbrt);
+    let pi4 = primes.partition_point(|&p| p <= cutoff as u64);
+    let pi3 = primes.partition_point(|&p| p <= xcbrt as u64);
+    dbg!(pi4, pi3);
+    assert!(primes[pi4].pow(4) >= x as u64);
+    assert!(primes[pi3].pow(3) >= x as u64);
+
+    for &p in &primes[..pi4] {
+        let p = p as usize;
+        //let sp = s_fenwick.sum(p - 2);
+
+        let lim = x / p;
+        let mut j = p;
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= (lim / (j + 1)) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (p..=lim / j).rev() {
+            let next = s_fenwick.sum(i - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+        /* if cur != 0 {
+            s_fenwick.sub(get_index(p), cur);
+        } */
+    }
+    s.arr = s_fenwick.flatten();
+
+    let mut res = s.arr[len - 1];
+    dbg!(res);
+    for (i, &p1) in primes[pi4..pi3].iter().enumerate() {
+        let p1 = p1 as usize;
+
+        let lim = (x / p1).isqrt();
+
+        for &p2 in &primes[pi4 + i..] {
+            let p2 = p2 as usize;
+            if p2 > lim {
+                break;
+            }
+            res -= (s.arr[x / (p1 * p2) - 1] - s.arr[p2 - 2]);
+        }
+    }
+
+    /* // rest of P2
+    for &p in &primes[pi3..] {
+        let p = p as usize;
+        res -= s.arr[len - p] - s.arr[p - 2];
+    } */
+    res
 }

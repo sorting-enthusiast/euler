@@ -1,7 +1,6 @@
-use crate::utils::primes::{
-    count_signatures::{count_signature, iroot},
-    primecount::lucy_strengthreduce_alt,
-    wheel_sieve,
+use crate::utils::{
+    math::iroot,
+    primes::{count_signatures::count_signature, primecount::lucy_strengthreduce_alt, wheel_sieve},
 };
 const N: usize = 1e8 as _;
 const MAX_LEN: usize = N.ilog2() as usize + 1;
@@ -22,7 +21,7 @@ pub fn main() {
         prod *= p;
         println!("{i}: {prod}");
     }
-    dbg!(iroot(N, 10));
+    dbg!(iroot::<10>(N));
     let mut a = [0; MAX_LEN];
     a[0] = 1;
     a[1] = 1;
