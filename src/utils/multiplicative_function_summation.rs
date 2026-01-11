@@ -232,7 +232,7 @@ pub fn count_squarefree(x: usize) -> FIArray {
 
     for p in primes {
         let p = p as usize;
-        // sparse_mul_at_most_one(p^2, -1)
+        // sparse_mul_at_most_one(p^2, -1), https://github.com/ecnerwala/cp-book/blob/master/src/dirichlet_series.hpp
 
         let lim = x / (p * p);
         let mut j = 1;

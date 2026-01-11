@@ -10,8 +10,12 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
+use itertools::Itertools;
 
-use crate::utils::primes::primecount::{lucy, lucy_fenwick};
+use crate::utils::{
+    FIArray::FIArray,
+    primes::primecount::{lucy, lucy_dumber, lucy_fenwick},
+};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -32,7 +36,11 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    assert_eq!(lucy(1e7 as _), lucy_fenwick(1e7 as _));
+    assert_eq!(lucy_dumber(1e2 as _), lucy_fenwick(1e2 as _));
+    /*let p = lucy_fenwick(16);
+    for (i, v) in FIArray::keys(16).enumerate() {
+        println!("pi({v}): {}", p.arr[i]);
+    } */
     //p200_299::e240::main();
     //p100_199::e193::main();
     //p300_399::e362::main();
