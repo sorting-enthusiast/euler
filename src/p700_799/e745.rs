@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use itertools::Itertools;
 
-use crate::utils::powerful_numbers::PowerfulExtSkipZero;
+use crate::utils::{math::iroot, powerful_numbers::PowerfulExtSkipZero};
 const N: i64 = 1e18 as i64;
 const MOD: i64 = 1e9 as i64 + 7;
 const fn powmod(mut x: i64, mut exp: i64) -> i64 {
@@ -52,15 +52,6 @@ fn overkill() {
         let x = (x % (6 * MOD)) as u128;
         (((x * (x + 1) * (2 * x + 1)) / 6) % MOD as u128) as usize
     }
-    const fn icbrt(x: usize) -> usize {
-        let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-        let mut x_div_rt2 = (x / rt) / rt;
-        while rt > x_div_rt2 {
-            rt = ((rt << 1) + x_div_rt2) / 3;
-            x_div_rt2 = (x / rt) / rt;
-        }
-        rt
-    }
     fn sqf_sieve(n: usize) -> Vec<usize> {
         unsafe { core::hint::assert_unchecked(n >= 1) };
         let mut sqf = vec![1; n];
@@ -81,7 +72,7 @@ fn overkill() {
         }
         sqf
     }
-    const B: usize = icbrt(N);
+    const B: usize = iroot::<3>(N);
     const A: usize = N / (B * B);
     const SQRT_N: usize = N.isqrt();
     let start = Instant::now();
@@ -105,7 +96,7 @@ fn overkill() {
 
     for d in (1..B).rev() {
         let v = N / (d * d);
-        let b = icbrt(v);
+        let b = iroot::<3>(v);
         let a = v / (b * b);
 
         let mut sqf = v + sqf_small[a] * b - SQRT_N / d;

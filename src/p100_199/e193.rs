@@ -5,6 +5,7 @@ use itertools::Itertools;
 use crate::utils::{
     FIArray::FIArrayU64,
     bit_array::BitArray,
+    math::iroot,
     multiplicative_function_summation::{self, mobius_sieve},
     primes::prime_sieves::sift,
 };
@@ -218,15 +219,6 @@ fn dirichlet_mul_based(x: u64) -> FIArrayU64 {
 
 // O(n^4/9) time, O(n^1/3) space
 fn count_sqf(x: usize) -> usize {
-    const fn icbrt(x: usize) -> usize {
-        let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-        let mut x_div_rt2 = (x / rt) / rt;
-        while rt > x_div_rt2 {
-            rt = ((rt << 1) + x_div_rt2) / 3;
-            x_div_rt2 = (x / rt) / rt;
-        }
-        rt
-    }
     fn sqf_sieve(n: usize) -> Vec<usize> {
         unsafe { core::hint::assert_unchecked(n >= 1) };
         let mut sqf = vec![1; n];
@@ -247,7 +239,7 @@ fn count_sqf(x: usize) -> usize {
         }
         sqf
     }
-    let B = icbrt(x);
+    let B = iroot::<3>(x);
     let A = x / (B * B);
     dbg!(A, B);
     let xsqrt = x.isqrt();
@@ -263,7 +255,7 @@ fn count_sqf(x: usize) -> usize {
     let mut sqf_big = vec![0; B - 1].into_boxed_slice(); // indexed by denominator
     for d in (1..B).rev() {
         let v = x / (d * d);
-        let b = icbrt(v);
+        let b = iroot::<3>(v);
         let a = v / (b * b);
 
         let mut sqf = v + sqf_small[a] * b - xsqrt / d;
@@ -438,16 +430,7 @@ fn opt3(x: usize) -> usize {
         }
         res
     }
-    const fn icbrt(x: usize) -> usize {
-        let mut rt = 1 << x.ilog2().div_ceil(3);
-        let mut x_div_rt2 = (x / rt) / rt;
-        while rt > x_div_rt2 {
-            rt = ((rt << 1) + x_div_rt2) / 3;
-            x_div_rt2 = (x / rt) / rt;
-        }
-        rt
-    }
-    let I = icbrt(x >> 2);
+    let I = iroot::<3>(x >> 2);
     let D = (x / I).isqrt();
     let mut mertens_small = mobius_sieve(D + 1);
     let mut s1 = 0;

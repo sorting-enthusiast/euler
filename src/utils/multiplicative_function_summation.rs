@@ -262,15 +262,6 @@ pub fn count_squarefree(x: usize) -> FIArray {
 
 /* #[must_use]
 pub fn sqf(x: usize) -> FIArray {
-    const fn icbrt(x: usize) -> usize {
-        let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-        let mut x_div_rt2 = (x / rt) / rt;
-        while rt > x_div_rt2 {
-            rt = ((rt << 1) + x_div_rt2) / 3;
-            x_div_rt2 = (x / rt) / rt;
-        }
-        rt
-    }
     let mut Sqf = FIArray::eps(x);
     let xsqrt = Sqf.isqrt;
     let mut d2 = 1;
@@ -292,7 +283,7 @@ pub fn sqf(x: usize) -> FIArray {
             Sqf.arr[i] += Sqf.arr[i - 1];
             continue;
         }
-        let b = icbrt(v);
+        let b = iroot::<3>(v);
         let a = v / (b * b);
         let mut sqf = v + Sqf.arr[a - 1] * b - sqrts[v]; // v.isqrt();
         for i in 2..=a {

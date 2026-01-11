@@ -1,20 +1,13 @@
 use itertools::Itertools;
 
+use crate::utils::math::iroot;
+
 const N: usize = 1e16 as _;
 const SQRT: usize = N.isqrt();
-const B: usize = icbrt(N);
+const B: usize = iroot::<3>(N);
 const A: usize = N / (B * B);
 const MOD: usize = 1e9 as usize + 7;
 
-const fn icbrt(x: usize) -> usize {
-    let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-    let mut x_div_rt2 = (x / rt) / rt;
-    while rt > x_div_rt2 {
-        rt = ((rt << 1) + x_div_rt2) / 3;
-        x_div_rt2 = (x / rt) / rt;
-    }
-    rt
-}
 fn sqf_sieve(n: usize) -> Vec<usize> {
     unsafe { core::hint::assert_unchecked(n >= 1) };
     let mut sqf = vec![1; n];
@@ -60,7 +53,7 @@ pub fn main() {
     let mut large_sqf = vec![0; B - 1].into_boxed_slice(); // indexed by denominator
     for d in (1..B).rev() {
         let v = N / (d * d);
-        let b = icbrt(v);
+        let b = iroot::<3>(v);
         let a = v / (b * b);
 
         let mut sqf = v + small_sqf[a] * b - SQRT / d;

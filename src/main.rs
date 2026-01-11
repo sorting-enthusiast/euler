@@ -42,7 +42,7 @@ pub fn main() {
         println!("pi({v}): {}", p.arr[i]);
     } */
     //p200_299::e240::main();
-    //p100_199::e193::main();
+    p500_599::e580::main();
     //p300_399::e362::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
@@ -63,6 +63,6 @@ pub fn main() {
         .collect::<HashSet<_>>();
     dbg!(set.len()); */
     //utils::primes::prime_sieves::main();
-    utils::primes::primecount::main();
+    //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }

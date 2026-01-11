@@ -66,10 +66,12 @@ pub fn R(x: usize) -> usize {
         const li2: f64 = 1.045163780117492784844588889194613136_f64;
         if x <= 2. { 0. } else { li(x as f64) - li2 }
     }; */
-    let x = x as f64;
-    let mobius = mobius_sieve(50);
+    let xlog2 = x.ilog2() as usize;
+    let mobius = mobius_sieve(xlog2 + 1);
     let mut sum = 0.;
-    for i in 1..50 {
+
+    let x = x as f64;
+    for i in 1..=xlog2 {
         let inv_i = (i as f64).recip();
         let li = li(x.powf(inv_i));
         if li == 0. {

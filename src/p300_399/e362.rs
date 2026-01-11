@@ -3,6 +3,7 @@ use itertools::Itertools;
 use crate::utils::{
     FIArray::{FIArray, FIArrayU128},
     fenwick::FenwickTreeUsize,
+    math::iroot,
     multiplicative_function_summation::{
         count_squarefree, dirichlet_mul_u128, dirichlet_mul_with_buffer_u128,
     },
@@ -14,15 +15,15 @@ use crate::utils::{
 // 1e12: 83365737381734, 3.9935026s
 // 1e11: 6213486362445, 760.1746ms
 // 1e10: 457895958010, 162.7931ms
-const N: usize = 1e10 as _;
+const N: usize = 1e14 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
 pub fn main() {
     dense_pseudo_euler_transform_based();
-    dense_pseudo_euler_transform_based_alt();
-    initial_approach_fenwick();
-    initial_approach();
+    //dense_pseudo_euler_transform_based_alt();
+    //initial_approach_fenwick();
+    //initial_approach();
 }
 
 // Also O(n^2/3) time, but makes fewer expensive calls to dirichlet_mul, and has no overflow issues.
@@ -136,16 +137,7 @@ fn dense_pseudo_euler_transform_based() {
 
 // have to use u128 to stay in integer arithmetic, O(n^2/3) time solution
 fn dense_pseudo_euler_transform_based_alt() {
-    const fn icbrt(n: usize) -> usize {
-        let mut rt = 1 << (1 + n.ilog2().div_ceil(3));
-        let mut x_div_rt2 = (n / rt) / rt;
-        while rt > x_div_rt2 {
-            rt = ((rt << 1) + x_div_rt2) / 3;
-            x_div_rt2 = (n / rt) / rt;
-        }
-        rt
-    }
-    const x: usize = 1 + icbrt(SQRT_N);
+    const x: usize = 1 + iroot::<3>(SQRT_N);
     const INVS: [u128; 6] = [0, 60, 30, 20, 15, 12];
 
     let start = std::time::Instant::now();
@@ -273,7 +265,6 @@ fn test() {
 fn initial_approach() {
     let start = std::time::Instant::now();
     let sqf = count_squarefree(N);
-    dbg!(start.elapsed());
     let mut fsf = FIArray::eps(N);
     let keys = FIArray::keys(N).collect_vec().into_boxed_slice();
     let len = keys.len();

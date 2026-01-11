@@ -1,5 +1,7 @@
 use itertools::Itertools;
 
+use crate::utils::math::iroot;
+
 // Hilbert numbers are numbers that are products of any number of primes equivalent to 1 mod 4,
 // and an even number of primes equivalent to 3 mod 4
 
@@ -17,16 +19,7 @@ pub fn main() {
 /// sum_{p<=n^1/2, p=3 mod 4} SQF'(n/p^2) can be computed with the dirichlet hyperbola method again.
 /// Computing the # of primes = 3 mod 4 below each necessary threshold takes O(n^1/2) time and O(n^1/3) space.
 fn solve() {
-    const fn icbrt(x: usize) -> usize {
-        let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-        let mut x_div_rt2 = (x / rt) / rt;
-        while rt > x_div_rt2 {
-            rt = ((rt << 1) + x_div_rt2) / 3;
-            x_div_rt2 = (x / rt) / rt;
-        }
-        rt
-    }
-    const B: usize = icbrt(N);
+    const B: usize = iroot::<3>(N);
     const A: usize = N / (B * B);
 
     let start = std::time::Instant::now();
@@ -54,7 +47,7 @@ fn solve() {
     let mut sqf_big = vec![0; (B + 1) >> 1].into_boxed_slice(); // indexed by denominator
     for d in (1..B + 1).step_by(2).rev() {
         let v = N / (d * d);
-        let b = icbrt(v);
+        let b = iroot::<3>(v);
         let a = v / (b * b);
 
         let mut sqf =

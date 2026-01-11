@@ -16,15 +16,6 @@ const N: usize = 1e12 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
-const fn icbrt(x: usize) -> usize {
-    let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-    let mut x_div_rt2 = (x / rt) / rt;
-    while rt > x_div_rt2 {
-        rt = ((rt << 1) + x_div_rt2) / 3;
-        x_div_rt2 = (x / rt) / rt;
-    }
-    rt
-}
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
 // not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
@@ -185,9 +176,9 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
 
     let cutoff = xsqrt
         .isqrt()
-        .max(icbrt((xsqrt / x.ilog2() as usize).pow(2)))
-        | 1; // icbrt(x) | 1;
-    //dbg!(cutoff, icbrt(x) | 1);
+        .max(iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
+        | 1; // iroot::<3>(x) | 1;
+    //dbg!(cutoff, iroot::<3>(x) | 1);
     for p in (7..=cutoff).step_by(2) {
         let sp1 = s_fenwick.sum(p - 1);
         if sp1 == sp {
@@ -515,10 +506,10 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
     };
     let cutoff = xsqrt
         .isqrt()
-        .max(icbrt((xsqrt / x.ilog2() as usize).pow(2)))
-        | 1; // icbrt(x) | 1;
+        .max(iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
+        | 1; // iroot::<3>(x) | 1;
     let lim1 = primes.partition_point(|&p| p <= cutoff as u64);
-    let lim2 = primes.partition_point(|&p| p <= icbrt(x) as u64);
+    let lim2 = primes.partition_point(|&p| p <= iroot::<3>(x) as u64);
     for &p in &primes[3..lim1] {
         let p = p as usize;
         //let sp = s_fenwick.sum(p - 2);
@@ -1630,10 +1621,10 @@ pub fn main() {
     let count = legendre(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
-    /* let start = Instant::now();
+    let start = Instant::now();
     let count = legendre_fenwick(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");
 
     println!("standard-ish lucy");
     let start = Instant::now();
@@ -1675,7 +1666,7 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    /* println!("prime counting using the logarithm of the zeta function:");
+    println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
     let count = log_zeta_reordered(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
@@ -1684,8 +1675,9 @@ pub fn main() {
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");
 }
+// TODO: fix
 #[must_use]
 pub fn test(x: usize) -> usize {
     let mut s = FIArray::unit(x);

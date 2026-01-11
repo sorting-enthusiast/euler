@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use crate::utils::FIArray::FIArray;
+use crate::utils::{FIArray::FIArray, math::iroot};
 // TODO: optimize using fenwick trees as described in a comment in this post https://codeforces.com/blog/entry/117783
 
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
@@ -12,15 +12,7 @@ use crate::utils::FIArray::FIArray;
 // Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
 // over the primes, though tbh you should probably just use lucy's algorithm for that.
 // TODO: try to speed up the convolution steps more somehow, as they are the main bottleneck
-const fn icbrt(x: usize) -> usize {
-    let mut rt = 1 << (1 + x.ilog2().div_ceil(3));
-    let mut x_div_rt2 = (x / rt) / rt;
-    while rt > x_div_rt2 {
-        rt = ((rt << 1) + x_div_rt2) / 3;
-        x_div_rt2 = (x / rt) / rt;
-    }
-    rt
-}
+
 #[must_use]
 pub fn log_zeta(n: usize) -> FIArray {
     const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
@@ -31,7 +23,7 @@ pub fn log_zeta(n: usize) -> FIArray {
     let mut buffer = zeta.clone();
 
     let mut ret = FIArray::new(n);
-    let x = (icbrt(rt) + 1) * (n as f64).ln() as usize;
+    let x = (iroot::<3>(rt) + 1) * (n as f64).ln() as usize;
     // remove contributions of small primes
     for p in 2..x {
         let val = zeta.arr[p - 1] - 1;
@@ -162,7 +154,7 @@ pub fn log_zeta_reordered(n: usize) -> FIArray {
     let mut buffer = zeta.clone();
 
     let mut ret = FIArray::new(n);
-    let x = (icbrt(rt) + 1) * (n as f64).ln() as usize; // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
+    let x = (iroot::<3>(rt) + 1) * (n as f64).ln() as usize; // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
     // remove contributions of small primes (first ~n^1/6 of them)
     for p in 2..x {
         let val = zeta.arr[p - 1] - 1;
