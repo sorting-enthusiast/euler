@@ -133,6 +133,9 @@ pub fn lucy(x: usize) -> FIArray {
 }
 
 // O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
+// turns out this method was alluded to in one of min_25's blogs from late 2018:
+// https://web.archive.org/web/20211009144526/https://min-25.hatenablog.com/entry/2018/11/11/172216
+// nothing new under the sun :(
 // 1e17: 1307.6254913s
 // 1e16: 299.0853702s
 // 1e15: 63.826748s
