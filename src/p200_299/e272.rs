@@ -39,7 +39,7 @@ pub fn main() {
         .filter(|p| p % 3 == 1)
         .collect_vec();
     dbg!(start.elapsed());
-    let mut s = FIArrayU64::id::<{ u64::MAX >> 1 }>(N);
+    let mut s = FIArrayU64::id::<0>(N);
     let keys = FIArrayU64::keys(N)
         .take_while(|&v| v <= N / 482_391)
         .collect_vec()

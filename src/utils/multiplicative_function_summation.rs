@@ -140,7 +140,9 @@ pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
     let mut small_phi = totient_sieve(y + 1);
     for i in 2..=y {
         small_phi[i] += small_phi[i - 1];
-        small_phi[i] %= MOD;
+        if MOD != 0 {
+            small_phi[i] %= MOD;
+        }
     }
     let mut Phi = FIArrayI64::new(x);
 
@@ -153,14 +155,19 @@ pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
 
         let mut phi_v = (sum_n_i64::<MOD>(v) + MOD - v % MOD) % MOD;
         for i in 2..=vsqrt {
-            phi_v -= ((small_phi[i as usize] - small_phi[i as usize - 1]) * (v / i)) % MOD;
+            let c = (small_phi[i as usize] - small_phi[i as usize - 1]) * (v / i);
+            phi_v -= if MOD == 0 { c } else { c % MOD };
             phi_v -= Phi[v / i];
-            phi_v %= MOD;
+            if MOD != 0 {
+                phi_v %= MOD;
+            }
         }
         phi_v += Phi[vsqrt] * vsqrt;
-        phi_v %= MOD;
-        if phi_v < 0 {
-            phi_v += MOD;
+        if MOD != 0 {
+            phi_v %= MOD;
+            if phi_v < 0 {
+                phi_v += MOD;
+            }
         }
         Phi.arr[ind] = phi_v;
     }
@@ -212,13 +219,16 @@ pub fn count_squarefree(x: usize) -> FIArray {
     let len = s.arr.len();
     let primes = wheel_sieve(xsqrt as u64);
 
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
     }
 
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
+    //s_fenwick.construct();
 
     let get_index = |v| {
         if v == 0 {
@@ -302,17 +312,23 @@ pub fn sqf(x: usize) -> FIArray {
 pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     let M = mertens(x);
     let mut sum = M[x] + sum_n_i64::<MOD>(x);
-    sum %= MOD;
+    if MOD != 0 {
+        sum %= MOD;
+    }
     let isqrt = x.isqrt();
     for i in 2..=isqrt {
         sum += i * M[x / i];
         sum += (M.arr[i as usize - 1] - M.arr[i as usize - 2]) * sum_n_i64::<MOD>(x / i);
-        sum %= MOD;
+        if MOD != 0 {
+            sum %= MOD;
+        }
     }
     sum -= sum_n_i64::<MOD>(isqrt) * M[isqrt];
-    sum %= MOD;
-    if sum < 0 {
-        sum += MOD;
+    if MOD != 0 {
+        sum %= MOD;
+        if sum < 0 {
+            sum += MOD;
+        }
     }
     sum
 }
@@ -364,14 +380,17 @@ pub fn sum_over_primes<const MOD: i64>(
     for p in primes {
         let p = p as i64;
         let sp = s.arr[p as usize - 2];
+        let fp = f(p);
         for (i, &v) in keys.iter().enumerate().rev() {
             if v < p * p {
                 break;
             }
-            s.arr[i] -= f(p) * (s[v / p] - sp);
-            s.arr[i] %= MOD;
-            if s.arr[i] < 0 {
-                s.arr[i] += MOD;
+            s.arr[i] -= fp * (s[v / p] - sp);
+            if MOD != 0 {
+                s.arr[i] %= MOD;
+                if s.arr[i] < 0 {
+                    s.arr[i] += MOD;
+                }
             }
         }
     }
@@ -411,12 +430,20 @@ macro_rules! min25_sieve_impl_for {
                 sum - sqrt * sqrt
             }
             pub const fn [<sum_n_ $type>]<const MOD: $type>(x: $type) -> $type {
-                let x = x % (MOD << 1);
-                (if x & 1 == 0 {
-                    (x / 2) * (x + 1)
+                if MOD == 0 {
+                    if x & 1 == 0 {
+                        (x / 2) * (x + 1)
+                    } else {
+                        ((x + 1) / 2) * x
+                    }
                 } else {
-                    ((x + 1) / 2) * x
-                }) % MOD
+                    let x = x % (MOD << 1);
+                    (if x & 1 == 0 {
+                        (x / 2) * (x + 1)
+                    } else {
+                        ((x + 1) / 2) * x
+                    }) % MOD
+                }
             }
             pub fn [<min25_sieve_ $type>]<const MOD: $type>(
                 x: $type,
@@ -435,14 +462,17 @@ macro_rules! min25_sieve_impl_for {
                 for &p in &primes {
                     let sp = s.arr[p as usize - 2];
                     let p = p as $type;
+                    let gp = g(p);
                     for (i, &v) in keys.iter().enumerate().rev() {
                         if v < p * p {
                             break;
                         }
-                        s.arr[i] -= g(p) * (s[v / p] - sp);
-                        s.arr[i] %= MOD;
-                        if s.arr[i] < 0 {
-                            s.arr[i] += MOD;
+                        s.arr[i] -= gp * (s[v / p] - sp);
+                        if MOD != 0 {
+                            s.arr[i] %= MOD;
+                            if s.arr[i] < 0 {
+                                s.arr[i] += MOD;
+                            }
                         }
                     }
                 }
@@ -458,9 +488,11 @@ macro_rules! min25_sieve_impl_for {
                         let mut u = v / p;
                         while u >= p {
                             s.arr[i] += f(p, e) * (s[u] - sp) + f(p, e + 1);
-                            s.arr[i] %= MOD;
-                            if s.arr[i] < 0 {
-                                s.arr[i] += MOD;
+                            if MOD != 0 {
+                                s.arr[i] %= MOD;
+                                if s.arr[i] < 0 {
+                                    s.arr[i] += MOD;
+                                }
                             }
                             e += 1;
                             u /= p;

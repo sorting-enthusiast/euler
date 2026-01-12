@@ -92,33 +92,29 @@ impl FenwickTreeUsize {
         }
         sum
     }
-    pub fn add(&mut self, i: usize, v: usize) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] += v;
-            k += k & (!k + 1);
+    pub fn add(&mut self, mut i: usize, v: usize) {
+        while i < self.0.len() {
+            self.0[i] += v;
+            i |= i + 1;
         }
     }
-    pub fn sub(&mut self, i: usize, v: usize) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] -= v;
-            k += k & (!k + 1);
+    pub fn sub(&mut self, mut i: usize, v: usize) {
+        while i < self.0.len() {
+            self.0[i] -= v;
+            i |= i + 1;
         }
     }
 
-    pub fn inc(&mut self, i: usize) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] += 1;
-            k += k & (!k + 1);
+    pub fn inc(&mut self, mut i: usize) {
+        while i < self.0.len() {
+            self.0[i] += 1;
+            i |= i + 1;
         }
     }
-    pub fn dec(&mut self, i: usize) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] -= 1;
-            k += k & (!k + 1);
+    pub fn dec(&mut self, mut i: usize) {
+        while i < self.0.len() {
+            self.0[i] -= 1;
+            i |= i + 1;
         }
     }
     #[must_use]
@@ -171,33 +167,29 @@ impl FenwickTreeU32 {
         }
         sum
     }
-    pub fn add(&mut self, i: usize, v: u32) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] += v;
-            k += k & (!k + 1);
+    pub fn add(&mut self, mut i: usize, v: u32) {
+        while i < self.0.len() {
+            self.0[i] += v;
+            i |= i + 1;
         }
     }
-    pub fn sub(&mut self, i: usize, v: u32) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] -= v;
-            k += k & (!k + 1);
+    pub fn sub(&mut self, mut i: usize, v: u32) {
+        while i < self.0.len() {
+            self.0[i] -= v;
+            i |= i + 1;
         }
     }
 
-    pub fn inc(&mut self, i: usize) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] += 1;
-            k += k & (!k + 1);
+    pub fn inc(&mut self, mut i: usize) {
+        while i < self.0.len() {
+            self.0[i] += 1;
+            i |= i + 1;
         }
     }
-    pub fn dec(&mut self, i: usize) {
-        let mut k = i + 1;
-        while k <= self.0.len() {
-            self.0[k - 1] -= 1;
-            k += k & (!k + 1);
+    pub fn dec(&mut self, mut i: usize) {
+        while i < self.0.len() {
+            self.0[i] -= 1;
+            i |= i + 1;
         }
     }
     #[must_use]

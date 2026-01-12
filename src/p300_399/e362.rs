@@ -12,10 +12,10 @@ use crate::utils::{
 // 1e15: 190257704293010022, 572.8073284s
 // 1e14: 14574188158034831, 115.9572641s
 // 1e13: 1107277852610310, 21.7458745s
-// 1e12: 83365737381734, 3.9935026s
-// 1e11: 6213486362445, 760.1746ms
+// 1e12: 83365737381734, 3.8677086s
+// 1e11: 6213486362445, 735.9992ms
 // 1e10: 457895958010, 162.7931ms
-const N: usize = 1e14 as _;
+const N: usize = 1e11 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -92,12 +92,15 @@ fn dense_pseudo_euler_transform_based() {
     }
     println!("Finished computing exp(v): {:?}", start.elapsed());
 
-    for i in (1..len).rev() {
-        fsf.arr[i] -= fsf.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            fsf.arr[i] -= fsf.arr[j - 1];
+        }
     }
     let mut f = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut fsf.arr, &mut f.0);
-    f.construct();
+
     for q in (2..x).rev() {
         if sqf.arr[q - 1] == 0 {
             continue;

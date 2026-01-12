@@ -36,8 +36,7 @@ fn calkin_wilf_iter(m: usize, n: usize, sum_divisors: &FIArray) -> usize {
 pub fn main() {
     min_25();
     let start = std::time::Instant::now();
-    let sum_divisors =
-        dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<{ usize::MAX >> 1 }>(N), N);
+    let sum_divisors = dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<0>(N), N);
     let mut res = sum_divisors[N / 2] + calkin_wilf(2, 1, &sum_divisors);
     res <<= 1;
     res += sum_divisors[N];
@@ -46,8 +45,8 @@ pub fn main() {
 fn min_25() {
     let start = std::time::Instant::now();
 
-    let mut s = dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<{ usize::MAX >> 1 }>(N), N);
-    dbg!(start.elapsed());
+    let mut s = dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<0>(N), N);
+    //dbg!(start.elapsed());
     let mut res = s[N];
 
     let xsqrt = s.isqrt;
@@ -96,7 +95,7 @@ fn min_25() {
         }
     }
     s.arr = s_fenwick.flatten();
-    dbg!(start.elapsed());
+    //dbg!(start.elapsed());
 
     let mut C1 = FIArray::new(N);
     let c1 = |v: usize| {
@@ -104,15 +103,15 @@ fn min_25() {
         (s + 1..=v.isqrt())
             .map(move |x: usize| {
                 let u = (v - x * x).isqrt();
-                x * u + sum_n_usize::<{ usize::MAX >> 1 }>(u)
+                x * u + sum_n_usize::<0>(u)
             })
             .sum::<usize>()
-            + s * sum_n_usize::<{ usize::MAX >> 1 }>(s)
+            + s * sum_n_usize::<0>(s)
     };
     for (i, v) in FIArray::keys(N).enumerate() {
         C1.arr[i] = c1(v);
     }
-    dbg!(start.elapsed());
+    //dbg!(start.elapsed());
 
     res += 2 * dirichlet_mul_single_usize(&s, &C1, N);
     println!("res = {res}, took {:?}", start.elapsed());

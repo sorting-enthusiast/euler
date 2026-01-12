@@ -12,7 +12,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e12 as _;
+const N: usize = 1e15 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -40,13 +40,15 @@ fn legendre_fenwick(x: usize) -> usize {
     let mut s = FIArray::unit(x);
     let xsqrt = s.isqrt;
     let len = s.arr.len();
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
     }
     let primes = sift(xsqrt as u64);
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -139,7 +141,7 @@ pub fn lucy(x: usize) -> FIArray {
 // 1e17: 1307.6254913s
 // 1e16: 299.0853702s
 // 1e15: 63.826748s
-// 1e14: 14.2095577s
+// 1e14: 13.6801338s
 #[must_use]
 pub fn lucy_fenwick(x: usize) -> FIArray {
     const LUT: [usize; 30] = [
@@ -159,12 +161,14 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
     s[4] = 2;
     s[5] = 3;
 
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
     }
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -210,6 +214,100 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
     }
     s.arr = s_fenwick.flatten();
     for p in (cutoff + 2..=xsqrt).step_by(2) {
+        let sp1 = s.arr[p - 1];
+        if sp1 == sp {
+            continue;
+        }
+        let mut ip = 0;
+        for i in 1..=(x / p) / p {
+            ip += p;
+            s.arr[len - i] -= if ip <= xsqrt {
+                s.arr[len - ip]
+            } else {
+                s.arr[(x / ip) - 1]
+            } - sp;
+        }
+        sp = sp1;
+    }
+    s
+}
+
+#[must_use]
+pub fn lucy_fenwick_simple(x: usize) -> FIArray {
+    let mut s = FIArray::new(x);
+    let xsqrt = s.isqrt;
+    let len = s.arr.len();
+
+    for (i, v) in FIArray::keys(x).enumerate() {
+        s.arr[i] = /* v - 1;  */(v + 1) >> 1;
+    }
+    s.arr[0] = 0;
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
+    }
+    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    let mut sp = 0;
+
+    let cutoff = xsqrt
+        .isqrt()
+        .max(iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
+        | 1; // iroot::<3>(x) | 1;
+    //dbg!(cutoff, iroot::<3>(x) | 1);
+    for p in /* (2 <= cutoff)
+        .then_some(2)
+        .into_iter()
+        .chain( */
+        (3..=cutoff).step_by(2)
+    //)
+    {
+        let sp1 = s_fenwick.sum(p - 1);
+        if sp1 == sp {
+            continue;
+        }
+
+        let lim = x / p;
+        let mut j = 1;
+        //assert_eq!(get_index(lim), len - p);
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (p..=lim / j).rev() {
+            let next = s_fenwick.sum(i - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+        sp = sp1;
+    }
+    s.arr = s_fenwick.flatten();
+    for p in /* (2 > cutoff)
+        .then_some(2)
+        .into_iter()
+        .chain( */
+        (cutoff + 2..=xsqrt).step_by(2)
+    //)
+    {
         let sp1 = s.arr[p - 1];
         if sp1 == sp {
             continue;
@@ -368,12 +466,14 @@ pub fn lucy_alt_fenwick(x: usize) -> FIArray {
     s[4] = 2;
     s[5] = 3;
 
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
     }
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -491,12 +591,14 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
     s[4] = 2;
     s[5] = 3;
 
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
     }
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -1624,16 +1726,16 @@ pub fn main() {
     let count = legendre(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
-    let start = Instant::now();
+    /* let start = Instant::now();
     let count = legendre_fenwick(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
     println!("standard-ish lucy");
-    let start = Instant::now();
+    /* let start = Instant::now();
     let count = test(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
     let start = Instant::now();
     let count = prime_pi_fenwick_2(N as _);
     let end = start.elapsed();
@@ -1660,6 +1762,11 @@ pub fn main() {
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
+    let count = lucy_fenwick_simple(N as _)[N as _];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
     let count = lucy(N as _)[N as _];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
@@ -1669,7 +1776,7 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    println!("prime counting using the logarithm of the zeta function:");
+    /* println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
     let count = log_zeta_reordered(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
@@ -1678,7 +1785,7 @@ pub fn main() {
     let start = Instant::now();
     let count = log_zeta(N as _)[N as _]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 }
 // TODO: fix
 #[must_use]
@@ -1690,12 +1797,14 @@ pub fn test(x: usize) -> usize {
     for e in &mut s.arr {
         *e -= 1;
     }
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
     }
     let mut s_fenwick = FenwickTreeUsize::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
 
     let get_index = |v| -> usize {
         if v == 0 {

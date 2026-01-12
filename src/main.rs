@@ -14,7 +14,8 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::FIArray,
-    primes::primecount::{lucy, lucy_dumber, lucy_fenwick},
+    multiplicative_function_summation::{mertens, min25_sieve_i64},
+    primes::primecount::{lucy, lucy_dumber, lucy_fenwick, lucy_fenwick_simple},
 };
 
 pub mod p0_99;
@@ -36,15 +37,15 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    assert_eq!(lucy_dumber(1e2 as _), lucy_fenwick(1e2 as _));
+    //assert_eq!(lucy_dumber(1e4 as _), lucy_fenwick_simple(1e4 as _));
     /*let p = lucy_fenwick(16);
     for (i, v) in FIArray::keys(16).enumerate() {
         println!("pi({v}): {}", p.arr[i]);
     } */
     //p200_299::e240::main();
     //p500_599::e580::main();
-    p700_799::e712::main();
-    //p300_399::e362::main();
+    //p500_599::e521::main();
+    p300_399::e362::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
@@ -64,6 +65,6 @@ pub fn main() {
         .collect::<HashSet<_>>();
     dbg!(set.len()); */
     //utils::primes::prime_sieves::main();
-    //utils::primes::primecount::main();
+    utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
