@@ -42,7 +42,8 @@ pub fn main() {
         println!("pi({v}): {}", p.arr[i]);
     } */
     //p200_299::e240::main();
-    p500_599::e580::main();
+    //p500_599::e580::main();
+    p700_799::e712::main();
     //p300_399::e362::main();
     //dbg!(opt(1e16 as _));
     /* let n = 1e7 as i64;
