@@ -138,7 +138,7 @@ pub fn lucy(x: usize) -> FIArray {
 // turns out this method was alluded to in one of min_25's blogs from late 2018:
 // https://web.archive.org/web/20211009144526/https://min-25.hatenablog.com/entry/2018/11/11/172216
 // nothing new under the sun :(
-// 1e17: 1307.6254913s
+// 1e17: 1265.4260607s
 // 1e16: 276.5081149s
 // 1e15: 61.4027283s
 // 1e14: 13.5483739s
@@ -567,7 +567,7 @@ pub fn lucy_alt_single(x: usize) -> usize {
     res
 }
 
-// 1e17: 1203.111988s
+// 1e17: 1130.1499045s
 // 1e16: 246.3088722s
 // 1e15: 55.1351417s
 // 1e14: 12.3233265s
