@@ -1,5 +1,6 @@
 use crate::utils::{
-    FIArray::FIArrayI64, fast_divisor_sums::sum_floors_fast, powerful_numbers::PowerfulExtSkipZero,
+    FIArray::FIArrayI64, fast_divisor_sums::divisor_summatory,
+    powerful_numbers::PowerfulExtSkipZero,
 };
 const N: i64 = 1e15 as i64;
 
@@ -24,7 +25,7 @@ pub fn main() {
     for (n, hn) in PowerfulExtSkipZero::<_, { i64::MAX }>::new(N, h) {
         let index = cache.get_index(N / n);
         if cache.arr[index] == 0 {
-            cache.arr[index] = sum_floors_fast((N / n) as _) as i64;
+            cache.arr[index] = divisor_summatory((N / n) as _) as i64;
         }
         sum += hn * cache.arr[index];
     }

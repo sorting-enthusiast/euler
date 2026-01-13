@@ -11,7 +11,10 @@
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
 
-use crate::utils::{FIArray::FIArray, fast_divisor_sums::sum_floors_fast};
+use crate::utils::{
+    fast_divisor_sums::{d3, divisor_summatory},
+    multiplicative_function_summation::divisor_summatory_usize,
+};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -33,18 +36,8 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    /*let start = std::time::Instant::now();
-    let d = sum_floors_fast(1e18 as _);
-    let end = start.elapsed();
-    dbg!(d, end);
-    let start = std::time::Instant::now();
-    let d = divisor_summatory_i64(1e18 as _);
-    let end = start.elapsed();
-    dbg!(d, end);*/
     //p200_299::e240::main();
     //p500_599::e580::main();
-    p300_399::e379::main(); //132314136838185
-
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
     let keys = FIArrayI64::keys(n).collect_vec().into_boxed_slice();
@@ -59,6 +52,6 @@ pub fn main() {
     }
     assert_eq!(s, mertens(n)); */
     //utils::primes::prime_sieves::main();
-    //utils::primes::primecount::main();
+    utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }

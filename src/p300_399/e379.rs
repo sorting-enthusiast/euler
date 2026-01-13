@@ -5,7 +5,6 @@ use crate::utils::{
         count_squarefree, dirichlet_mul_single_usize, dirichlet_mul_usize,
     },
 };
-
 const N: i64 = 1e12 as _;
 // A018892
 // sum of (d(n^2) + 1) / 2
@@ -13,7 +12,7 @@ const N: i64 = 1e12 as _;
 // d2 = d * sqf = mu_sqrt * d3
 
 // using d2 = mu_sqrt * d3
-// O(n^2/3) time and O(n^1/3) space (can technically reduce to O(n^5/9) time, but won't necessarily be faster for required input)
+// O(n^5/9) time and O(n^1/3) space
 // dirichlet hyperbola with n^2/3 - n^1/3 split
 pub fn main() {
     fn mobius_sieve(n: usize) -> Vec<i64> {

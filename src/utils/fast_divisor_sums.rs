@@ -1,4 +1,4 @@
-use crate::utils::{math::iroot, multiplicative_function_summation::divisor_summatory_i64};
+use crate::utils::math::iroot;
 
 /// Algorithm 3 in <https://arxiv.org/pdf/1206.3369>
 const fn S_Q(n: i64, x1: i64, x2: i64) -> i64 {
@@ -210,7 +210,7 @@ fn S_R(
         + S_R(n, w - u_7, v_5, a_3, b_3, c_1 + c_2 + u_7, a_2, b_2, c_2)
 }
 
-pub fn d(n: i64) -> i64 {
+fn d(n: i64) -> i64 {
     let x_max = n.isqrt();
     2 * s(n, x_max) - x_max * x_max
 }
@@ -226,7 +226,7 @@ pub const fn icbrt(x: i64) -> i64 {
     rt
 }
 /// Based on identity for `T_3(n)` in <https://arxiv.org/pdf/1206.3369>
-/// O(n^2/3) time, O(1) space
+/// O(n^5/9) (?) time, O(1) space
 #[must_use]
 pub fn d3(n: i64) -> i64 {
     let cbrtn = icbrt(n);
@@ -235,33 +235,67 @@ pub fn d3(n: i64) -> i64 {
     while z <= cbrtn {
         let nz = n / z;
         let sqrtnz = nz.isqrt();
-        ret += 2 * S_Q(nz, z + 1, sqrtnz) - sqrtnz * sqrtnz + nz / z;
+        //ret += 2 * S_Q(nz, z + 1, sqrtnz) - sqrtnz * sqrtnz + nz / z;
+        ret += 2 * sum_floors_range_fast(nz as usize, z as usize + 1, sqrtnz as usize) as i64
+            - sqrtnz * sqrtnz
+            + nz / z;
+
         z += 1;
     }
     ret *= 3;
     ret += cbrtn * cbrtn * cbrtn;
     ret
 }
-
+// credit to icy from the p.e. discord server
 #[must_use]
-pub fn sum_floors_fast(n: usize) -> usize {
+pub fn divisor_summatory(n: usize) -> usize {
     let s = n.isqrt();
-    let c = iroot::<3>(n).clamp(1, s);
-    let mut res = (1..=c).map(|x| n / x).sum::<usize>();
-    res = sum_convex(
+    let c = iroot::<3>(n << 1).clamp(1, s);
+    2 * sum_convex(
         c + 1,
         s + 1,
         |x| n / x,
         |p| p.0 * p.1 > n,
         |p, v| p.0 * v.1 >= p.1 * v.0,
-        res,
-    );
-    res <<= 1;
-    res -= s * s;
-    res
+        (1..=c).map(|x| n / x).sum::<usize>(),
+    ) - s * s
+}
+#[must_use]
+pub fn sum_floors_range_fast(n: usize, x1: usize, x2: usize) -> usize {
+    if n == 0 {
+        return 0;
+    }
+    let s = n.isqrt();
+    let x2 = x2.min(s);
+    if x1 > x2 {
+        return 0;
+    }
+
+    let c = iroot::<3>(n).clamp(1, x2);
+
+    if x1 <= c {
+        let mid = c.min(x2);
+        sum_convex(
+            mid + 1,
+            x2 + 1,
+            |x| n / x,
+            |p| p.0 * p.1 > n,
+            |p, v| p.0 * v.1 >= p.1 * v.0,
+            (x1..=mid).map(|x| n / x).sum::<usize>(),
+        )
+    } else {
+        sum_convex(
+            x1,
+            x2 + 1,
+            |x| n / x,
+            |p| p.0 * p.1 > n,
+            |p, v| p.0 * v.1 >= p.1 * v.0,
+            0,
+        )
+    }
 }
 
-fn sum_convex(
+pub fn sum_convex(
     begin: usize,
     end: usize,
     f: impl Fn(usize) -> usize,
