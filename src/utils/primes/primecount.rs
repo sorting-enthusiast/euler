@@ -3,7 +3,7 @@ use std::time::Instant;
 use super::prime_sieves::{BIT64TOVAL240, MOD30_TO_MASK, WHEEL_2_3_5, WHEEL_2_3_5_7, sift};
 use crate::utils::{
     FIArray::{FIArray, FIArrayU64},
-    fenwick::{FenwickTreeU32, FenwickTreeUsize},
+    fenwick::{FenwickTree, FenwickTreeU32},
     math::iroot,
     primes::{
         log_zeta::{log_zeta, log_zeta_reordered},
@@ -12,13 +12,13 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e18 as _;
+const N: usize = 1e17 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
-// not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^0.75/logn)
+// not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^3/4 / logn)
 // can be optimised using fenwick trees and the sqrt trick to O(n^3/4) time, see below
 fn legendre(x: usize) -> usize {
     let primes = sift(x.isqrt() as u64);
@@ -47,7 +47,7 @@ fn legendre_fenwick(x: usize) -> usize {
         }
     }
     let primes = sift(xsqrt as u64);
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
     let get_index = |v| -> usize {
@@ -85,7 +85,7 @@ fn legendre_fenwick(x: usize) -> usize {
     }
     s_fenwick.sum(get_index(x)) + primes.len() - 1
 }
-// O(n^(3/4)/log(n)) time, O(sqrt(n)) space prime counting function
+// O(n^3/4 / log(n)) time, O(n^1/2) space prime counting function
 // can also be optimized using fenwick trees and the sqrt trick,
 // though to an even better complexity of O(n^2/3 / log^\eps(n)), see below
 // kinda simulates pritchard's wheel sieve
@@ -139,9 +139,11 @@ pub fn lucy(x: usize) -> FIArray {
 // https://web.archive.org/web/20211009144526/https://min-25.hatenablog.com/entry/2018/11/11/172216
 // nothing new under the sun :(
 // 1e17: 1307.6254913s
-// 1e16: 299.0853702s
-// 1e15: 63.826748s
-// 1e14: 13.6801338s
+// 1e16: 276.5081149s
+// 1e15: 61.4027283s
+// 1e14: 13.5483739s
+// 1e13: 2.4807338s
+// 1e12: 525.6264ms
 #[must_use]
 pub fn lucy_fenwick(x: usize) -> FIArray {
     const LUT: [usize; 30] = [
@@ -167,7 +169,7 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
     let get_index = |v| -> usize {
@@ -183,7 +185,7 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
 
     let cutoff = xsqrt
         .isqrt()
-        .max(iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
         | 1; // iroot::<3>(x) | 1;
     //dbg!(cutoff, iroot::<3>(x) | 1);
     for p in (7..=cutoff).step_by(2) {
@@ -248,7 +250,7 @@ pub fn lucy_fenwick_simple(x: usize) -> FIArray {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
     let get_index = |v| -> usize {
@@ -264,7 +266,7 @@ pub fn lucy_fenwick_simple(x: usize) -> FIArray {
 
     let cutoff = xsqrt
         .isqrt()
-        .max(iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
         | 1; // iroot::<3>(x) | 1;
     //dbg!(cutoff, iroot::<3>(x) | 1);
     for p in /* (2 <= cutoff)
@@ -472,7 +474,7 @@ pub fn lucy_alt_fenwick(x: usize) -> FIArray {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
     let get_index = |v| -> usize {
@@ -566,10 +568,11 @@ pub fn lucy_alt_single(x: usize) -> usize {
 }
 
 // 1e17: 1203.111988s
-// 1e16: 270.8847469s
-// 1e15: 61.7861026s
-// 1e14: 13.4536011s
+// 1e16: 246.3088722s
+// 1e15: 55.1351417s
+// 1e14: 12.3233265s
 // 1e13: 2.8562765s
+// 1e12: 500.34ms
 // O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
 #[must_use]
 pub fn lucy_alt_single_fenwick(x: usize) -> usize {
@@ -597,7 +600,7 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
     let get_index = |v| -> usize {
@@ -611,7 +614,7 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
     };
     let cutoff = xsqrt
         .isqrt()
-        .max(iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
         | 1; // iroot::<3>(x) | 1;
     let lim1 = primes.partition_point(|&p| p <= cutoff as u64);
     let lim2 = primes.partition_point(|&p| p <= iroot::<3>(x) as u64);
@@ -790,7 +793,7 @@ pub fn prime_pi_fenwick(x: usize) -> usize {
     }
     let mut count = 0usize;
     let mut sieve =
-        FenwickTreeUsize::new_with(isqrt, |i| usize::from((WHEEL >> ((i + 1) % 30)) & 1 == 1));
+        FenwickTree::new_with(isqrt, |i| usize::from((WHEEL >> ((i + 1) % 30)) & 1 == 1));
     sieve.dec(0);
     sieve.inc(1);
     sieve.inc(2);
@@ -1803,7 +1806,7 @@ pub fn test(x: usize) -> usize {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
     let get_index = |v| -> usize {

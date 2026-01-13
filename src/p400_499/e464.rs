@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
-use crate::utils::{fenwick::FenwickTree, multiplicative_function_summation::mobius_sieve};
-const N: usize = 1e9 as _;
+use crate::utils::{fenwick::FenwickTreeI64, multiplicative_function_summation::mobius_sieve};
+const N: usize = 2e7 as _;
 
 #[derive(Clone, Copy, Default)]
 struct Pt {
@@ -11,7 +11,7 @@ struct Pt {
 }
 
 // pts are initially sorted by index, and returned sorted by x
-fn cdq(pts: &mut [Pt], tmp: &mut [Pt], bit: &mut FenwickTree) -> i64 {
+fn cdq(pts: &mut [Pt], tmp: &mut [Pt], bit: &mut FenwickTreeI64) -> i64 {
     let len = pts.len();
     if len < 2 {
         return 0;
@@ -67,7 +67,7 @@ fn cdq(pts: &mut [Pt], tmp: &mut [Pt], bit: &mut FenwickTree) -> i64 {
 }
 
 // 0.3 seconds faster lmao
-fn pingpong_cdq(pts: &mut [Pt], tmp: &mut [Pt], bit: &mut FenwickTree) -> i64 {
+fn pingpong_cdq(pts: &mut [Pt], tmp: &mut [Pt], bit: &mut FenwickTreeI64) -> i64 {
     let len = pts.len();
     if len < 4 {
         return cdq(pts, tmp, bit);
@@ -223,7 +223,7 @@ fn solve3() {
             .collect_vec();
         let mut tmp = vec![Pt::default(); N + 1]; // can halve the size of tmp easily, using similar tricks to my mergesorts
         //let mut ans = vec![0; N + 1];
-        let mut bit = FenwickTree::new(y_max, 0);
+        let mut bit = FenwickTreeI64::new(y_max, 0);
         //dbg!(start.elapsed());
         // 4) CDQ on index
         let count = cdq(&mut pts, &mut tmp, &mut bit);
@@ -268,7 +268,7 @@ fn solve3() {
             .collect_vec();
         let mut tmp = vec![Pt::default(); N + 1];
         //let mut ans = vec![0; N + 1];
-        let mut bit = FenwickTree::new(y_max, 0);
+        let mut bit = FenwickTreeI64::new(y_max, 0);
         // dbg!(start.elapsed());
         // 4) CDQ on index
         let count = pingpong_cdq(&mut pts, &mut tmp, &mut bit);

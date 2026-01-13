@@ -6,7 +6,7 @@ use crate::utils::{
         FIArrayU128, FIArrayUsize,
     },
     bit_array::BitArray,
-    fenwick::FenwickTreeUsize,
+    fenwick::FenwickTree,
     primes::wheel_sieve,
 };
 #[must_use]
@@ -226,7 +226,7 @@ pub fn count_squarefree(x: usize) -> FIArray {
         }
     }
 
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
+    let mut s_fenwick = FenwickTree::new(0, 0);
     core::mem::swap(&mut s.arr, &mut s_fenwick.0);
     //s_fenwick.construct();
 
