@@ -228,42 +228,6 @@ fn dense_pseudo_euler_transform_based_alt() {
     println!("res = {res}, took {:?}", start.elapsed());
 }
 
-fn test() {
-    const N: usize = 1e2 as _;
-    const SQRT_N: usize = N.isqrt();
-
-    let mut squarefree = vec![1u8; N + 1];
-    squarefree[0] = 0;
-    for q in 2..=SQRT_N {
-        if squarefree[q * q] == 0 {
-            continue;
-        }
-        for m in (q * q..=N as usize).step_by(q * q) {
-            squarefree[m] = 0;
-        }
-    }
-    let mut fsf = FIArray::eps(N);
-    let keys = FIArray::keys(N).collect_vec().into_boxed_slice();
-    for q in (2..=SQRT_N).rev() {
-        if squarefree[q] == 0 {
-            continue;
-        }
-        for (i, &v) in keys.iter().enumerate() {
-            if q > v {
-                continue;
-            }
-            fsf.arr[i] += fsf[v / q];
-        }
-    }
-    for q in SQRT_N + 1..=N {
-        if squarefree[q] == 0 {
-            continue;
-        }
-        fsf[N] += fsf[N / q];
-    }
-
-    dbg!(fsf[N] - 1);
-}
 // can optimize using fenwick trees to around O(n^3/4 logn)
 fn initial_approach() {
     let start = std::time::Instant::now();

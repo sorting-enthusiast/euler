@@ -10,13 +10,8 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
-use itertools::Itertools;
 
-use crate::utils::{
-    FIArray::FIArray,
-    multiplicative_function_summation::{mertens, min25_sieve_i64},
-    primes::primecount::{lucy, lucy_dumber, lucy_fenwick, lucy_fenwick_simple},
-};
+use crate::utils::{FIArray::FIArray, fast_divisor_sums::sum_floors_fast};
 
 pub mod p0_99;
 pub mod p100_199;
@@ -38,16 +33,18 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    //assert_eq!(lucy_dumber(1e4 as _), lucy_fenwick_simple(1e4 as _));
-    /*let p = lucy_fenwick(16);
-    for (i, v) in FIArray::keys(16).enumerate() {
-        println!("pi({v}): {}", p.arr[i]);
-    } */
+    /*let start = std::time::Instant::now();
+    let d = sum_floors_fast(1e18 as _);
+    let end = start.elapsed();
+    dbg!(d, end);
+    let start = std::time::Instant::now();
+    let d = divisor_summatory_i64(1e18 as _);
+    let end = start.elapsed();
+    dbg!(d, end);*/
     //p200_299::e240::main();
     //p500_599::e580::main();
-    //p500_599::e521::main();
-    p300_399::e362::main();
-    //dbg!(opt(1e16 as _));
+    p300_399::e379::main(); //132314136838185
+
     /* let n = 1e7 as i64;
     let mut s = FIArrayI64::eps(n);
     let keys = FIArrayI64::keys(n).collect_vec().into_boxed_slice();
@@ -61,11 +58,7 @@ pub fn main() {
         }
     }
     assert_eq!(s, mertens(n)); */
-    /* let set = FIArray::keys(1e16 as _)
-        .map(usize::isqrt)
-        .collect::<HashSet<_>>();
-    dbg!(set.len()); */
     //utils::primes::prime_sieves::main();
-    utils::primes::primecount::main();
+    //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }

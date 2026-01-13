@@ -1,3 +1,5 @@
+use crate::utils::{math::iroot, multiplicative_function_summation::divisor_summatory_i64};
+
 /// Algorithm 3 in <https://arxiv.org/pdf/1206.3369>
 const fn S_Q(n: i64, x1: i64, x2: i64) -> i64 {
     if x1 > x2 {
@@ -234,10 +236,98 @@ pub fn d3(n: i64) -> i64 {
         let nz = n / z;
         let sqrtnz = nz.isqrt();
         ret += 2 * S_Q(nz, z + 1, sqrtnz) - sqrtnz * sqrtnz + nz / z;
-        //ret += 2 * (s(nz, sqrtnz) - s(nz, z)) - sqrtnz * sqrtnz + nz / z;
         z += 1;
     }
     ret *= 3;
     ret += cbrtn * cbrtn * cbrtn;
     ret
+}
+
+#[must_use]
+pub fn sum_floors_fast(n: usize) -> usize {
+    let s = n.isqrt();
+    let c = iroot::<3>(n).clamp(1, s);
+    let mut res = (1..=c).map(|x| n / x).sum::<usize>();
+    res = sum_convex(
+        c + 1,
+        s + 1,
+        |x| n / x,
+        |p| p.0 * p.1 > n,
+        |p, v| p.0 * v.1 >= p.1 * v.0,
+        res,
+    );
+    res <<= 1;
+    res -= s * s;
+    res
+}
+
+fn sum_convex(
+    begin: usize,
+    end: usize,
+    f: impl Fn(usize) -> usize,
+    inside: impl Fn((usize, usize)) -> bool,
+    cut: impl Fn((usize, usize), (usize, usize)) -> bool,
+    mut init: usize,
+) -> usize {
+    if begin >= end {
+        return init;
+    }
+    let addTo = |v: &mut (usize, usize), w: (usize, usize)| {
+        v.0 += w.0;
+        v.1 += w.1;
+    };
+    let subTo = |v: &mut (usize, usize), w: (usize, usize)| {
+        v.0 -= w.0;
+        v.1 -= w.1;
+    };
+    let add = |mut v: (usize, usize), w: (usize, usize)| {
+        addTo(&mut v, w);
+        v
+    };
+    let addPTo = |v: &mut (usize, usize), w: (usize, usize)| {
+        v.0 += w.0;
+        v.1 -= w.1;
+    };
+
+    let addP = |mut v: (usize, usize), w: (usize, usize)| {
+        addPTo(&mut v, w);
+        v
+    };
+    let mut P = (begin, f(begin) + 1);
+    let mut Q;
+    let mut A = (1, P.1 - f(begin + 1) + 1);
+    let mut B = (1, A.1 + 1);
+    loop {
+        while !inside(addP(P, A)) {
+            while B.0 >= A.0 {
+                subTo(&mut B, A);
+            }
+            subTo(&mut A, B);
+        }
+        loop {
+            Q = addP(P, add(A, B));
+            if inside(Q) {
+                addTo(&mut A, B);
+            } else if cut(Q, A) {
+                break;
+            } else {
+                addTo(&mut B, A);
+            }
+        }
+        let mut k = 0;
+        Q = P;
+        while Q.0 + A.0 <= end && inside(addP(Q, A)) {
+            k += 1;
+            addPTo(&mut Q, A);
+        }
+        if k == 0 {
+            break;
+        }
+        init += (P.1 - Q.1 + k * (A.0 * (P.1 + Q.1 - 1) - 1)) >> 1;
+        P = Q;
+    }
+    for i in P.0..end {
+        init += f(i);
+    }
+    init
 }
