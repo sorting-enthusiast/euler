@@ -199,23 +199,6 @@ fn dirimul_opt(N: u64) -> u64 {
     }
     large_sqf[0]
 }
-// computation of zeta(2)/zeta(2s)
-#[must_use]
-fn dirichlet_mul_based(x: u64) -> FIArrayU64 {
-    let mut s = FIArrayU64::unit(x);
-    let keys = FIArrayU64::keys(x).collect_vec().into_boxed_slice();
-    let primes = sift(x.isqrt()).into_boxed_slice();
-
-    for p in primes {
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / (p * p)];
-        }
-    }
-    s
-}
 
 // O(n^4/9) time, O(n^1/3) space
 fn count_sqf(x: usize) -> usize {
