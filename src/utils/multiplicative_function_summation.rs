@@ -2,11 +2,10 @@ use itertools::Itertools;
 
 use crate::utils::{
     FIArray::{
-        FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize, FIArrayU32, FIArrayU64,
-        FIArrayU128, FIArrayUsize,
+        DirichletFenwick, FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize, FIArrayU32,
+        FIArrayU64, FIArrayU128, FIArrayUsize,
     },
     bit_array::BitArray,
-    fenwick::FenwickTree,
     primes::wheel_sieve,
 };
 #[must_use]
@@ -176,7 +175,7 @@ pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
 #[must_use]
 pub fn mertens(x: i64) -> FIArrayI64 {
     let y = if x > 1023 {
-        (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 2)
+        (1e9 as usize).min((x as f64).powf(2. / 3.) as usize >> 2)
     } else {
         x as usize
     };
@@ -211,63 +210,15 @@ pub fn divisor_summatory(x: i64) -> FIArrayI64 {
     dirichlet_mul_i64(&u, &u, x as _)
 }
 
-// O(n^1/2 logn loglogn) time, O(n^1/2) space
+/// O(n^\frac12 \log n \log \log n) time, O(n^\frac12) space
 #[must_use]
 pub fn count_squarefree(x: usize) -> FIArray {
-    let mut s = FIArray::unit(x);
-    let xsqrt = s.isqrt;
-    let len = s.arr.len();
-    let primes = wheel_sieve(xsqrt as u64);
-
-    for i in (2..len).rev() {
-        let j = i & (i + 1);
-        if j != 0 {
-            s.arr[i] -= s.arr[j - 1];
-        }
-    }
-
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    //s_fenwick.construct();
-
-    let get_index = |v| {
-        if v == 0 {
-            unsafe { core::hint::unreachable_unchecked() };
-        } else if v <= xsqrt {
-            v - 1
-        } else {
-            len - (x / v)
-        }
-    };
-
-    for p in primes {
+    let mut s = DirichletFenwick::zeta(x);
+    for p in wheel_sieve(s.isqrt as u64) {
         let p = p as usize;
-        // sparse_mul_at_most_one(p^2, -1), https://github.com/ecnerwala/cp-book/blob/master/src/dirichlet_series.hpp
-
-        let lim = x / (p * p);
-        let mut j = 1;
-        let mut cur = s_fenwick.sum(get_index(lim));
-        while (j + 1) <= lim / (j + 1) {
-            let next = s_fenwick.sum(get_index(lim / (j + 1)));
-            if next != cur {
-                s_fenwick.sub(len - j, cur - next);
-                cur = next;
-            }
-            j += 1;
-        }
-        for i in (2..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
-            if next != cur {
-                s_fenwick.sub(get_index(p * p * i), cur - next);
-                cur = next;
-            }
-        }
-        if cur != 0 {
-            s_fenwick.sub(get_index(p * p), cur);
-        }
+        s.sparse_mul_at_most_one(p * p, 1); // https://github.com/ecnerwala/cp-book/blob/master/src/dirichlet_series.hpp
     }
-    s.arr = s_fenwick.flatten();
-    s
+    s.into()
 }
 
 /* #[must_use]

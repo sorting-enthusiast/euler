@@ -1,13 +1,12 @@
 use crate::utils::{
-    FIArray::FIArray,
-    fenwick::FenwickTreeUsize,
+    FIArray::{DirichletFenwick, FIArray},
     multiplicative_function_summation::{
         dirichlet_mul_single_usize, dirichlet_mul_usize, sum_n_usize,
     },
     primes::wheel_sieve,
 };
 
-const N: usize = 1e8 as _;
+const N: usize = 1e9 as _;
 
 // https://en.wikipedia.org/wiki/Coprime_integers#Generating_all_coprime_pairs
 fn calkin_wilf(m: usize, n: usize, sum_divisors: &FIArray) -> usize {
@@ -45,63 +44,23 @@ pub fn main() {
 fn min_25() {
     let start = std::time::Instant::now();
 
-    let mut s = dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<0>(N), N);
-    //dbg!(start.elapsed());
+    let s = dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<0>(N), N);
     let mut res = s[N];
+    //dbg!(start.elapsed());
 
-    let xsqrt = s.isqrt;
-    let len = s.arr.len();
-    for i in (1..len).rev() {
-        s.arr[i] -= s.arr[i - 1];
+    let mut s = DirichletFenwick::from(s);
+    for p in wheel_sieve(s.isqrt as u64) {
+        let p = p as usize;
+        s.sparse_mul_at_most_one(p * p, p);
     }
-    let primes = wheel_sieve(xsqrt as u64).into_boxed_slice();
-    let mut s_fenwick = FenwickTreeUsize::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
-    s_fenwick.construct();
-
-    let get_index = |v| {
-        if v == 0 {
-            unsafe { core::hint::unreachable_unchecked() };
-        } else if v <= xsqrt {
-            v - 1
-        } else {
-            len - (N / v)
-        }
-    };
-
-    for p in primes {
-        let p = p as usize; // sparse_mul_at_most_one(p^2, -p)
-
-        let lim = N / (p * p);
-        let mut j = 1;
-        let mut cur = s_fenwick.sum(get_index(lim));
-        while (j + 1) <= lim / (j + 1) {
-            let next = s_fenwick.sum(get_index(lim / (j + 1)));
-            if next != cur {
-                s_fenwick.sub(len - j, p * (cur - next));
-                cur = next;
-            }
-            j += 1;
-        }
-        for i in (2..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
-            if next != cur {
-                s_fenwick.sub(get_index(p * p * i), p * (cur - next));
-                cur = next;
-            }
-        }
-        if cur != 0 {
-            s_fenwick.sub(get_index(p * p), p * cur);
-        }
-    }
-    s.arr = s_fenwick.flatten();
+    let s = FIArray::from(s);
     //dbg!(start.elapsed());
 
     let mut C1 = FIArray::new(N);
     let c1 = |v: usize| {
         let s = (v / 2).isqrt();
         (s + 1..=v.isqrt())
-            .map(move |x: usize| {
+            .map(move |x| {
                 let u = (v - x * x).isqrt();
                 x * u + sum_n_usize::<0>(u)
             })

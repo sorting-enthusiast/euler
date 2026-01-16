@@ -309,7 +309,7 @@ fn opt(x: usize) -> usize {
         res
     }
 
-    let I = (x as f64).powf(0.2) as usize;
+    let I = iroot::<5>(x);
     let D = (x / I).isqrt();
     //dbg!(I, D);
     let mut mertens_small = mobius_sieve(D + 1).into_boxed_slice();

@@ -12,8 +12,8 @@
 use chrono::Local;
 
 use crate::utils::{
-    fast_divisor_sums::{d3, divisor_summatory},
-    multiplicative_function_summation::divisor_summatory_usize,
+    multiplicative_function_summation::{mertens, mertens_slow},
+    primes::primecount::mertens_min25,
 };
 
 pub mod p0_99;
@@ -38,20 +38,18 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e240::main();
     //p500_599::e580::main();
-    /* let n = 1e7 as i64;
-    let mut s = FIArrayI64::eps(n);
-    let keys = FIArrayI64::keys(n).collect_vec().into_boxed_slice();
-    for p in sift(n as u64) {
-        let p = p as i64;
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if p > v {
-                break;
-            }
-            s.arr[i] -= s[v / p];
-        }
-    }
-    assert_eq!(s, mertens(n)); */
+    p100_199::e153::main();
+    //p300_399::e362::main();
+    //utils::primes::primecount::main();
+    const N: i64 = 1e12 as _;
+    let start = std::time::Instant::now();
+    let s1 = mertens_slow(N);
+    let end = start.elapsed();
+    dbg!(end, s1[N]);
+    let start = std::time::Instant::now();
+    let s1 = mertens_min25(N);
+    let end = start.elapsed();
+    dbg!(end, s1[N]);
     //utils::primes::prime_sieves::main();
-    utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }

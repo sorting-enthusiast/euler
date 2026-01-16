@@ -1,8 +1,7 @@
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::{FIArray, FIArrayU128},
-    fenwick::FenwickTreeUsize,
+    FIArray::{DirichletFenwick, FIArray, FIArrayU128},
     math::iroot,
     multiplicative_function_summation::{
         count_squarefree, dirichlet_mul_u128, dirichlet_mul_with_buffer_u128,
@@ -14,8 +13,8 @@ use crate::utils::{
 // 1e13: 1107277852610310, 21.7458745s
 // 1e12: 83365737381734, 3.8677086s
 // 1e11: 6213486362445, 735.9992ms
-// 1e10: 457895958010, 162.7931ms
-const N: usize = 1e13 as _;
+// 1e10: 457895958010, 157.5381ms
+const N: usize = 1e15 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -91,50 +90,14 @@ fn dense_pseudo_euler_transform_based() {
         fsf.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
     }
     println!("Finished computing exp(v): {:?}", start.elapsed());
-
-    for i in (2..len).rev() {
-        let j = i & (i + 1);
-        if j != 0 {
-            fsf.arr[i] -= fsf.arr[j - 1];
-        }
-    }
-    let mut f = FenwickTreeUsize::new(0, 0);
-    core::mem::swap(&mut fsf.arr, &mut f.0);
-
+    let mut fsf = DirichletFenwick::from(fsf);
     for q in (2..x).rev() {
         if sqf.arr[q - 1] == 0 {
             continue;
         }
-        let lim = N / q;
-        // sparse_mul_unlimited(q,1)
-        let mut prev = 0;
-        /*for i in FIArray::keys(lim) {
-            let cur = f.sum(sqf.get_index(i));
-            if cur != prev {
-                f.add(sqf.get_index(i * q), cur - prev);
-                prev = cur;
-            }
-        }*/
-        let mut i = 1;
-        while i <= lim / i {
-            let cur = f.sum(i - 1);
-            if cur != prev {
-                f.add(sqf.get_index(i * q), cur - prev);
-                prev = cur;
-            }
-            i += 1;
-        }
-        for j in (1..=lim / i).rev() {
-            let cur = f.sum(sqf.get_index(lim / j));
-            if cur != prev {
-                f.add(len - j, cur - prev);
-                prev = cur;
-            }
-        }
+        fsf.sparse_mul_unlimited(q, 1);
     }
-    fsf.arr = f.flatten();
-
-    let res = fsf[N] - 1;
+    let res = fsf.bit.sum(len - 1) - 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
 
@@ -270,55 +233,16 @@ fn initial_approach() {
 fn initial_approach_fenwick() {
     let start = std::time::Instant::now();
     let sqf = count_squarefree(N);
-    let mut fsf = FIArray::new(N);
-    //let keys = FIArray::keys(N).collect_vec().into_boxed_slice();
-    let len = fsf.arr.len();
-
-    fsf.arr[0] = 1;
-    let mut f = FenwickTreeUsize::new(0, 0);
-    core::mem::swap(&mut fsf.arr, &mut f.0);
-    f.construct();
+    let mut fsf = DirichletFenwick::eps(N);
 
     for q in 2..=SQRT_N {
-        if sqf.arr[q - 1] == sqf.arr[q - 2] {
-            continue;
-        }
-        let lim = N / q;
-        // sparse_mul_unlimited(q,1)
-        let mut prev = 0;
-        /*for i in FIArray::keys(lim) {
-            let cur = f.sum(sqf.get_index(i));
-            if cur != prev {
-                f.add(sqf.get_index(i * q), cur - prev);
-                prev = cur;
-            }
-        }*/
-        let mut i = 1;
-        while i <= lim / i {
-            let cur = f.sum(i - 1);
-            if cur != prev {
-                f.add(sqf.get_index(i * q), cur - prev);
-                prev = cur;
-            }
-            i += 1;
-        }
-        for j in (1..=lim / i).rev() {
-            let cur = f.sum(sqf.get_index(lim / j));
-            if cur != prev {
-                f.add(len - j, cur - prev);
-                prev = cur;
-            }
+        if sqf.arr[q - 1] != sqf.arr[q - 2] {
+            fsf.sparse_mul_unlimited(q, 1);
         }
     }
-    fsf.arr = f.flatten();
+    let fsf = FIArray::from(fsf);
     let mut res = fsf[N] - 1;
 
-    /*for q in SQRT_N + 1..=N {
-        if squarefree[q as usize] == 0 {
-            continue;
-        }
-        fsf[N] += fsf[N / q];
-    }*/
     let mut q = SQRT_N + 1;
     while q <= N {
         let k = N / q;

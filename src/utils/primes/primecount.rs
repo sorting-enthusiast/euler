@@ -2,8 +2,8 @@ use std::time::Instant;
 
 use super::prime_sieves::{BIT64TOVAL240, MOD30_TO_MASK, WHEEL_2_3_5, WHEEL_2_3_5_7, sift};
 use crate::utils::{
-    FIArray::{FIArray, FIArrayU64},
-    fenwick::{FenwickTree, FenwickTreeU32},
+    FIArray::{DirichletFenwick, FIArray, FIArrayI64, FIArrayU64},
+    fenwick::{FenwickTree, FenwickTreeI64, FenwickTreeU32, FenwickTreeUsize},
     math::iroot,
     primes::{
         log_zeta::{log_zeta, log_zeta_reordered},
@@ -12,7 +12,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e12 as _;
+const N: usize = 1e14 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -21,9 +21,9 @@ const N: usize = 1e12 as _;
 // not efficient, lucy is essentially a smarter version of this, reducing the complexity from O(n/logn) to O(n^3/4 / logn)
 // can be optimised using fenwick trees and the sqrt trick to O(n^3/4) time, see below
 fn legendre(x: usize) -> usize {
-    let primes = sift(x.isqrt() as u64);
     let mut s = FIArray::unit(x);
-    let keys = FIArray::keys(x).collect_vec();
+    let primes = sift(s.isqrt as u64);
+    let keys = s.arr.clone();
 
     for &p in &primes {
         let p = p as usize;
@@ -37,53 +37,15 @@ fn legendre(x: usize) -> usize {
     s[x] + primes.len() - 1
 }
 fn legendre_fenwick(x: usize) -> usize {
-    let mut s = FIArray::unit(x);
+    let mut s = DirichletFenwick::zeta(x);
     let xsqrt = s.isqrt;
-    let len = s.arr.len();
-    for i in (2..len).rev() {
-        let j = i & (i + 1);
-        if j != 0 {
-            s.arr[i] -= s.arr[j - 1];
-        }
-    }
     let primes = sift(xsqrt as u64);
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
 
-    let get_index = |v| -> usize {
-        if v == 0 {
-            unsafe { core::hint::unreachable_unchecked() };
-        } else if v <= xsqrt {
-            v - 1
-        } else {
-            len - (x / v)
-        }
-    };
     for &p in &primes {
         let p = p as usize;
-        let lim = x / p;
-        let mut j = 1;
-        let mut cur = s_fenwick.sum(get_index(lim));
-        while (j + 1) <= lim / (j + 1) {
-            let next = s_fenwick.sum(get_index(lim / (j + 1)));
-            if next != cur {
-                s_fenwick.sub(len - j, cur - next);
-                cur = next;
-            }
-            j += 1;
-        }
-        for i in (2..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
-            if next != cur {
-                s_fenwick.sub(get_index(p * i), cur - next);
-                cur = next;
-            }
-        }
-        if cur != 0 {
-            s_fenwick.sub(p - 1, cur);
-        }
+        s.sparse_mul_at_most_one(p, 1);
     }
-    s_fenwick.sum(get_index(x)) + primes.len() - 1
+    s.bit.sum(s.get_index(x)) + primes.len() - 1
 }
 // O(n^3/4 / log(n)) time, O(n^1/2) space prime counting function
 // can also be optimized using fenwick trees and the sqrt trick,
@@ -169,8 +131,7 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    let mut s_fenwick = FenwickTreeUsize(s.arr);
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -250,8 +211,7 @@ pub fn lucy_fenwick_simple(x: usize) -> FIArray {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    let mut s_fenwick = FenwickTreeUsize(s.arr);
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -474,8 +434,7 @@ pub fn lucy_alt_fenwick(x: usize) -> FIArray {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    let mut s_fenwick = FenwickTreeUsize(s.arr);
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -600,8 +559,7 @@ pub fn lucy_alt_single_fenwick(x: usize) -> usize {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    let mut s_fenwick = FenwickTreeUsize(s.arr);
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -1729,10 +1687,14 @@ pub fn main() {
     let count = legendre(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
-    /* let start = Instant::now();
+    let start = Instant::now();
     let count = legendre_fenwick(N as _);
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
+    println!("res = {count}, took {end:?}");
+    let start = Instant::now();
+    let count = lucy_dumber(N)[N];
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
 
     println!("standard-ish lucy");
     /* let start = Instant::now();
@@ -1806,8 +1768,7 @@ pub fn test(x: usize) -> usize {
             s.arr[i] -= s.arr[j - 1];
         }
     }
-    let mut s_fenwick = FenwickTree::new(0, 0);
-    core::mem::swap(&mut s.arr, &mut s_fenwick.0);
+    let mut s_fenwick = FenwickTreeUsize(s.arr);
 
     let get_index = |v| -> usize {
         if v == 0 {
@@ -1877,4 +1838,291 @@ pub fn test(x: usize) -> usize {
         res -= s.arr[len - p] - s.arr[p - 2];
     } */
     res
+}
+#[must_use]
+pub fn mertens_min25(x: i64) -> FIArrayI64 {
+    let mut s = FIArrayI64::new(x);
+    //let keys = FIArrayI64::keys(x).collect_vec().into_boxed_slice();
+    let xsqrt = s.isqrt;
+    let primes = crate::utils::primes::wheel_sieve(xsqrt as u64).into_boxed_slice();
+    let len = s.arr.len();
+
+    for (i, v) in FIArrayI64::keys(x).enumerate() {
+        //keys.iter().enumerate() {
+        s.arr[i] = /* v - 1;  */(v + 1) >> 1;
+    }
+    s.arr[0] = 0;
+    let cutoff = xsqrt
+        .isqrt()
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as i64).pow(2) as usize) as i64)
+        | 1; // iroot::<3>(x) | 1;
+    //dbg!(cutoff, iroot::<3>(x) | 1);
+    let lim = primes.partition_point(|&p| p <= cutoff as u64);
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
+    }
+    let mut s_fenwick = FenwickTreeI64(s.arr);
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v as usize - 1
+        } else {
+            len - (x / v) as usize
+        }
+    };
+    for &p in &primes[1..lim] {
+        let p = p as i64;
+
+        let lim = x / p;
+        let mut j = 1;
+        //assert_eq!(get_index(lim), len - p);
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j as usize, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (p..=lim / j).rev() {
+            let next = s_fenwick.sum(i as usize - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+    }
+    s.arr = s_fenwick.flatten();
+    for &p in &primes[lim..] {
+        let p = p as i64;
+        let sp = s.arr[p as usize - 2];
+        let mut ip = 0;
+        for i in 1..=(x / p) / p {
+            ip += p;
+            s.arr[len - i as usize] -= if ip <= xsqrt {
+                s.arr[len - ip as usize]
+            } else {
+                s.arr[(x / ip) as usize - 1]
+            } - sp;
+        }
+    }
+    for e in &mut s.arr {
+        *e *= -1;
+    }
+    for &p in primes[lim..].iter().rev() {
+        let p = p as i64;
+        let sp = s.arr[p as usize - 1];
+        let mut ip = 0;
+        for i in 1..=(x / p) / p {
+            ip += p;
+            s.arr[len - i as usize] -= if ip <= xsqrt {
+                s.arr[len - ip as usize]
+            } else {
+                s.arr[(x / ip) as usize - 1]
+            } - sp;
+        }
+    }
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
+    }
+    let mut s_fenwick = FenwickTreeI64(s.arr);
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v as usize - 1
+        } else {
+            len - (x / v) as usize
+        }
+    };
+    for &p in primes[..lim].iter().rev() {
+        let p = p as i64;
+
+        let lim = x / p;
+        let mut j = 1;
+        //assert_eq!(get_index(lim), len - p);
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j as usize, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (p + 1..=lim / j).rev() {
+            let next = s_fenwick.sum(i as usize - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+    }
+    s.arr = s_fenwick.flatten();
+    for e in &mut s.arr {
+        *e += 1;
+    }
+    s
+}
+/*
+for &p in primes.iter().rev() {
+    let sp = s.arr[p as usize - 1];
+    let p = p as $type;
+    for (i, &v) in keys.iter().enumerate().rev() {
+        if v < p * p {
+            break;
+        }
+        let mut e = 1;
+        let mut u = v / p;
+        while u >= p {
+            s.arr[i] += f(p, e) * (s[u] - sp) + f(p, e + 1);
+            e += 1;
+            u /= p;
+        }
+    }
+} */
+pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
+    let mut s = FIArrayI64::new(x);
+    //let keys = FIArrayI64::keys(x).collect_vec().into_boxed_slice();
+    let xsqrt = s.isqrt;
+    let primes = crate::utils::primes::wheel_sieve(xsqrt as u64).into_boxed_slice();
+    let len = s.arr.len();
+
+    for (i, v) in FIArrayI64::keys(x).enumerate() {
+        //keys.iter().enumerate() {
+        s.arr[i] = /* v - 1;  */(v + 1) >> 1;
+    }
+    s.arr[0] = 0;
+    let cutoff = xsqrt
+        .isqrt()
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as i64).pow(2) as usize) as i64)
+        | 1; // iroot::<3>(x) | 1;
+    //dbg!(cutoff, iroot::<3>(x) | 1);
+    let lim = primes.partition_point(|&p| p <= cutoff as u64);
+    {
+        for i in (2..len).rev() {
+            let j = i & (i + 1);
+            if j != 0 {
+                s.arr[i] -= s.arr[j - 1];
+            }
+        }
+        let mut s_fenwick = FenwickTreeI64(s.arr);
+
+        let get_index = |v| -> usize {
+            if v == 0 {
+                unsafe { core::hint::unreachable_unchecked() };
+            } else if v <= xsqrt {
+                v as usize - 1
+            } else {
+                len - (x / v) as usize
+            }
+        };
+        for &p in &primes[1..lim] {
+            let p = p as i64;
+
+            let lim = x / p;
+            let mut j = 1;
+            //assert_eq!(get_index(lim), len - p);
+            let mut cur = s_fenwick.sum(get_index(lim));
+            while (j + 1) <= lim / (j + 1) {
+                let next = s_fenwick.sum(get_index(lim / (j + 1)));
+                if next != cur {
+                    s_fenwick.sub(len - j as usize, cur - next);
+                    cur = next;
+                }
+                j += 1;
+            }
+            for i in (p..=lim / j).rev() {
+                let next = s_fenwick.sum(i as usize - 2);
+                if next != cur {
+                    s_fenwick.sub(get_index(p * i), cur - next);
+                    cur = next;
+                }
+            }
+        }
+        s.arr = s_fenwick.flatten();
+        for &p in &primes[lim..] {
+            let p = p as i64;
+            let sp = s.arr[p as usize - 2];
+            let mut ip = 0;
+            for i in 1..=(x / p) / p {
+                ip += p;
+                s.arr[len - i as usize] -= if ip <= xsqrt {
+                    s.arr[len - ip as usize]
+                } else {
+                    s.arr[(x / ip) as usize - 1]
+                } - sp;
+            }
+        }
+    }
+    for e in &mut s.arr {
+        *e *= -1;
+    }
+    for &p in primes[lim..].iter().rev() {
+        let p = p as i64;
+        let sp = s.arr[p as usize - 1];
+        for i in 1..=(x / p) / p {
+            let mut e = 1;
+            let v = x / i;
+            while v / p.pow(e) >= p {
+                s.arr[len - i as usize] += f(p, e) * (s[v / p.pow(e)] - sp) + f(p, e + 1);
+                e += 1;
+            }
+        }
+    }
+    for i in (2..len).rev() {
+        let j = i & (i + 1);
+        if j != 0 {
+            s.arr[i] -= s.arr[j - 1];
+        }
+    }
+    let mut s_fenwick = FenwickTreeI64(s.arr);
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v as usize - 1
+        } else {
+            len - (x / v) as usize
+        }
+    };
+    for &p in primes[..lim].iter().rev() {
+        let p = p as i64;
+
+        let lim = x / p;
+        let mut j = 1;
+        //assert_eq!(get_index(lim), len - p);
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j as usize, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (p + 1..=lim / j).rev() {
+            let next = s_fenwick.sum(i as usize - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(p * i), cur - next);
+                cur = next;
+            }
+        }
+    }
+    s.arr = s_fenwick.flatten();
+    for e in &mut s.arr {
+        *e += 1;
+    }
+    s
 }
