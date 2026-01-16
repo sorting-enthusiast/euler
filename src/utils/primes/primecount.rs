@@ -1828,7 +1828,7 @@ pub fn test(x: usize) -> usize {
             if p2 > lim {
                 break;
             }
-            res -= (s.arr[x / (p1 * p2) - 1] - s.arr[p2 - 2]);
+            res -= s.arr[x / (p1 * p2) - 1] - s.arr[p2 - 2];
         }
     }
 
@@ -1839,6 +1839,7 @@ pub fn test(x: usize) -> usize {
     } */
     res
 }
+// TODO: impl pseudo-euler transform based version of the unsieve step, and optimize dirichlet mul to that end
 #[must_use]
 pub fn mertens_min25(x: i64) -> FIArrayI64 {
     let mut s = FIArrayI64::new(x);
