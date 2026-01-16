@@ -38,9 +38,9 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p200_299::e240::main();
     //p500_599::e580::main();
-    p100_199::e153::main();
+    p600_699::e642::main();
     //p300_399::e362::main();
-    //utils::primes::primecount::main();
+    utils::primes::primecount::main();
     const N: i64 = 1e12 as _;
     let start = std::time::Instant::now();
     let s1 = mertens_slow(N);
