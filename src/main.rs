@@ -32,12 +32,12 @@ pub mod utils;
 const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
-// TODO: impl FIArrayFenwick as a struct of its own, rather than copy/paste the functionality every time
+// TODO: understand convex hull based lattice point counting, optimize dirichlet mul
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //p500_599::e580::main();
-    //p300_399::e362::main();
+    p300_399::e362::main();
     //utils::primes::primecount::main();
     const N: i64 = 1e12 as _;
     let start = std::time::Instant::now();

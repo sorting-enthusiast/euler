@@ -14,7 +14,7 @@ use crate::utils::{
 // 1e12: 83365737381734, 3.8677086s
 // 1e11: 6213486362445, 735.9992ms
 // 1e10: 457895958010, 157.5381ms
-const N: usize = 1e15 as _;
+const N: usize = 1e14 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -82,8 +82,8 @@ fn dense_pseudo_euler_transform_based() {
     for i in x..=len {
         fsf.arr[i - 1] += r.arr[i - 1] * 3 * INVS[1];
     }
-
-    r = dirichlet_mul_zero_prefix(&v, &r, N, x, SQRT_N);
+    println!("Finished first convolution: {:?}", start.elapsed());
+    r = mult_sparse(&r, &v); //dirichlet_mul_zero_prefix(&v, &r, N, x, SQRT_N);
 
     for i in 1..=len {
         fsf.arr[i - 1] += r.arr[i - 1];
@@ -255,4 +255,85 @@ fn initial_approach_fenwick() {
         q = q_max + 1;
     }
     println!("res = {res}, took {:?}", start.elapsed());
+}
+
+// assumes a and b are distinct
+pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
+    assert_eq!(a.x, res.x);
+    assert_eq!(b.x, res.x);
+
+    res.arr.fill(0);
+    let R2 = a.isqrt;
+    let n = a.x;
+    let s1 = |ds: &FIArray| {
+        let mut vec = vec![(1, ds.arr[0])];
+        for i in 1..ds.isqrt {
+            if ds.arr[i] != ds.arr[i - 1] {
+                vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));
+            }
+        }
+        vec.push((ds.isqrt + 1, 0));
+        vec
+    };
+    let pa = s1(a);
+    let pb = s1(b);
+    let va = &pa[..pa.len() - 1];
+    let vb = &pb[..pb.len() - 1];
+    let len = res.arr.len();
+
+    let mut r = va.len();
+    for &(x, y) in vb {
+        let Nx = n / x;
+        while r != 0 && Nx / pa[r - 1].0 < r - 1 {
+            r -= 1;
+        }
+        let mut i = 0;
+        let X = R2 / x;
+        let Nx = n / x;
+        while i != r && pa[i].0 <= X {
+            res.arr[x * pa[i].0 - 1] += y * pa[i].1;
+            i += 1;
+        }
+        while i != r {
+            res.arr[len - Nx / pa[i].0] += y * pa[i].1;
+            i += 1;
+        }
+        if r != 0 {
+            res[x * pa[r].0] -= y * a.arr[pa[r - 1].0 - 1];
+        }
+    }
+    for &(x, y) in va {
+        res.arr[len - R2 / x] -= y * b.arr[R2 - 1];
+    }
+    for i in 1..len {
+        res.arr[i] += res.arr[i - 1];
+    }
+    let mut r = va.len();
+    for &(x, y) in vb {
+        let Nx = n / x;
+        while r != 0 && Nx / pa[r - 1].0 < r - 1 {
+            r -= 1;
+        }
+        let mut i = Nx / pa[r].0;
+        let X = R2 / x;
+        while i > X {
+            res.arr[len - i] += y * a.arr[Nx / i - 1];
+            i -= 1;
+        }
+        while i > 0 {
+            res.arr[len - i] += y * a.arr[len - x * i];
+            i -= 1;
+        }
+    }
+    for &(x, y) in va {
+        res.arr[len - R2 / x] -= y * b.arr[R2 - 1];
+        for j in 1..=R2 / x {
+            res.arr[len - j] += y * b.arr[len - x * j];
+        }
+    }
+}
+pub fn mult_sparse(a: &FIArray, b: &FIArray) -> FIArray {
+    let mut res = a.clone();
+    mult_sparse_with_buffer(a, b, &mut res);
+    res
 }
