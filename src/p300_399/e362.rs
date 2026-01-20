@@ -5,21 +5,29 @@ use crate::utils::{
     math::iroot,
     multiplicative_function_summation::{
         count_squarefree, dirichlet_mul_u128, dirichlet_mul_with_buffer_u128,
+        pseudo_euler_transform,
     },
     primes::log_zeta::dirichlet_mul_zero_prefix,
 };
-// 1e15: 190257704293010022, 547.3687879s
-// 1e14: 14574188158034831, 101.6169258s
-// 1e13: 1107277852610310, 21.7458745s
-// 1e12: 83365737381734, 3.8677086s
-// 1e11: 6213486362445, 735.9992ms
-// 1e10: 457895958010, 157.5381ms
-const N: usize = 1e14 as _;
+// 1e16: 2393996858318973775, 2290.7553976s
+// 1e15: 190257704293010022, 415.49386s // 547.3687879s
+// 1e14: 14574188158034831, 87.619401s // 101.6169258s
+// 1e13: 1107277852610310, 16.7878903s // 21.7458745s
+// 1e12: 83365737381734, 3.0317218s // 3.8677086s
+// 1e11: 6213486362445, 580.298ms // 735.9992ms
+// 1e10: 457895958010, 125.3602ms // 157.5381ms
+const N: usize = 1e15 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
 pub fn main() {
     dense_pseudo_euler_transform_based();
+    let start = std::time::Instant::now();
+    let sqf = count_squarefree(N);
+    println!("Counted squarefree integers: {:?}", start.elapsed());
+    let fsf = pseudo_euler_transform(&sqf);
+    let res = fsf[N] - 1;
+    println!("res = {res}, took {:?}", start.elapsed());
     //dense_pseudo_euler_transform_based_alt();
     //initial_approach_fenwick();
     //initial_approach();
@@ -266,7 +274,10 @@ pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
     let R2 = a.isqrt;
     let n = a.x;
     let s1 = |ds: &FIArray| {
-        let mut vec = vec![(1, ds.arr[0])];
+        let mut vec = vec![];
+        if ds.arr[0] != 0 {
+            vec.push((1, ds.arr[0]));
+        }
         for i in 1..ds.isqrt {
             if ds.arr[i] != ds.arr[i - 1] {
                 vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));

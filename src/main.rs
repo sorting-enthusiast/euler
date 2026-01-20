@@ -10,10 +10,14 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
+use itertools::Itertools;
 
 use crate::utils::{
-    multiplicative_function_summation::{mertens, mertens_slow},
-    primes::primecount::mertens_min25,
+    FIArray::FIArray,
+    multiplicative_function_summation::{
+        inverse_pseudo_euler_transform, mertens, mertens_slow, pseudo_euler_transform,
+    },
+    primes::primecount::{lucy_fenwick, mertens_min25},
 };
 
 pub mod p0_99;
@@ -37,9 +41,14 @@ pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //p500_599::e580::main();
+    p800_899::e890::main();
     p300_399::e362::main();
-    //utils::primes::primecount::main();
-    const N: i64 = 1e12 as _;
+    utils::primes::primecount::main();
+    assert_eq!(
+        inverse_pseudo_euler_transform(pseudo_euler_transform(&lucy_fenwick(1e10 as _))),
+        lucy_fenwick(1e10 as _)
+    );
+    /* const N: i64 = 1e12 as _;
     let start = std::time::Instant::now();
     let s1 = mertens_slow(N);
     let end = start.elapsed();
@@ -47,7 +56,7 @@ pub fn main() {
     let start = std::time::Instant::now();
     let s1 = mertens_min25(N);
     let end = start.elapsed();
-    dbg!(end, s1[N]);
+    dbg!(end, s1[N]); */
     //utils::primes::prime_sieves::main();
     println!("Finished running at: {} ", Local::now().time());
 }

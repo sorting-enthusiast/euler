@@ -6,6 +6,7 @@ use crate::utils::{
         FIArrayU64, FIArrayU128, FIArrayUsize,
     },
     bit_array::BitArray,
+    math::iroot,
     primes::wheel_sieve,
 };
 #[must_use]
@@ -219,6 +220,78 @@ pub fn count_squarefree(x: usize) -> FIArray {
         s.sparse_mul_at_most_one(p * p, 1); // https://github.com/ecnerwala/cp-book/blob/master/src/dirichlet_series.hpp
     }
     s.into()
+}
+/// Time complexity depends on sparsity:
+/// On sparse inputs, i.e. only taking values at a \frac{1}{\log n} fraction of integers, takes O(n^2/3) time.
+/// On dense inputs the function will take O(n^2/3 \log n) time.
+#[must_use]
+pub fn pseudo_euler_transform(a: &FIArray) -> FIArray {
+    let mut r = a.clone();
+    let n = a.x;
+    let x = iroot::<3>(n) + 1;
+    for e in &mut r.arr[x - 1..] {
+        *e -= a.arr[x - 2];
+    }
+    r.arr[..x - 1].fill(0);
+    for i in x..=a.isqrt {
+        let vi = a.arr[i - 1] - a.arr[i - 2];
+        if vi == 0 {
+            continue;
+        }
+        let n_i = n / i;
+        for z in 1..=n_i / i {
+            r[n / z] += vi * (a[n_i / z] - a.arr[i - 2]);
+        }
+    }
+    let mut r = DirichletFenwick::from(r);
+    r.bit.add(0, 1);
+    for i in (2..x).rev() {
+        let cur = a.arr[i - 1] - a.arr[i - 2];
+        if cur == 0 {
+            continue;
+        }
+        r.sparse_mul_unlimited(i, cur);
+    }
+    r.into()
+}
+
+#[must_use]
+pub fn inverse_pseudo_euler_transform(a: FIArray) -> FIArray {
+    let n = a.x;
+    let len = a.arr.len();
+    let mut r = FIArray::new(n);
+    let mut a_bit = DirichletFenwick::from(a);
+    let x = iroot::<3>(n) + 1;
+    for i in 2..x {
+        let cur = a_bit.bit.sum(i - 1) - 1;
+        if cur == 0 {
+            continue;
+        }
+        r.arr[i - 1] = cur;
+        a_bit.sparse_mul_at_most_one(i, cur);
+    }
+    let a = FIArray::from(a_bit);
+    for i in x..=len {
+        r.arr[i - 1] = a.arr[i - 1] - a.arr[i - 2];
+    }
+    for i in x..=a.isqrt {
+        let vi = r.arr[i - 1];
+        if vi == 0 {
+            continue;
+        }
+        let n_i = n / i;
+        for z in 1..=n_i / i {
+            let v = vi * (a[n_i / z] - a.arr[i - 2]);
+            r.arr[len - z] -= v;
+            if z > 1 {
+                r.arr[len - z + 1] += v;
+            }
+        }
+    }
+    for i in 1..len {
+        r.arr[i] += r.arr[i - 1];
+    }
+    r
 }
 
 /* #[must_use]
