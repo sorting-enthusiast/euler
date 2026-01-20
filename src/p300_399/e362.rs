@@ -24,7 +24,10 @@ pub fn main() {
     dense_pseudo_euler_transform_based();
     let start = std::time::Instant::now();
     let sqf = count_squarefree(N);
-    println!("Counted squarefree integers: {:?}", start.elapsed());
+    println!(
+        "Finished counting squarefree integers: {:?}",
+        start.elapsed()
+    );
     let fsf = pseudo_euler_transform(&sqf);
     let res = fsf[N] - 1;
     println!("res = {res}, took {:?}", start.elapsed());
