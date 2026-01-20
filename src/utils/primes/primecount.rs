@@ -13,7 +13,7 @@ use crate::utils::{
 };
 use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e15 as _;
+const N: usize = 1e11 as _;
 // todo:
 // try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
 
@@ -1683,7 +1683,13 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    println!("legendre:");
+    println!("prime counting using the logarithm of the zeta function:");
+    let start = Instant::now();
+    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    //println!("legendre:");
     /* let start = Instant::now();
     let count = legendre(N as _);
     let end = start.elapsed();
@@ -1742,11 +1748,11 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    println!("prime counting using the logarithm of the zeta function:");
+    /* println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
     let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
     let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
+    println!("res = {count}, took {end:?}"); */
 
     /* let start = Instant::now();
     let count = log_zeta_reordered(N as _)[N as _]; // n^(2/3)

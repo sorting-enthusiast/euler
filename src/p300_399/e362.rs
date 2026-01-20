@@ -16,7 +16,7 @@ use crate::utils::{
 // 1e12: 83365737381734, 3.0317218s // 3.8677086s
 // 1e11: 6213486362445, 580.298ms // 735.9992ms
 // 1e10: 457895958010, 125.3602ms // 157.5381ms
-const N: usize = 1e15 as _;
+const N: usize = 1e11 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
