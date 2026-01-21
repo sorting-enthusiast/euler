@@ -16,7 +16,7 @@ use crate::utils::{
     fenwick::FenwickTreeU128,
     multiplicative_function_summation::{
         count_squarefree, inverse_pseudo_euler_transform, mertens, mertens_slow,
-        pseudo_euler_transform,
+        pseudo_euler_transform, sum_n_u128,
     },
     primes::primecount::{lucy_fenwick, mertens_min25},
 };
@@ -43,7 +43,20 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p500_599::e580::main();
     //p800_899::e890::main();
-    p300_399::e362::main();
+    /* for i in 2..=4 {
+        let n = 7u128.pow(1 << i) - 1;
+        dbg!(n);
+        let mut v =
+            3 * sum_n_u128::<0>(n / 3) + 5 * sum_n_u128::<0>(n / 5) - 15 * sum_n_u128::<0>(n / 15);
+        let mut sum = 0;
+        while v != 0 {
+            sum += v % 10;
+            v /= 10;
+        }
+        print!("{i}:{sum}, ");
+    }
+    println!(); */
+    //p300_399::e362::main();
     utils::primes::primecount::main();
     const N: i64 = 1e11 as _;
     let start = std::time::Instant::now();

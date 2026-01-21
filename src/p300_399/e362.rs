@@ -16,7 +16,7 @@ use crate::utils::{
 // 1e12: 83365737381734, 3.0317218s // 3.8677086s
 // 1e11: 6213486362445, 580.298ms // 735.9992ms
 // 1e10: 457895958010, 125.3602ms // 157.5381ms
-const N: usize = 1e13 as _;
+const N: usize = 1e10 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -33,7 +33,7 @@ pub fn main() {
     println!("res = {res}, took {:?}", start.elapsed());
     dense_pseudo_euler_transform_based_alt();
     initial_approach_fenwick();
-    //initial_approach();
+    initial_approach();
 }
 
 // Also O(n^2/3) time, but makes fewer expensive calls to dirichlet_mul, and has no overflow issues.
@@ -270,9 +270,7 @@ fn initial_approach_fenwick() {
 
 // assumes a and b are distinct
 pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
-    assert_eq!(a.x, res.x);
-    assert_eq!(b.x, res.x);
-
+    unsafe { core::hint::assert_unchecked(a.x == b.x && a.x == res.x) };
     res.arr.fill(0);
     let R2 = a.isqrt;
     let n = a.x;
@@ -346,6 +344,7 @@ pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
         }
     }
 }
+#[must_use]
 pub fn mult_sparse(a: &FIArray, b: &FIArray) -> FIArray {
     let mut res = a.clone();
     mult_sparse_with_buffer(a, b, &mut res);
