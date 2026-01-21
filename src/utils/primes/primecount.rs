@@ -47,7 +47,7 @@ fn legendre_fenwick(x: usize) -> usize {
 }
 // O(n^3/4 / log(n)) time, O(n^1/2) space prime counting function
 // can also be optimized using fenwick trees and the sqrt trick,
-// though to an even better complexity of O(n^2/3 / log^\eps(n)), see below
+// though to an even better complexity of O(n^2/3 / \log^\frac13(n)), see below
 // kinda simulates pritchard's wheel sieve
 // 1e17: prime counting took 3071.1531213s: 2623557157654233
 // 1e16: prime counting took 501.5590413s: 279238341033925
@@ -94,7 +94,7 @@ pub fn lucy(x: usize) -> FIArray {
     s
 }
 
-// O(n^2/3 / log^\eps(n)) time, O(sqrt(n)) space prime counting function
+// O(n^2/3 / \log^\frac13(n)) time, O(sqrt(n)) space prime counting function
 // turns out this method was alluded to in one of min_25's blogs from late 2018:
 // https://web.archive.org/web/20211009144526/https://min-25.hatenablog.com/entry/2018/11/11/172216
 // nothing new under the sun :(
