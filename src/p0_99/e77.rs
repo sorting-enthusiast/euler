@@ -1,24 +1,19 @@
 use crate::utils::primes::prime_sieves::sift;
-//TODO
 pub fn main() {
-    const MAX: usize = 1e5 as _;
+    const MAX: usize = 1e2 as _;
 
-    let mut dp = vec![0; MAX + 1];
+    let mut gf = vec![0; MAX + 1];
     let primes = sift(MAX as _);
+    gf[0] = 1;
     for &p in &primes {
         let p = p as usize;
-        dp[p] = 1;
-    }
-    for n in 4..=MAX {
-        for &p in &primes {
-            let p = p as usize;
-            if p > n - p {
-                break;
-            }
-            dp[n] += dp[n - p];
+        for n in p..=MAX {
+            gf[n] += gf[n - p];
         }
-        dbg!((n, dp[n]));
-        if dp[n] >= 5000 {
+    }
+    for n in 1..=MAX {
+        if gf[n] >= 5000 {
+            dbg!(n, gf[n]);
             break;
         }
     }

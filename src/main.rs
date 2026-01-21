@@ -41,6 +41,7 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
+    p0_99::e76::main();
     //p500_599::e580::main();
     //p800_899::e890::main();
     /* for i in 2..=4 {
