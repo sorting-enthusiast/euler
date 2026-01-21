@@ -39,12 +39,9 @@ fn legendre(x: usize) -> usize {
 }
 fn legendre_fenwick(x: usize) -> usize {
     let mut s = DirichletFenwick::zeta(x);
-    let xsqrt = s.isqrt;
-    let primes = sift(xsqrt as u64);
-
+    let primes = sift(s.isqrt as u64);
     for &p in &primes {
-        let p = p as usize;
-        s.sparse_mul_at_most_one(p, 1);
+        s.sparse_mul_at_most_one(p as _, 1);
     }
     s.bit.sum(s.get_index(x)) + primes.len() - 1
 }
