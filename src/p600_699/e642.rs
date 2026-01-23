@@ -5,7 +5,7 @@ use crate::utils::{
     multiplicative_function_summation::sum_n_i64,
     primes::prime_sieves::sift,
 };
-
+// TODO: optimize to O(n^2/3 / \log^\frac13 n)
 const N: usize = 2018_2018_2018;
 const SQRT_N: usize = N.isqrt();
 const MOD: usize = 1e9 as _;
