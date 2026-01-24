@@ -1,9 +1,12 @@
-use crate::utils::{
-    FIArray::{DirichletFenwick, FIArray},
-    multiplicative_function_summation::{
-        dirichlet_mul_single_usize, dirichlet_mul_usize, sum_n_usize,
+use crate::{
+    p300_399::e362::mult,
+    utils::{
+        FIArray::{DirichletFenwick, FIArray},
+        multiplicative_function_summation::{
+            dirichlet_mul_single_usize, dirichlet_mul_usize, sum_n_usize,
+        },
+        primes::wheel_sieve,
     },
-    primes::wheel_sieve,
 };
 
 const N: usize = 1e9 as _;
@@ -44,7 +47,7 @@ pub fn main() {
 fn min_25() {
     let start = std::time::Instant::now();
 
-    let s = dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<0>(N), N);
+    let s = mult(&FIArray::unit(N), &FIArray::id::<0>(N)); //dirichlet_mul_usize(&FIArray::unit(N), &FIArray::id::<0>(N), N);
     let mut res = s[N];
     //dbg!(start.elapsed());
 

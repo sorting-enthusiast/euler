@@ -1,4 +1,4 @@
-use crate::utils::primes::primecount::lucy_fenwick;
+use crate::utils::primes::{log_zeta::log_zeta, primecount::lucy_fenwick};
 
 const N: usize = 1e12 as _;
 const SQRT_N: usize = N.isqrt();
@@ -7,7 +7,7 @@ const MOD: usize = 1e9 as usize + 7;
 pub fn main() {
     const N_MOD: usize = N % MOD;
     let start = std::time::Instant::now();
-    let pi = lucy_fenwick(N);
+    let pi = log_zeta(N); //lucy_fenwick(N);
     let primes_done = start.elapsed();
     let mut res = 0;
     for p in 2..=SQRT_N {

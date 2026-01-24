@@ -7,15 +7,14 @@ use crate::utils::{
         count_squarefree, dirichlet_mul_u128, dirichlet_mul_with_buffer_u128,
         pseudo_euler_transform,
     },
-    primes::log_zeta::dirichlet_mul_zero_prefix,
 };
-// 1e16: 2393996858318973775, 2290.7553976s
-// 1e15: 190257704293010022, 415.49386s // 547.3687879s
-// 1e14: 14574188158034831, 87.619401s // 101.6169258s
-// 1e13: 1107277852610310, 16.7878903s // 21.7458745s
-// 1e12: 83365737381734, 3.0317218s // 3.8677086s
-// 1e11: 6213486362445, 580.298ms // 735.9992ms
-// 1e10: 457895958010, 125.3602ms // 157.5381ms
+// 1e16: 2393996858318973775, 1424.4494686s
+// 1e15: 190257704293010022, 286.3650447s
+// 1e14: 14574188158034831, 56.9039742s
+// 1e13: 1107277852610310, 11.0277353s
+// 1e12: 83365737381734, 2.0323739s
+// 1e11: 6213486362445, 391.9852ms
+// 1e10: 457895958010, 79.9067ms
 const N: usize = 1e10 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
@@ -89,11 +88,10 @@ fn dense_pseudo_euler_transform_based() {
         *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
     }
 
-    let mut r = dirichlet_mul_zero_prefix(&v, &v, N, x, x);
+    let mut r = mult(&v, &v); //dirichlet_mul_zero_prefix(&v, &v, N, x, x);
     for i in x..=len {
         fsf.arr[i - 1] += r.arr[i - 1] * 3 * INVS[1];
     }
-    println!("Finished first convolution: {:?}", start.elapsed());
     r = mult_sparse(&r, &v); //dirichlet_mul_zero_prefix(&v, &r, N, x, SQRT_N);
 
     for i in 1..=len {
@@ -310,7 +308,7 @@ pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
             res.arr[len - Nx / pa[i].0] += y * pa[i].1;
             i += 1;
         }
-        if r != 0 {
+        if r != 0 && pa[r].0 <= Nx {
             res[x * pa[r].0] -= y * a.arr[pa[r - 1].0 - 1];
         }
     }
@@ -348,5 +346,211 @@ pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
 pub fn mult_sparse(a: &FIArray, b: &FIArray) -> FIArray {
     let mut res = a.clone();
     mult_sparse_with_buffer(a, b, &mut res);
+    res
+}
+// credit to negiizhao
+#[must_use]
+pub fn mult(a: &FIArray, b: &FIArray) -> FIArray {
+    unsafe { core::hint::assert_unchecked(a.x == b.x) };
+    let R2 = a.isqrt;
+    let n = a.x;
+    let mut res = FIArray::new(n);
+
+    let s1 = |ds: &FIArray| {
+        let mut vec = vec![];
+        if ds.arr[0] != 0 {
+            vec.push((1, ds.arr[0]));
+        }
+        for i in 1..ds.isqrt {
+            if ds.arr[i] != ds.arr[i - 1] {
+                vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));
+            }
+        }
+        vec.push((ds.isqrt + 1, 0));
+        vec
+    };
+    let len = res.arr.len();
+    if a == b {
+        let pa = s1(a);
+        let va = &pa[..pa.len() - 1];
+        let mut r = va.len();
+        let mut l = 0;
+        for &(x, y) in va {
+            res[x * x] += y * y;
+
+            l += 1;
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = R2 / x;
+            let Nx = n / x;
+
+            let mut i = l;
+
+            while i != r && pa[i].0 <= X {
+                res.arr[x * pa[i].0 - 1] += 2 * y * pa[i].1;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pa[i].0] += 2 * y * pa[i].1;
+                i += 1;
+            }
+            if r != 0 && pa[r].0 <= Nx {
+                res[x * pa[r].0] -= y * a.arr[pa[r - 1].0 - 1] * 2;
+            }
+        }
+        for i in 1..len {
+            res.arr[i] += res.arr[i - 1];
+        }
+        r = va.len();
+        l = 0;
+        for &(x, y) in va {
+            l += 1;
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+
+            let mut i = Nx / pa[r].0;
+            let X = R2 / x;
+            while i > X {
+                res.arr[len - i] += 2 * y * a.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += 2 * y * a.arr[len - x * i];
+                i -= 1;
+            }
+        }
+    } else {
+        let pa = s1(a);
+        let va = &pa[..pa.len() - 1];
+        let pb = s1(b);
+        let vb = &pb[..pb.len() - 1];
+        res.arr[0] += a.arr[0] * b.arr[0];
+        for i in 2..=R2 {
+            res[i * i] += (a.arr[i - 1] - a.arr[i - 2]) * (b.arr[i - 1] - b.arr[i - 2]);
+        }
+        let mut r = vb.len();
+        let mut l = 0;
+        for &(x, y) in va {
+            while pb[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pb[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = R2 / x;
+            let Nx = n / x;
+
+            let mut i = l;
+
+            while i != r && pb[i].0 <= X {
+                res.arr[x * pb[i].0 - 1] += y * pb[i].1;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pb[i].0] += y * pb[i].1;
+                i += 1;
+            }
+            if r != 0 && pb[r].0 <= Nx {
+                res[x * pb[r].0] -= y * b.arr[pb[r - 1].0 - 1];
+            }
+        }
+        r = va.len();
+        l = 0;
+        for &(x, y) in vb {
+            while pa[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = R2 / x;
+            let Nx = n / x;
+
+            let mut i = l;
+
+            while i != r && pa[i].0 <= X {
+                res.arr[x * pa[i].0 - 1] += y * pa[i].1;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pa[i].0] += y * pa[i].1;
+                i += 1;
+            }
+            if r != 0 && pa[r].0 <= Nx {
+                res[x * pa[r].0] -= y * a.arr[pa[r - 1].0 - 1];
+            }
+        }
+        for i in 1..len {
+            res.arr[i] += res.arr[i - 1];
+        }
+        r = vb.len();
+        l = 0;
+        for &(x, y) in va {
+            while pb[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pb[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+
+            let mut i = Nx / pb[r].0;
+            let X = R2 / x;
+            while i > X {
+                res.arr[len - i] += y * b.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += y * b.arr[len - x * i];
+                i -= 1;
+            }
+        }
+        r = va.len();
+        l = 0;
+        for &(x, y) in vb {
+            while pa[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+
+            let mut i = Nx / pa[r].0;
+            let X = R2 / x;
+            while i > X {
+                res.arr[len - i] += y * a.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += y * a.arr[len - x * i];
+                i -= 1;
+            }
+        }
+    }
     res
 }

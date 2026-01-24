@@ -1,366 +1,123 @@
 #![allow(non_snake_case)]
-use crate::utils::{FIArray::FIArray, math::iroot};
-// TODO: optimize using fenwick trees as described in a comment in this post https://codeforces.com/blog/entry/117783
-
+use crate::{
+    p300_399::e362::{mult, mult_sparse},
+    utils::{
+        FIArray::{DirichletFenwick, FIArray},
+        math::iroot,
+    },
+};
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
-// O(n^(2/3)) time, O(n^(1/2)) space. Pretty slow, despite noticeably superior time complexity.
-// Likely due to repeated calls to dirichlet_mul, which is not particularly fast.
-// Moreover, this function needs 2 times more memory than the O(n^0.75/log(n)) lucy_hedgehog based functions.
-// O(n^0.75/log(n)) with low constant factors is better than O(n^(2/3)) with medium constant factors out to quite large n
-// uses the fact that the coefficients of the logarithm of the DGF of u(n) = 1 (i.e. the zeta function)
-// are exactly 1/k for p^k for some prime p, and 0 otherwise.
-// Note: similarly to lucy_hedgehog, this code can be adapted to calculate the sum of totally multiplicative functions
-// over the primes, though tbh you should probably just use lucy's algorithm for that.
-// TODO: try to speed up the convolution steps more somehow, as they are the main bottleneck
-
+// O(n^(2/3) / \log n) time, O(n^(1/2)) space.
+// 1e17: res = 2623557157654233, took 896.8224632s
+// 1e16: res = 279238341033925, took 190.0312267s
+// 1e15: res = 29844570422669, took 43.0123352s
+// 1e14: res = 3204941750802, took 10.8984528s
+// 1e13: res = 346065536839, took 2.7230822s
+// 1e12: res = 37607912018, took 552.6843ms
+// 1e11: res = 4118054813, took 120.5901ms
+// 1e10: res = 455052511, took 23.8138ms
 #[must_use]
 pub fn log_zeta(n: usize) -> FIArray {
-    const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
-    let rt = n.isqrt();
-    let mut zeta = FIArray::unit(n as _);
-    let len = zeta.arr.len();
-
-    let mut buffer = zeta.clone();
+    const INVS: [usize; 4] = [0, 6, 3, 2];
+    let mut zeta = DirichletFenwick::zeta(n);
+    let rt = zeta.isqrt;
+    let len = zeta.bit.0.len();
 
     let mut ret = FIArray::new(n);
-    let x = (iroot::<3>(rt) + 1) * (n as f64).ln() as usize;
+
+    let x = iroot::<4>(n) + 1;
     // remove contributions of small primes
     for p in 2..x {
-        let val = zeta.arr[p - 1] - 1;
-        if val == 0 {
+        if zeta.bit.sum(p - 1) == 1 {
             //not prime
             continue;
         }
         ret.arr[p - 1] = 1;
-        for (i, nk) in buffer.arr.iter().enumerate().rev() {
-            if i < p {
-                break;
-            }
-            zeta.arr[i] -= zeta[nk / p];
-        }
-        zeta.arr[p - 1] = 1;
+        zeta.sparse_mul_at_most_one(p, 1);
     }
-    zeta.arr[..x - 1].fill(0);
-
-    for i in x..=len {
-        zeta.arr[i - 1] -= 1;
-    }
+    zeta.bit.dec(0);
+    let zeta = FIArray::from(zeta);
 
     // zeta now equals zeta_t - 1
-    // compute log(zeta_t) using log(x + 1) = x^5 / 5 - x^4 / 4 + x^3 / 3 - x^2 / 2 + x
-    // x is zeta_t - 1.
-    // in order to not have to deal with rational numbers, we compute 60 * log(zeta_t)
+    // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
+    // in order to not have to deal with rational numbers, we compute 6 * log(zeta_t)
     // and adjust later
-    // the contributions of x^4 and x^5 are 0 for essentially all reasonable n
 
     for i in x..=len {
         ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
     }
 
-    let mut pow_zeta = dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1, x - 1);
+    let mut pow_zeta = mult(&zeta, &zeta); //dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1, x - 1);
+    /* let ind = pow_zeta.get_index(x.pow(2));
+    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
+    dbg!(ind, len, len - ind); */
+
     for i in x..=len {
         ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
     }
 
-    dirichlet_mul_zero_prefix_with_buffer(
-        &zeta,
-        &pow_zeta,
-        n,
-        &mut buffer,
-        x - 1,
-        pow_zeta.arr.iter().take_while(|&&e| e == 0).count(),
-    );
-    core::mem::swap(&mut pow_zeta.arr, &mut buffer.arr);
-
+    pow_zeta = mult_sparse(&zeta, &pow_zeta);
+    /* let ind = pow_zeta.get_index(x.pow(3));
+    dbg!(ind, len, len - ind);
+    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
     for i in x..=len {
         ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[3];
     }
 
-    dirichlet_mul_zero_prefix_with_buffer(
-        &zeta,
-        &pow_zeta,
-        n,
-        &mut buffer,
-        x - 1,
-        pow_zeta.arr.iter().take_while(|&&e| e == 0).count(),
-    );
-    core::mem::swap(&mut pow_zeta.arr, &mut buffer.arr);
-
-    for i in x..=len {
-        ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[4];
-    }
-
-    dirichlet_mul_zero_prefix_with_buffer(
-        &zeta,
-        &pow_zeta,
-        n,
-        &mut buffer,
-        x - 1,
-        pow_zeta.arr.iter().take_while(|&&e| e == 0).count(),
-    );
-    core::mem::swap(&mut pow_zeta.arr, &mut buffer.arr);
-
-    for i in x..=len {
-        ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[5];
-    }
-
     // correction phase: get rid of contributions of prime powers
-    for i in (x + 1..=len).rev() {
-        ret.arr[i - 1] -= ret.arr[i - 2];
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
     }
 
     for x in x..=rt {
-        let v = ret.arr[x - 1] / 60;
-        let mut e = 1;
-        let mut pv = v;
-        let mut px = x;
-        while px <= n / x {
-            e += 1;
-            px *= x;
-            pv *= v;
-
-            ret[px] -= pv * INVS[e];
-        }
-    }
-    for i in 1..len {
-        if i >= x - 1 {
-            ret.arr[i] /= 60;
-        }
-        ret.arr[i] += ret.arr[i - 1];
-    }
-    ret
-}
-
-// identical to log_zeta, but convolutions are reordered in order to maximise shared 0 prefix, minor speedup for large n
-// 1e17: 14411.9862525s
-// 1e16: 2035.5664288s
-// 1e15: 362.4408137s
-// 1e14: 65.0882843s
-// 1e13: 12.9792081s
-// 1e12: 2.5241903s
-// 1e11: 477.0335ms
-// 1e10: 90.5864ms
-// 1e9: 17.5497ms
-// 1e8: 3.5963ms
-// can try to write version which only computes final result:
-// TODO: better exploit shared zero prefix
-#[must_use]
-pub fn log_zeta_reordered(n: usize) -> FIArray {
-    const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
-    let rt = n.isqrt();
-    let mut zeta = FIArray::unit(n as _);
-    let len = zeta.arr.len();
-
-    let mut buffer = zeta.clone();
-
-    let mut ret = FIArray::new(n);
-    let x = (iroot::<3>(rt) + 1) * (n as f64).ln() as usize; // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
-    // remove contributions of small primes (first ~n^1/6 of them)
-    for p in 2..x {
-        let val = zeta.arr[p - 1] - 1;
-        if val == 0 {
-            //not prime
-            continue;
-        }
-        ret.arr[p - 1] = 1;
-        for (i, nk) in buffer.arr.iter().enumerate().rev() {
-            if i < p {
-                break;
-            }
-            zeta.arr[i] -= zeta[nk / p];
-        }
-        zeta.arr[p - 1] = 1;
-    }
-    //let prime_count = zeta.arr[..x - 1].iter().filter(|&&e| e == 1).count();
-    zeta.arr[..x - 1].fill(0);
-
-    for i in x..=len {
-        zeta.arr[i - 1] -= 1;
-    }
-
-    // zeta now equals zeta_t - 1
-    // compute log(zeta_t) using log(x + 1) = x^5 / 5 - x^4 / 4 + x^3 / 3 - x^2 / 2 + x
-    // x is zeta_t - 1.
-    // in order to not have to deal with rational numbers, we compute 60 * log(zeta_t)
-    // and adjust later
-    // the contributions of x^4 and x^5 are 0 for essentially all reasonable n
-
-    for i in x..=len {
-        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
-    }
-    //let start = std::time::Instant::now();
-    let pow_zeta = dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1, x - 1);
-    //dbg!(start.elapsed());
-    let z2_pref = pow_zeta.arr.iter().take_while(|&&e| e == 0).count();
-
-    for i in z2_pref..=len {
-        ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
-    }
-
-    if z2_pref * z2_pref < n {
-        dirichlet_mul_zero_prefix_with_buffer(
-            &pow_zeta,
-            &pow_zeta,
-            n,
-            &mut buffer,
-            z2_pref,
-            z2_pref,
-        );
-
-        for i in z2_pref..=len {
-            ret.arr[i - 1] -= buffer.arr[i - 1] * INVS[4];
-        }
-    }
-    if (x - 1) * z2_pref < n {
-        dirichlet_mul_zero_prefix_with_buffer(&zeta, &pow_zeta, n, &mut buffer, x - 1, z2_pref);
-
-        for i in z2_pref..=len {
-            ret.arr[i - 1] += buffer.arr[i - 1] * INVS[3];
-        }
-        let z3_pref = buffer.arr.iter().take_while(|&&e| e == 0).count();
-
-        if z2_pref * z3_pref < n {
-            dirichlet_mul_zero_prefix_with_buffer(
-                &pow_zeta, &buffer, n, &mut zeta, z2_pref, z3_pref,
-            );
-            for i in z3_pref..=len {
-                ret.arr[i - 1] += zeta.arr[i - 1] * INVS[5];
-            }
-        }
-    }
-    //dbg!(prime_count + ret.arr[len - 1] / 60); // approximate final result
-    // correction phase: get rid of contributions of prime powers
-    for i in (x + 1..=len).rev() {
-        ret.arr[i - 1] -= ret.arr[i - 2];
-    }
-
-    for x in x..=rt {
-        let v = ret.arr[x - 1];
+        let v = ret.arr[x - 1] / 6;
         if v == 0 {
             continue;
         }
         let mut e = 1;
-        //let mut pv = v;
         let mut px = x;
         while px <= n / x {
             e += 1;
             px *= x;
-            //pv *= v;
 
-            ret[px] -= /* pv * */ INVS[e];
+            ret[px] -= INVS[e];
         }
     }
-    for i in 1..len {
-        if i >= x - 1 {
-            ret.arr[i] /= 60;
-        }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= 6;
         ret.arr[i] += ret.arr[i - 1];
     }
     ret
 }
 
-// TODO: fix
-/* pub fn log_zeta_reordered_single(n: usize) -> usize {
-    const INVS: [usize; 6] = [0, 60, 30, 20, 15, 12];
-    let rt = n.isqrt();
-    let mut zeta = FIArray::unit(n as _);
-    let len = zeta.arr.len();
-
-    let mut buffer = zeta.clone();
+// TODO: finish implementing ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3: https://codeforces.com/blog/entry/117783
+#[must_use]
+pub fn log_zeta_single(n: usize) -> usize {
+    let mut f = DirichletFenwick::zeta(n);
+    let rt = f.isqrt;
+    let len = f.bit.0.len();
 
     let mut ret = 0;
-    let x = {
-        let mut x = 2;
-        let mut x_cubed = 8;
-        while x_cubed <= rt {
-            x += 1;
-            x_cubed += 3 * x * (x - 1) + 1;
-        }
-        x
-    } * (n as f64).ln() as usize; // since primes are sparse, can afford to increase x by logarithmic factor without hurting complexity
-    // remove contributions of small primes (first ~n^1/6 of them)
+
+    let x = iroot::<4>(n) + 1;
+    // remove contributions of small primes
     for p in 2..x {
-        let val = zeta.arr[p - 1] - 1;
-        if val == 0 {
+        if f.bit.sum(p - 1) == 1 {
             //not prime
             continue;
         }
         ret += 1;
-        for (i, nk) in buffer.arr.iter().enumerate().rev() {
-            if i < p {
-                break;
-            }
-            zeta.arr[i] -= zeta[nk / p];
-        }
-        zeta.arr[p - 1] = 1;
+        f.sparse_mul_at_most_one(p, 1);
     }
-    //let prime_count = zeta.arr[..x - 1].iter().filter(|&&e| e == 1).count();
-    zeta.arr[..x - 1].fill(0);
+    let f = FIArray::from(f);
+    ret += f[n];
 
-    for i in x..=len {
-        zeta.arr[i - 1] -= 1;
-    }
-
-    // zeta now equals zeta_t - 1
-    // compute log(zeta_t) using log(x + 1) = x^5 / 5 - x^4 / 4 + x^3 / 3 - x^2 / 2 + x
-    // x is zeta_t - 1.
-    // in order to not have to deal with rational numbers, we compute 60 * log(zeta_t)
-    // and adjust later
-    // the contributions of x^4 and x^5 are 0 for essentially all reasonable n
-
-    ret += zeta.arr[len - 1] * INVS[1];
-
-    //let start = std::time::Instant::now();
-    let pow_zeta = dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1, x - 1);
-    //dbg!(start.elapsed());
-    let z2_pref = pow_zeta.arr.iter().take_while(|&&e| e == 0).count();
-
-    ret -= pow_zeta.arr[len - 1] * INVS[2];
-
-    if z2_pref * z2_pref < n {
-        ret -= INVS[4]
-            * dirichlet_mul_single_zero_prefix_usize(&pow_zeta, &pow_zeta, n, z2_pref, z2_pref);
-    }
-    if (x - 1) * z2_pref < n {
-        //if (x - 1) * z2_pref * z2_pref < n {
-        println!("hello 1");
-        dirichlet_mul_zero_prefix_with_buffer(&zeta, &pow_zeta, n, &mut buffer, x - 1, z2_pref);
-
-        ret += buffer.arr[len - 1] * INVS[3];
-
-        let z3_pref = buffer.arr.iter().take_while(|&&e| e == 0).count();
-
-        if z2_pref * z3_pref < n {
-            ret += dirichlet_mul_single_zero_prefix_usize(&pow_zeta, &buffer, n, z2_pref, z3_pref)
-                * INVS[5];
-        }
-        /* } else {
-        println!("hello 2");
-
-        ret +=
-            dirichlet_mul_single_zero_prefix_usize(&zeta, &pow_zeta, n, x - 1, z2_pref) * INVS[3];
-        } */
-    }
-    //dbg!(prime_count + ret.arr[len - 1] / 60); // approximate final result
-    // correction phase: get rid of contributions of prime powers
-    let primes = sift(rt as _);
-
-    for x in primes
-        .into_iter()
-        .filter_map(|p| (p as usize >= x).then_some(p as usize))
-    {
-        let mut e = 1;
-        let mut px = x;
-        while px <= n / x {
-            e += 1;
-            px *= x;
-            ret -= INVS[e];
-        }
-    }
-
-    ret / 60
+    ret
 }
- */
+
 #[must_use]
 pub fn dirichlet_mul_zero_prefix(
     F: &FIArray,
@@ -444,7 +201,7 @@ pub fn dirichlet_mul_zero_prefix(
     }
     H
 }
-
+/*
 pub fn dirichlet_mul_zero_prefix_with_buffer(
     F: &FIArray,
     G: &FIArray,
@@ -529,3 +286,4 @@ pub fn dirichlet_mul_zero_prefix_with_buffer(
         H.arr[i] += H.arr[i - 1];
     }
 }
+ */

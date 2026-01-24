@@ -12,13 +12,11 @@
 use chrono::Local;
 
 use crate::utils::{
-    FIArray::{DirichletFenwickU128, FIArray, FIArrayU128},
-    fenwick::FenwickTreeU128,
-    multiplicative_function_summation::{
-        count_squarefree, inverse_pseudo_euler_transform, mertens, mertens_slow,
-        pseudo_euler_transform, sum_n_u128,
+    multiplicative_function_summation::mertens,
+    primes::{
+        log_zeta::log_zeta,
+        primecount::{lucy_fenwick, mertens_min25},
     },
-    primes::primecount::{lucy_fenwick, mertens_min25},
 };
 
 pub mod p0_99;
@@ -41,25 +39,12 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    p0_99::e76::main();
     //p500_599::e580::main();
     //p800_899::e890::main();
-    /* for i in 2..=4 {
-        let n = 7u128.pow(1 << i) - 1;
-        dbg!(n);
-        let mut v =
-            3 * sum_n_u128::<0>(n / 3) + 5 * sum_n_u128::<0>(n / 5) - 15 * sum_n_u128::<0>(n / 15);
-        let mut sum = 0;
-        while v != 0 {
-            sum += v % 10;
-            v /= 10;
-        }
-        print!("{i}:{sum}, ");
-    }
-    println!(); */
-    //p300_399::e362::main();
+    p300_399::e362::main();
     utils::primes::primecount::main();
-    const N: i64 = 1e11 as _;
+    const N: i64 = 1e8 as _;
+    assert_eq!(lucy_fenwick(N as _), log_zeta(N as _));
     let start = std::time::Instant::now();
     let s1 = mertens(N);
     let end = start.elapsed();

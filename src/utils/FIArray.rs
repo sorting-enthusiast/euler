@@ -145,6 +145,12 @@ macro_rules! FIArray_impl_for {
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
                         .chain((1..isqrt).rev().map(move |n| x / n))
                 }
+                #[must_use] pub fn get_prefix(&self, v: $type) -> $type {
+                    self.bit.sum(self.get_index(v))
+                }
+                #[must_use] pub fn get_bucket_prefix(&self, i: usize) -> $type {
+                    self.bit.sum(i)
+                }
                 #[must_use] pub fn get_index(&self, v: $type) -> usize {
                     if v <= 0 {
                         unsafe { core::hint::unreachable_unchecked() };
@@ -169,7 +175,7 @@ macro_rules! FIArray_impl_for {
                         i += 1;
                     }
                     for j in (1..=lim / i).rev() {
-                        let cur = self.bit.sum(self.get_index(lim / j));
+                        let cur = self.get_prefix(lim / j);
                         if cur != prev {
                             self.bit.add(self.bit.0.len() - j as usize, w * (cur - prev));
                             prev = cur;
@@ -181,9 +187,9 @@ macro_rules! FIArray_impl_for {
                     let lim = self.x / x;
                     let len = self.bit.0.len();
                     let mut j = 1;
-                    let mut cur = self.bit.sum(self.get_index(lim));
+                    let mut cur = self.get_prefix(lim);
                     while (j + 1) <= lim / (j + 1) {
-                        let next = self.bit.sum(self.get_index(lim / (j + 1)));
+                        let next = self.get_prefix(lim / (j + 1));
                         if next != cur {
                             self.bit.sub(len - j as usize, w * (cur - next));
                             cur = next;

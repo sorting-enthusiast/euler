@@ -1,6 +1,6 @@
 use crate::utils::{
     math::iroot,
-    primes::{count_signatures::count_signature, primecount::lucy_strengthreduce_alt, wheel_sieve},
+    primes::{count_signatures::count_signature, wheel_sieve},
 };
 const N: usize = 1e8 as _;
 const MAX_LEN: usize = N.ilog2() as usize + 1;

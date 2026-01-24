@@ -2,20 +2,17 @@ use std::time::Instant;
 
 use super::prime_sieves::{BIT64TOVAL240, MOD30_TO_MASK, WHEEL_2_3_5, WHEEL_2_3_5_7, sift};
 use crate::utils::{
-    FIArray::{DirichletFenwick, FIArray, FIArrayI64, FIArrayU64},
+    FIArray::{DirichletFenwick, FIArray, FIArrayI64},
     fenwick::{FenwickTree, FenwickTreeI64, FenwickTreeU32, FenwickTreeUsize},
     math::iroot,
     multiplicative_function_summation::inverse_pseudo_euler_transform,
     primes::{
-        log_zeta::{log_zeta, log_zeta_reordered},
+        log_zeta::log_zeta,
         primepi_approx::{Li, R},
     },
 };
-use fastdivide::DividerU64;
 use itertools::Itertools;
-const N: usize = 1e11 as _;
-// todo:
-// try using ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3
+const N: usize = 1e12 as _;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -43,7 +40,7 @@ fn legendre_fenwick(x: usize) -> usize {
     for &p in &primes {
         s.sparse_mul_at_most_one(p as _, 1);
     }
-    s.bit.sum(s.get_index(x)) + primes.len() - 1
+    s.get_prefix(x) + primes.len() - 1
 }
 // O(n^3/4 / log(n)) time, O(n^1/2) space prime counting function
 // can also be optimized using fenwick trees and the sqrt trick,
@@ -287,47 +284,6 @@ pub fn lucy_fenwick_simple(x: usize) -> FIArray {
 }
 
 #[must_use]
-pub fn lucy_non_fiarray_alt(x: usize) -> usize {
-    let isqrt = x.isqrt();
-    let primes = sift(isqrt as u64);
-
-    let mut small_s = vec![0; isqrt].into_boxed_slice();
-    let mut large_s = vec![0; isqrt].into_boxed_slice();
-    for v in 1..=isqrt {
-        small_s[v - 1] = (v + 1) >> 1;
-        large_s[v - 1] = (x / v + 1) >> 1;
-    }
-    small_s[0] = 0;
-    for &p in &primes[1..] {
-        let p = p as usize;
-        let pp = p * p;
-        let sp = small_s[p - 2];
-        let mut dp = 0;
-        let mut dpp = 0;
-        for d in 1..=isqrt {
-            dp += p;
-            dpp += pp;
-
-            if x < dpp {
-                break;
-            }
-            large_s[d - 1] -= if x / dp <= isqrt {
-                small_s[(x / dp) - 1]
-            } else {
-                large_s[dp - 1]
-            } - sp;
-        }
-        for v in (1..=isqrt).rev() {
-            if v < pp {
-                break;
-            }
-            small_s[v - 1] -= small_s[(v / p) - 1] - sp;
-        }
-    }
-    large_s[0]
-}
-
-#[must_use]
 pub fn lucy_non_fiarray(x: usize) -> usize {
     const LUT: [usize; 30] = [
         0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
@@ -380,111 +336,6 @@ pub fn lucy_non_fiarray(x: usize) -> usize {
     large_s[0]
 }
 
-#[must_use]
-pub fn lucy_alt(x: usize) -> FIArray {
-    let primes = sift(x.isqrt() as u64);
-    let mut s = FIArray::new(x);
-    let keys = FIArray::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-    s.arr[0] = 0;
-
-    for &p in &primes[1..] {
-        let p = p as usize;
-        let sp = s.arr[p - 2];
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / p] - sp;
-        }
-    }
-    s
-}
-
-// O(n^2/3) time
-#[must_use]
-pub fn lucy_alt_fenwick(x: usize) -> FIArray {
-    const LUT: [usize; 30] = [
-        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
-    ];
-    let mut s = FIArray::new(x);
-    let xsqrt = s.isqrt;
-    let len = s.arr.len();
-    let primes = sift(xsqrt as u64);
-
-    for (i, v) in FIArray::keys(x).enumerate() {
-        //s.arr[i] = (v + 1) >> 1;
-        s.arr[i] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3;
-    }
-    s[1] = 0;
-    s[2] = 1;
-    s[3] = 2;
-    s[4] = 2;
-    s[5] = 3;
-
-    for i in (2..len).rev() {
-        let j = i & (i + 1);
-        if j != 0 {
-            s.arr[i] -= s.arr[j - 1];
-        }
-    }
-    let mut s_fenwick = FenwickTreeUsize(s.arr);
-
-    let get_index = |v| -> usize {
-        if v == 0 {
-            unsafe { core::hint::unreachable_unchecked() };
-        } else if v <= xsqrt {
-            v - 1
-        } else {
-            len - (x / v)
-        }
-    };
-    let lim = primes.partition_point(|p| p.pow(3) <= x as u64);
-
-    for &p in &primes[3..lim] {
-        let p = p as usize;
-        let sp = s_fenwick.sum(p - 2);
-
-        let lim = x / p;
-        let mut j = 1;
-        let mut cur = s_fenwick.sum(get_index(lim));
-        while (j + 1) <= lim / (j + 1) {
-            let next = s_fenwick.sum(get_index(lim / (j + 1)));
-            if next != cur {
-                s_fenwick.sub(len - j, cur - next);
-                cur = next;
-            }
-            j += 1;
-        }
-        for i in (p..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
-            if next != cur {
-                s_fenwick.sub(get_index(p * i), cur - next);
-                cur = next;
-            }
-        }
-        s_fenwick.sub(get_index(p * p), sp - cur);
-    }
-    s.arr = s_fenwick.flatten();
-    for &p in &primes[lim..] {
-        let p = p as usize;
-        let sp = s.arr[p - 2];
-        let mut ip = 0;
-        for i in 1..=(x / p) / p {
-            ip += p;
-            s.arr[len - i] -= if ip <= xsqrt {
-                s.arr[len - ip]
-            } else {
-                s.arr[(x / ip) - 1]
-            } - sp;
-        }
-    }
-    s
-}
 #[must_use]
 pub fn lucy_alt_single(x: usize) -> usize {
     const LUT: [usize; 30] = [
@@ -1340,311 +1191,6 @@ pub fn prime_pi_fenwick_2(x: usize) -> usize {
     res
 }
 
-#[must_use]
-pub fn lucy_wheel(x: usize) -> FIArray {
-    const LUT: [usize; 30] = [
-        0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8,
-    ];
-    let mut s = FIArray::new(x);
-    let keys = FIArray::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        //s.arr[i] = (v + 1) >> 1;
-        s.arr[i] = ((v / 30) << 3) + LUT[v % 30] - 1 + 3;
-    }
-    s[1] = 0;
-    s[2] = 1;
-    s[3] = 2;
-    s[4] = 2;
-    s[5] = 3;
-    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    let lim = x.isqrt();
-    assert!(lim >= 5);
-    let mut p = 1;
-    let mut incrs = WHEEL_2_3_5.into_iter().cycle();
-    loop {
-        let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
-        p += incr;
-        if p > lim {
-            break;
-        }
-
-        if s.arr[p - 1] == s.arr[p - 2] {
-            continue;
-        }
-
-        let sp = s.arr[p - 2];
-
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / p] - sp;
-        }
-    }
-    s
-}
-#[must_use]
-pub fn lucy_wheel210(x: usize) -> FIArray {
-    let mut s = FIArray::new(x);
-    let keys = FIArray::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = v - 1;
-    }
-    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    let lim = x.isqrt();
-    assert!(lim >= 7);
-    for p in [2, 3, 5, 7] {
-        let sp = s.arr[p - 2];
-
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / p] - sp;
-        }
-    }
-    let mut p = 1;
-    let mut incrs = WHEEL_2_3_5_7.into_iter().cycle();
-    loop {
-        let incr = usize::from(unsafe { incrs.next().unwrap_unchecked() });
-        p += incr;
-        if p > lim {
-            break;
-        }
-
-        if s.arr[p - 1] == s.arr[p - 2] {
-            continue;
-        }
-
-        let sp = s.arr[p - 2];
-
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / p] - sp;
-        }
-    }
-    s
-}
-
-#[must_use]
-pub fn lucy_fastdivide(x: u64) -> FIArrayU64 {
-    let mut s = FIArrayU64::new(x);
-    let keys = FIArrayU64::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-    s.arr[0] = 0;
-    s.arr[2] = 2;
-    let mut pp = 1;
-    unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    for p in (3..=x.isqrt()).step_by(2) {
-        pp += (p << 2) - 4;
-        let sp = s.arr[p as usize - 2];
-        if s.arr[p as usize - 1] == sp {
-            continue;
-        }
-
-        let pdiv = DividerU64::divide_by(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < pp {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    s
-}
-#[must_use]
-pub fn lucy_fastdivide_alt(x: u64) -> FIArrayU64 {
-    let primes = sift(x.isqrt());
-
-    let mut s = FIArrayU64::new(x);
-    let keys = FIArrayU64::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-    s.arr[0] = 0;
-    s.arr[2] = 2;
-    unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    for &p in &primes[1..] {
-        let sp = s.arr[p as usize - 2];
-
-        let pdiv = DividerU64::divide_by(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    s
-}
-#[must_use]
-pub fn lucy_fastdivide_wheel(x: u64) -> FIArrayU64 {
-    let mut s = FIArrayU64::new(x);
-    let keys = FIArrayU64::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-    s.arr[0] = 0;
-    s.arr[2] = 2;
-    unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    let lim = x.isqrt();
-    assert!(lim >= 5);
-    for p in [3, 5] {
-        let sp = s.arr[p as usize - 2];
-
-        let pdiv = DividerU64::divide_by(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    let mut p = 1;
-    let mut incrs = WHEEL_2_3_5.into_iter().cycle();
-    loop {
-        p += u64::from(unsafe { incrs.next().unwrap_unchecked() });
-        if p > lim {
-            break;
-        }
-
-        if s.arr[p as usize - 1] == s.arr[p as usize - 2] {
-            continue;
-        }
-
-        let sp = s.arr[p as usize - 2];
-
-        let pdiv = DividerU64::divide_by(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    s
-}
-#[must_use]
-pub fn lucy_fastdivide_wheel210(x: u64) -> FIArrayU64 {
-    let mut s = FIArrayU64::new(x);
-    let keys = FIArrayU64::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-    s.arr[0] = 0;
-    s.arr[2] = 2;
-    unsafe { core::hint::assert_unchecked(s.arr.len() as u64 > x.isqrt()) };
-    let lim = x.isqrt();
-    assert!(lim >= 7);
-    for p in [3, 5, 7] {
-        let sp = s.arr[p as usize - 2];
-
-        let pdiv = DividerU64::divide_by(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    let mut p = 1;
-    let mut incrs = WHEEL_2_3_5_7.into_iter().cycle();
-    loop {
-        p += u64::from(unsafe { incrs.next().unwrap_unchecked() });
-        if p > lim {
-            break;
-        }
-        if s.arr[p as usize - 1] == s.arr[p as usize - 2] {
-            continue;
-        }
-        let sp = s.arr[p as usize - 2];
-
-        let pdiv = DividerU64::divide_by(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    s
-}
-
-#[must_use]
-pub fn lucy_strengthreduce(x: usize) -> FIArray {
-    let mut s = FIArray::new(x);
-    let keys = FIArray::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-
-    s.arr[0] = 0;
-
-    let mut pp = 1;
-    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for p in (3..=x.isqrt()).step_by(2) {
-        pp += (p << 2) - 4;
-        let sp = s.arr[p - 2];
-        if s.arr[p - 1] == sp {
-            continue;
-        }
-
-        let pdiv = strength_reduce::StrengthReducedUsize::new(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < pp {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    s
-}
-#[must_use]
-pub fn lucy_strengthreduce_alt(x: usize) -> FIArray {
-    let primes = sift(x.isqrt() as u64);
-    let mut s = FIArray::new(x);
-    let keys = FIArray::keys(x).collect_vec();
-
-    unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-    for (i, v) in keys.iter().enumerate() {
-        s.arr[i] = (v + 1) >> 1;
-    }
-    s.arr[0] = 0;
-    s.arr[2] = 2;
-    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
-    for &p in &primes[1..] {
-        let p = p as usize;
-        let sp = s.arr[p - 2];
-
-        let pdiv = strength_reduce::StrengthReducedUsize::new(p);
-        for (i, &v) in keys.iter().enumerate().rev() {
-            if v < p * p {
-                break;
-            }
-            s.arr[i] -= s[v / pdiv] - sp;
-        }
-    }
-    s
-}
-
 // easier to understand, but completely inferior due to many more integer divisions: never use
 #[must_use]
 pub fn lucy_dumber(x: usize) -> FIArray {
@@ -1680,12 +1226,6 @@ pub fn main() {
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
-    println!("prime counting using the logarithm of the zeta function:");
-    let start = Instant::now();
-    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
-
     //println!("legendre:");
     /* let start = Instant::now();
     let count = legendre(N as _);
@@ -1699,6 +1239,17 @@ pub fn main() {
     let count = lucy_dumber(N)[N];
     let end = start.elapsed();
     println!("res = {count}, took {end:?}"); */
+
+    println!("prime counting using the logarithm of the zeta function:");
+    let start = Instant::now();
+    let count = log_zeta(N)[N]; // n^(2/3) / \log n
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
 
     println!("standard-ish lucy");
     /* let start = Instant::now();
@@ -1744,109 +1295,6 @@ pub fn main() {
     let count = lucy_non_fiarray(N as _);
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
-
-    /* println!("prime counting using the logarithm of the zeta function:");
-    let start = Instant::now();
-    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
-
-    /* let start = Instant::now();
-    let count = log_zeta_reordered(N as _)[N as _]; // n^(2/3)
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}");
-
-    let start = Instant::now();
-    let count = log_zeta(N as _)[N as _]; // n^(2/3)
-    let end = start.elapsed();
-    println!("res = {count}, took {end:?}"); */
-}
-// TODO: fix
-#[must_use]
-pub fn test(x: usize) -> usize {
-    let mut s = FIArray::unit(x);
-    let xsqrt = s.isqrt;
-    let len = s.arr.len();
-    let primes = sift(xsqrt as u64);
-    for e in &mut s.arr {
-        *e -= 1;
-    }
-    for i in (2..len).rev() {
-        let j = i & (i + 1);
-        if j != 0 {
-            s.arr[i] -= s.arr[j - 1];
-        }
-    }
-    let mut s_fenwick = FenwickTreeUsize(s.arr);
-
-    let get_index = |v| -> usize {
-        if v == 0 {
-            unsafe { core::hint::unreachable_unchecked() };
-        } else if v <= xsqrt {
-            v - 1
-        } else {
-            len - (x / v)
-        }
-    };
-    let cutoff = iroot::<4>(x);
-    let xcbrt = iroot::<3>(x);
-    dbg!(cutoff, xcbrt);
-    let pi4 = primes.partition_point(|&p| p <= cutoff as u64);
-    let pi3 = primes.partition_point(|&p| p <= xcbrt as u64);
-    dbg!(pi4, pi3);
-    assert!(primes[pi4].pow(4) >= x as u64);
-    assert!(primes[pi3].pow(3) >= x as u64);
-
-    for &p in &primes[..pi4] {
-        let p = p as usize;
-        //let sp = s_fenwick.sum(p - 2);
-
-        let lim = x / p;
-        let mut j = p;
-        let mut cur = s_fenwick.sum(get_index(lim));
-        while (j + 1) <= (lim / (j + 1)) {
-            let next = s_fenwick.sum(get_index(lim / (j + 1)));
-            if next != cur {
-                s_fenwick.sub(len - j, cur - next);
-                cur = next;
-            }
-            j += 1;
-        }
-        for i in (p..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
-            if next != cur {
-                s_fenwick.sub(get_index(p * i), cur - next);
-                cur = next;
-            }
-        }
-        /* if cur != 0 {
-            s_fenwick.sub(get_index(p), cur);
-        } */
-    }
-    s.arr = s_fenwick.flatten();
-
-    let mut res = s.arr[len - 1];
-    dbg!(res);
-    for (i, &p1) in primes[pi4..pi3].iter().enumerate() {
-        let p1 = p1 as usize;
-
-        let lim = (x / p1).isqrt();
-
-        for &p2 in &primes[pi4 + i..] {
-            let p2 = p2 as usize;
-            if p2 > lim {
-                break;
-            }
-            res -= s.arr[x / (p1 * p2) - 1] - s.arr[p2 - 2];
-        }
-    }
-
-    /* // rest of P2
-    for &p in &primes[pi3..] {
-        let p = p as usize;
-        res -= s.arr[len - p] - s.arr[p - 2];
-    } */
-    res
 }
 // TODO: impl pseudo-euler transform based version of the unsieve step, and optimize dirichlet mul to that end
 #[must_use]

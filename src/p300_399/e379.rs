@@ -1,8 +1,11 @@
-use crate::utils::{
-    FIArray::FIArray,
-    fast_divisor_sums::{d3, icbrt},
-    multiplicative_function_summation::{
-        count_squarefree, dirichlet_mul_single_usize, dirichlet_mul_usize,
+use crate::{
+    p300_399::e362::mult,
+    utils::{
+        FIArray::FIArray,
+        fast_divisor_sums::{d3, icbrt},
+        multiplicative_function_summation::{
+            count_squarefree, dirichlet_mul_single_usize, dirichlet_mul_usize,
+        },
     },
 };
 const N: i64 = 1e12 as _;
@@ -95,7 +98,7 @@ fn initial_solution() {
     let start = std::time::Instant::now();
     let sqf = count_squarefree(N);
     let u = FIArray::unit(N);
-    let d = dirichlet_mul_usize(&u, &u, N);
+    let d = mult(&u, &u); //dirichlet_mul_usize(&u, &u, N);
     let res = (N + dirichlet_mul_single_usize(&sqf, &d, N)) >> 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
