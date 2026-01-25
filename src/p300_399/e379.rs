@@ -3,18 +3,16 @@ use crate::{
     utils::{
         FIArray::FIArray,
         fast_divisor_sums::{d3, icbrt},
-        multiplicative_function_summation::{
-            count_squarefree, dirichlet_mul_single_usize, dirichlet_mul_usize,
-        },
+        multiplicative_function_summation::{count_squarefree, dirichlet_mul_single_usize},
     },
 };
-const N: i64 = 1e12 as _;
+const N: i64 = 1 << 54; //1e12 as _;
 // A018892
 // sum of (d(n^2) + 1) / 2
 // let d2(n) = d(n^2)
 // d2 = d * sqf = mu_sqrt * d3
 
-// using d2 = mu_sqrt * d3
+// using d(n^2) = (mu_sqrt * d3)(n)
 // O(n^5/9) time and O(n^1/3) space
 // dirichlet hyperbola with n^2/3 - n^1/3 split
 pub fn main() {
@@ -53,13 +51,13 @@ pub fn main() {
     let mut mertens_small = mobius_sieve(D as usize + 1);
     for d in 1..=D {
         if mertens_small[d as usize] != 0 {
-            res += mertens_small[d as usize] * d3(N / (d * d));
+            res += mertens_small[d as usize] * d3((N / (d * d)) as _) as i64;
         }
         mertens_small[d as usize] += mertens_small[d as usize - 1];
     }
     let mut small_diff = vec![0; I as usize - 1].into_boxed_slice();
     for i in 1..I {
-        small_diff[i as usize - 1] = d3(i); // can use linear sieve, but the code is simpler this way and the time complexity doesn't change
+        small_diff[i as usize - 1] = d3(i as _) as i64; // can use linear sieve, but the code is simpler this way and the time complexity doesn't change
     }
     res -= mertens_small[D as usize] * small_diff[I as usize - 2];
 
@@ -86,7 +84,7 @@ pub fn main() {
     res += N;
     res >>= 1;
     println!("res = {res}, took {:?}", start.elapsed());
-    initial_solution();
+    //initial_solution();
 }
 
 // using d2 = d * sqf

@@ -228,17 +228,14 @@ pub const fn icbrt(x: i64) -> i64 {
 /// Based on identity for `T_3(n)` in <https://arxiv.org/pdf/1206.3369>
 /// O(n^5/9) (?) time, O(1) space
 #[must_use]
-pub fn d3(n: i64) -> i64 {
-    let cbrtn = icbrt(n);
+pub fn d3(n: usize) -> usize {
+    let cbrtn = iroot::<3>(n);
     let mut ret = 0;
     let mut z = 1;
     while z <= cbrtn {
         let nz = n / z;
         let sqrtnz = nz.isqrt();
-        //ret += 2 * S_Q(nz, z + 1, sqrtnz) - sqrtnz * sqrtnz + nz / z;
-        ret += 2 * sum_floors_range_fast(nz as usize, z as usize + 1, sqrtnz as usize) as i64
-            - sqrtnz * sqrtnz
-            + nz / z;
+        ret += 2 * sum_floors_range_fast(nz, z + 1, sqrtnz) - sqrtnz * sqrtnz + nz / z;
 
         z += 1;
     }
@@ -250,7 +247,7 @@ pub fn d3(n: i64) -> i64 {
 #[must_use]
 pub fn divisor_summatory(n: usize) -> usize {
     let s = n.isqrt();
-    let c = iroot::<3>(n << 1).clamp(1, s);
+    let c = (iroot::<3>(n) << 1).clamp(1, s);
     2 * sum_convex(
         c + 1,
         s + 1,
@@ -271,7 +268,7 @@ pub fn sum_floors_range_fast(n: usize, x1: usize, x2: usize) -> usize {
         return 0;
     }
 
-    let c = iroot::<3>(n).clamp(1, x2);
+    let c = (iroot::<3>(n) << 1).clamp(1, x2);
 
     if x1 <= c {
         let mid = c.min(x2);

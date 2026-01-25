@@ -46,6 +46,7 @@ pub fn main() {
     //p500_599::e580::main();
     //p800_899::e890::main();
     //p300_399::e362::main();
+    p300_399::e379::main();
     const N: i64 = 1e10 as _;
     assert_eq!(lucy_fenwick(N as _), log_zeta(N as _));
     let start = std::time::Instant::now();
