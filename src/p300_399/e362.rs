@@ -1,11 +1,9 @@
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::{DirichletFenwick, FIArray, FIArrayU128},
-    math::iroot,
+    FIArray::{DirichletFenwick, FIArray},
     multiplicative_function_summation::{
-        count_squarefree, dirichlet_mul_u128, dirichlet_mul_with_buffer_u128,
-        pseudo_euler_transform,
+        count_squarefree, pseudo_euler_transform, pseudo_euler_transform_fraction,
     },
 };
 // 1e16: 2393996858318973775, 1424.4494686s
@@ -15,11 +13,20 @@ use crate::utils::{
 // 1e12: 83365737381734, 2.0323739s
 // 1e11: 6213486362445, 391.9852ms
 // 1e10: 457895958010, 79.9067ms
-const N: usize = 1e10 as _;
+const N: usize = 1e15 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
 pub fn main() {
+    let start = std::time::Instant::now();
+    let sqf = count_squarefree(N);
+    println!(
+        "Finished counting squarefree integers: {:?}",
+        start.elapsed()
+    );
+    let fsf = pseudo_euler_transform_fraction(&sqf);
+    let res = fsf[N] - 1;
+    println!("res = {res}, took {:?}", start.elapsed());
     dense_pseudo_euler_transform_based();
     let start = std::time::Instant::now();
     let sqf = count_squarefree(N);
@@ -30,9 +37,8 @@ pub fn main() {
     let fsf = pseudo_euler_transform(&sqf);
     let res = fsf[N] - 1;
     println!("res = {res}, took {:?}", start.elapsed());
-    dense_pseudo_euler_transform_based_alt();
-    initial_approach_fenwick();
-    initial_approach();
+    //initial_approach_fenwick();
+    //initial_approach();
 }
 
 // Also O(n^2/3) time, but makes fewer expensive calls to dirichlet_mul, and has no overflow issues.
@@ -107,96 +113,6 @@ fn dense_pseudo_euler_transform_based() {
         fsf.sparse_mul_unlimited(q, 1);
     }
     let res = fsf.bit.sum(len - 1) - 1;
-    println!("res = {res}, took {:?}", start.elapsed());
-}
-
-// have to use u128 to stay in integer arithmetic, O(n^2/3) time solution
-fn dense_pseudo_euler_transform_based_alt() {
-    const x: usize = 1 + iroot::<3>(SQRT_N);
-    const INVS: [u128; 6] = [0, 60, 30, 20, 15, 12];
-
-    let start = std::time::Instant::now();
-    let sqf_ = count_squarefree(N);
-    let mut sqf = FIArrayU128::new(N as _);
-    for (e, &q) in sqf.arr.iter_mut().zip(&sqf_.arr) {
-        *e = q as u128;
-    }
-
-    let len = sqf.arr.len();
-    let mut a_vals = sqf.clone();
-
-    for i in (1..len).rev() {
-        a_vals.arr[i] -= a_vals.arr[i - 1];
-        a_vals.arr[i] *= INVS[1];
-    }
-    a_vals.arr[0] *= INVS[1]; // kinda pointless tbh
-    for i in (x..=SQRT_N).rev() {
-        let v = a_vals.arr[i - 1];
-        if v == 0 {
-            continue;
-        }
-        assert_eq!(a_vals.arr[i - 1], INVS[1]);
-        let mut e = 1;
-        let mut pi = i;
-        while pi <= N / i {
-            e += 1;
-            pi *= i;
-            a_vals[pi as _] += INVS[e];
-        }
-    }
-    //println!("bello");
-    let mut tmp = FIArrayU128::new(N as _);
-
-    let mut v = FIArrayU128::new(N as _);
-    for i in x..=len {
-        v.arr[i - 1] += v.arr[i - 2] + a_vals.arr[i - 1];
-    }
-    let v = v;
-    let mut fsf = v.clone();
-    for e in &mut fsf.arr {
-        *e = (*e + INVS[1]) * 120 * INVS[1].pow(4);
-    }
-
-    let mut r = dirichlet_mul_u128(&v, &v, N);
-    for i in x..=len {
-        fsf.arr[i - 1] += r.arr[i - 1] * 60 * INVS[1].pow(3);
-    }
-    //println!("bello");
-
-    dirichlet_mul_with_buffer_u128(&r, &v, N, &mut tmp);
-    core::mem::swap(&mut r.arr, &mut tmp.arr);
-
-    for i in x..=len {
-        fsf.arr[i - 1] += r.arr[i - 1] * 20 * INVS[1].pow(2);
-    }
-    //println!("bello");
-
-    dirichlet_mul_with_buffer_u128(&r, &v, N, &mut tmp);
-    core::mem::swap(&mut r.arr, &mut tmp.arr);
-    for i in x..=len {
-        fsf.arr[i - 1] += r.arr[i - 1] * 5 * INVS[1];
-    }
-    //println!("bello");
-
-    dirichlet_mul_with_buffer_u128(&r, &v, N, &mut tmp);
-    core::mem::swap(&mut r.arr, &mut tmp.arr);
-    for i in 1..=len {
-        fsf.arr[i - 1] += r.arr[i - 1];
-        fsf.arr[i - 1] /= 120 * INVS[1].pow(5);
-    }
-    //println!("bello");
-    let keys = FIArrayU128::keys(N as _).collect_vec().into_boxed_slice();
-
-    for q in 2..x {
-        if a_vals.arr[q - 1] == 0 {
-            continue;
-        }
-        //dbg!(q);
-        for (i, &v) in keys[q - 1..].iter().enumerate() {
-            fsf.arr[i + q - 1] += fsf[v / q as u128];
-        }
-    }
-    let res = fsf[N as _] - 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
 

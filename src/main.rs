@@ -11,15 +11,16 @@
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
 
-use crate::{
-    p300_399::e362::mult,
-    utils::{
-        FIArray::FIArray,
-        multiplicative_function_summation::mertens,
-        primes::{
-            log_zeta::log_zeta,
-            primecount::{lucy_fenwick, mertens_min25},
-        },
+use crate::utils::{
+    FIArray::FIArray,
+    math::iroot,
+    multiplicative_function_summation::{
+        count_squarefree, inverse_pseudo_euler_transform, inverse_pseudo_euler_transform_fraction,
+        mertens, pseudo_euler_transform, pseudo_euler_transform_fraction,
+    },
+    primes::{
+        log_zeta::log_zeta,
+        primecount::{lucy_fenwick, mertens_min25},
     },
 };
 
@@ -45,9 +46,19 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p500_599::e580::main();
     //p800_899::e890::main();
-    //p300_399::e362::main();
-    p300_399::e379::main();
-    const N: i64 = 1e10 as _;
+    //p300_399::e379::main();
+    const N: i64 = 1e11 as _;
+    let fsf = log_zeta(N as _);
+    let start = std::time::Instant::now();
+    let s2 = pseudo_euler_transform(&fsf);
+    let end = start.elapsed();
+    dbg!(end, s2[N as _]);
+    let start = std::time::Instant::now();
+    let s1 = pseudo_euler_transform_fraction(&fsf);
+    let end = start.elapsed();
+    dbg!(end, s1[N as _]);
+    assert_eq!(s1, s2);
+    println!("hello");
     assert_eq!(lucy_fenwick(N as _), log_zeta(N as _));
     let start = std::time::Instant::now();
     let s1 = mertens(N);
@@ -57,6 +68,7 @@ pub fn main() {
     let s1 = mertens_min25(N);
     let end = start.elapsed();
     dbg!(end, s1[N]);
+    p300_399::e362::main();
     utils::primes::primecount::main();
     //utils::primes::prime_sieves::main();
     println!("Finished running at: {} ", Local::now().time());

@@ -8,6 +8,7 @@ use crate::{
 };
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
 // O(n^(2/3) / \log n) time, O(n^(1/2)) space.
+// equivalent to inverse_pseudo_euler_transform_fraction(FIArray::unit(n))
 // 1e17: res = 2623557157654233, took 896.8224632s
 // 1e16: res = 279238341033925, took 190.0312267s
 // 1e15: res = 29844570422669, took 43.0123352s
@@ -62,8 +63,9 @@ pub fn log_zeta(n: usize) -> FIArray {
         for i in x..=rt {
             let y = zeta.arr[i - 1] - zeta.arr[i - 2];
             if y != 0 {
+                //assert_eq!(y, 1);
                 for j in 1..=rt / i {
-                    zeta.arr[len - j] += y * pow_zeta.arr[len - i * j];
+                    zeta.arr[len - j] += /* y * */ pow_zeta.arr[len - i * j];
                 }
             }
         }

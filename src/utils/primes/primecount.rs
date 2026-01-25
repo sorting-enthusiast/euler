@@ -5,14 +5,16 @@ use crate::utils::{
     FIArray::{DirichletFenwick, FIArray, FIArrayI64},
     fenwick::{FenwickTree, FenwickTreeI64, FenwickTreeU32, FenwickTreeUsize},
     math::iroot,
-    multiplicative_function_summation::inverse_pseudo_euler_transform,
+    multiplicative_function_summation::{
+        inverse_pseudo_euler_transform, inverse_pseudo_euler_transform_fraction,
+    },
     primes::{
         log_zeta::log_zeta,
         primepi_approx::{Li, R},
     },
 };
 use itertools::Itertools;
-const N: usize = 1e12 as _;
+const N: usize = 1e15 as _;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -1227,6 +1229,11 @@ pub fn main() {
     println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
     let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = inverse_pseudo_euler_transform_fraction(FIArray::unit(N))[N]; // n^(2/3) / \log n
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 

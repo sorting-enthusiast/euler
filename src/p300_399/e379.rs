@@ -6,7 +6,7 @@ use crate::{
         multiplicative_function_summation::{count_squarefree, dirichlet_mul_single_usize},
     },
 };
-const N: i64 = 1 << 54; //1e12 as _;
+const N: i64 = 1e12 as _;
 // A018892
 // sum of (d(n^2) + 1) / 2
 // let d2(n) = d(n^2)
@@ -84,7 +84,7 @@ pub fn main() {
     res += N;
     res >>= 1;
     println!("res = {res}, took {:?}", start.elapsed());
-    //initial_solution();
+    initial_solution();
 }
 
 // using d2 = d * sqf

@@ -1,13 +1,16 @@
 use itertools::Itertools;
 
-use crate::utils::{
-    FIArray::{
-        DirichletFenwick, FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize, FIArrayU32,
-        FIArrayU64, FIArrayU128, FIArrayUsize,
+use crate::{
+    p300_399::e362::{mult, mult_sparse},
+    utils::{
+        FIArray::{
+            DirichletFenwick, FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize,
+            FIArrayU32, FIArrayU64, FIArrayU128, FIArrayUsize,
+        },
+        bit_array::BitArray,
+        math::iroot,
+        primes::wheel_sieve,
     },
-    bit_array::BitArray,
-    math::iroot,
-    primes::wheel_sieve,
 };
 #[must_use]
 pub fn totient_sieve(n: usize) -> Vec<i64> {
@@ -292,6 +295,162 @@ pub fn inverse_pseudo_euler_transform(a: FIArray) -> FIArray {
         r.arr[i] += r.arr[i - 1];
     }
     r
+}
+
+// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 1296 before reducing
+#[must_use]
+pub fn pseudo_euler_transform_fraction(a: &FIArray) -> FIArray {
+    const INVS: [usize; 4] = [0, 6, 3, 2];
+
+    let mut a_vals = a.clone();
+    let len = a_vals.arr.len();
+    let n = a_vals.x;
+    let rt = a_vals.isqrt;
+    let x = iroot::<4>(n) + 1;
+
+    for i in (1..len).rev() {
+        a_vals.arr[i] -= a_vals.arr[i - 1];
+        a_vals.arr[i] *= INVS[1];
+    }
+    a_vals.arr[0] *= INVS[1]; // kinda pointless tbh
+    for i in (x..=rt).rev() {
+        let v = a_vals.arr[i - 1] / INVS[1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut pi = i;
+        let mut pv = v;
+        while pi <= n / i {
+            e += 1;
+            pi *= i;
+            pv *= v;
+            a_vals[pi] += pv * INVS[e];
+        }
+    }
+
+    let mut v = FIArray::new(n);
+    for i in x..=len {
+        v.arr[i - 1] = v.arr[i - 2] + a_vals.arr[i - 1];
+    }
+    let v = v;
+
+    let mut ret = v.clone();
+    for e in &mut ret.arr {
+        *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
+    }
+
+    let mut v_2 = mult(&v, &v);
+    for i in x..=len {
+        ret.arr[i - 1] += v_2.arr[i - 1] * 3 * INVS[1];
+    }
+    v_2 = mult_sparse(&v, &v_2);
+
+    for i in 1..=len {
+        ret.arr[i - 1] += v_2.arr[i - 1];
+        ret.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
+    }
+    let mut ret = DirichletFenwick::from(ret);
+    for i in (2..x).rev() {
+        let ai = a_vals.arr[i - 1] / INVS[1];
+        if ai == 0 {
+            continue;
+        }
+        ret.sparse_mul_unlimited(i, ai);
+    }
+    ret.into()
+}
+// faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 6 before reducing
+#[must_use]
+pub fn inverse_pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
+    const INVS: [usize; 4] = [0, 6, 3, 2];
+    let mut a = DirichletFenwick::from(a);
+    let rt = a.isqrt;
+    let n = a.x;
+    let len = a.bit.0.len();
+
+    let mut ret = FIArray::new(n);
+
+    let x = iroot::<4>(n) + 1;
+    for i in 2..x {
+        let vi = a.bit.sum(i - 1) - 1;
+        if vi == 0 {
+            continue;
+        }
+        ret.arr[i - 1] = vi;
+        a.sparse_mul_at_most_one(i, vi);
+    }
+    a.bit.dec(0);
+    let mut a = FIArray::from(a);
+
+    // a now equals a_t - 1
+    // compute log(a_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
+    // in order to not have to deal with rational numbers, we compute 6 * log(a_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = a.arr[i - 1] * INVS[1];
+    }
+
+    let mut a_2 = crate::p300_399::e362::mult(&a, &a);
+    /* let ind = pow_zeta.get_index(x.pow(2));
+    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
+    dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
+
+    for i in rt + 1..=len {
+        ret.arr[i - 1] -= a_2.arr[i - 1] * INVS[2];
+    }
+    {
+        //pow_zeta = mult_sparse(&zeta, &pow_zeta);
+
+        a.arr[rt..].fill(0);
+        for i in x..=rt {
+            let y = a.arr[i - 1] - a.arr[i - 2];
+            if y != 0 {
+                for j in 1..=rt / i {
+                    a.arr[len - j] += y * a_2.arr[len - i * j];
+                }
+            }
+        }
+        //zeta.arr[..rt].fill(0);
+        core::mem::swap(&mut a_2, &mut a);
+    }
+    let ind = a_2.get_index(x.pow(3));
+    //dbg!(ind, len, len - ind);
+    //assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
+    for i in ind + 1..=len {
+        ret.arr[i - 1] += a_2.arr[i - 1] * INVS[3];
+    }
+
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / 6;
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut pv = v;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+            pv *= v;
+
+            ret[px] -= pv * INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= 6;
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
 }
 
 /* #[must_use]
