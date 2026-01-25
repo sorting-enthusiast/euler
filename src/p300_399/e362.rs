@@ -92,7 +92,7 @@ fn dense_pseudo_euler_transform_based() {
     for i in x..=len {
         fsf.arr[i - 1] += r.arr[i - 1] * 3 * INVS[1];
     }
-    r = mult_sparse(&r, &v); //dirichlet_mul_zero_prefix(&v, &r, N, x, SQRT_N);
+    r = mult_sparse(&v, &r); //dirichlet_mul_zero_prefix(&v, &r, N, x, SQRT_N);
 
     for i in 1..=len {
         fsf.arr[i - 1] += r.arr[i - 1];

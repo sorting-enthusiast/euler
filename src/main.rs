@@ -45,9 +45,8 @@ pub fn main() {
     println!("Started running at: {} ", Local::now().time());
     //p500_599::e580::main();
     //p800_899::e890::main();
-    p300_399::e362::main();
-    utils::primes::primecount::main();
-    const N: i64 = 1e8 as _;
+    //p300_399::e362::main();
+    const N: i64 = 1e10 as _;
     assert_eq!(lucy_fenwick(N as _), log_zeta(N as _));
     let start = std::time::Instant::now();
     let s1 = mertens(N);
@@ -57,26 +56,7 @@ pub fn main() {
     let s1 = mertens_min25(N);
     let end = start.elapsed();
     dbg!(end, s1[N]);
-    let pi = log_zeta(N as _);
-    let mut pi2 = FIArray::new(N as _);
-    for p in 2..=pi.isqrt {
-        if pi.arr[p - 1] == pi.arr[p - 2] {
-            continue;
-        }
-        pi2[p * p] += 1;
-    }
-    for i in 1..pi2.arr.len() {
-        pi2.arr[i] += pi2.arr[i - 1];
-    }
-    let pi_squared = mult(&pi, &pi);
-    for i in 0..pi2.arr.len() {
-        pi2.arr[i] += pi_squared.arr[i];
-    }
-    for i in 0..pi2.arr.len() {
-        pi2.arr[i] >>= 1;
-    }
-    dbg!(pi2[N as _]);
-    p100_199::e187::main();
+    utils::primes::primecount::main();
     //utils::primes::prime_sieves::main();
     println!("Finished running at: {} ", Local::now().time());
 }

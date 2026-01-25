@@ -36,7 +36,7 @@ pub fn log_zeta(n: usize) -> FIArray {
         zeta.sparse_mul_at_most_one(p, 1);
     }
     zeta.bit.dec(0);
-    let zeta = FIArray::from(zeta);
+    let mut zeta = FIArray::from(zeta);
 
     // zeta now equals zeta_t - 1
     // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
@@ -50,17 +50,30 @@ pub fn log_zeta(n: usize) -> FIArray {
     let mut pow_zeta = mult(&zeta, &zeta);
     /* let ind = pow_zeta.get_index(x.pow(2));
     assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
-    dbg!(ind, len, len - ind); */
+    dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
 
-    for i in x..=len {
+    for i in rt + 1..=len {
         ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
     }
+    {
+        //pow_zeta = mult_sparse(&zeta, &pow_zeta);
 
-    pow_zeta = mult_sparse(&zeta, &pow_zeta);
-    /* let ind = pow_zeta.get_index(x.pow(3));
-    dbg!(ind, len, len - ind);
-    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
-    for i in x..=len {
+        zeta.arr[rt..].fill(0);
+        for i in x..=rt {
+            let y = zeta.arr[i - 1] - zeta.arr[i - 2];
+            if y != 0 {
+                for j in 1..=rt / i {
+                    zeta.arr[len - j] += y * pow_zeta.arr[len - i * j];
+                }
+            }
+        }
+        //zeta.arr[..rt].fill(0);
+        core::mem::swap(&mut pow_zeta, &mut zeta);
+    }
+    let ind = pow_zeta.get_index(x.pow(3));
+    //dbg!(ind, len, len - ind);
+    //assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
+    for i in ind + 1..=len {
         ret.arr[i - 1] += pow_zeta.arr[i - 1] * INVS[3];
     }
 
