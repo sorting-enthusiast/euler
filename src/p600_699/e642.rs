@@ -1,11 +1,11 @@
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::{FIArray, FIArrayI64},
+    FIArray::{DirichletFenwick, FIArray, FIArrayI64},
     multiplicative_function_summation::sum_n_i64,
     primes::prime_sieves::sift,
 };
-// TODO: optimize to O(n^2/3 / \log^\frac13 n)
+// TODO: optimize to O(n^2/3)
 const N: usize = 2018_2018_2018;
 const SQRT_N: usize = N.isqrt();
 const MOD: usize = 1e9 as _;
@@ -47,38 +47,20 @@ pub fn main() {
     }
     println!("Initialized sum: {:?}", start.elapsed());
 
-    let mut smooth = FIArray::new(N);
-    for (i, &v) in keys.iter().enumerate() {
-        smooth.arr[i] = 1 + v.ilog2() as usize;
-    }
-
-    sum += 2 * smooth[N / 2];
-    sum %= MOD;
+    let mut smooth = DirichletFenwick::eps(N);
     let split = primes.partition_point(|p| p * p * p <= N as u64);
-    for &p in &primes[1..] {
-        if p < primes[split] {
-            let p = p as usize;
-            for (i, &v) in keys[p - 1..].iter().enumerate() {
-                if v > N / p {
-                    break; // will never read these values, can skip computing them
-                }
-                smooth.arr[i + p - 1] += smooth[v / p];
-                if smooth.arr[i + p - 1] >= MOD {
-                    smooth.arr[i + p - 1] -= MOD;
-                }
-            }
-            //dbg!(p);
-            sum += p * smooth[N / p];
-            sum %= MOD;
-        } else {
-            // optimization, not required for 1-minute rule
-            let p = p as usize;
-            sum += p
-                * (N / p
-                    - (1..=(N / p) / p).fold(0, |acc, k| acc + pi[(N / p) / k] - pi.arr[p - 1]));
-            sum %= MOD;
-        }
+    for &p in &primes[..split] {
+        let p = p as usize;
+        smooth.sparse_mul_unlimited(p, 1);
+        sum += p * (smooth.get_prefix(N / p) % MOD);
+        sum %= MOD;
     }
-
+    for &p in &primes[split..] {
+        // optimization, not required for 1-minute rule
+        let p = p as usize;
+        sum +=
+            p * (N / p - (1..=(N / p) / p).fold(0, |acc, k| acc + pi[(N / p) / k] - pi.arr[p - 1]));
+        sum %= MOD;
+    }
     println!("res = {sum}, took {:?}", start.elapsed());
 }

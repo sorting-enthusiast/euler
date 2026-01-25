@@ -47,6 +47,7 @@ pub fn main() {
     //p500_599::e580::main();
     //p800_899::e890::main();
     //p300_399::e379::main();
+    p600_699::e642::main(); //631499044
     const N: i64 = 1e11 as _;
     let fsf = log_zeta(N as _);
     let start = std::time::Instant::now();
