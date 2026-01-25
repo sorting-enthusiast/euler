@@ -348,7 +348,7 @@ pub fn mult_sparse(a: &FIArray, b: &FIArray) -> FIArray {
     mult_sparse_with_buffer(a, b, &mut res);
     res
 }
-// credit to negiizhao
+// credit to negiizhao - https://loj.ac/s/1214183
 #[must_use]
 pub fn mult(a: &FIArray, b: &FIArray) -> FIArray {
     unsafe { core::hint::assert_unchecked(a.x == b.x) };

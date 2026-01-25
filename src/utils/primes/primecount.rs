@@ -12,7 +12,7 @@ use crate::utils::{
     },
 };
 use itertools::Itertools;
-const N: usize = 1e12 as _;
+const N: usize = 1e14 as _;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -120,24 +120,8 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
     s[4] = 2;
     s[5] = 3;
 
-    for i in (2..len).rev() {
-        let j = i & (i + 1);
-        if j != 0 {
-            s.arr[i] -= s.arr[j - 1];
-        }
-    }
-    let mut s_fenwick = FenwickTreeUsize(s.arr);
-
-    let get_index = |v| -> usize {
-        if v == 0 {
-            unsafe { core::hint::unreachable_unchecked() };
-        } else if v <= xsqrt {
-            v - 1
-        } else {
-            len - (x / v)
-        }
-    };
-    let mut sp = s_fenwick.sum(7 - 2);
+    let mut s = DirichletFenwick::from(s);
+    let mut sp = s.get_bucket_prefix(7 - 2);
 
     let cutoff = xsqrt
         .isqrt()
@@ -145,32 +129,32 @@ pub fn lucy_fenwick(x: usize) -> FIArray {
         | 1; // iroot::<3>(x) | 1;
     //dbg!(cutoff, iroot::<3>(x) | 1);
     for p in (7..=cutoff).step_by(2) {
-        let sp1 = s_fenwick.sum(p - 1);
+        let sp1 = s.get_bucket_prefix(p - 1);
         if sp1 == sp {
             continue;
         }
 
         let lim = x / p;
         let mut j = 1;
-        let mut cur = s_fenwick.sum(get_index(lim));
+        let mut cur = s.get_prefix(lim);
         while (j + 1) <= lim / (j + 1) {
-            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            let next = s.get_prefix(lim / (j + 1));
             if next != cur {
-                s_fenwick.sub(len - j, cur - next);
+                s.bit.sub(len - j, cur - next);
                 cur = next;
             }
             j += 1;
         }
         for i in (p..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
+            let next = s.bit.sum(i - 2);
             if next != cur {
-                s_fenwick.sub(get_index(p * i), cur - next);
+                s.bit.sub(s.get_index(p * i), cur - next);
                 cur = next;
             }
         }
         sp = sp1;
     }
-    s.arr = s_fenwick.flatten();
+    let mut s = FIArray::from(s);
     for p in (cutoff + 2..=xsqrt).step_by(2) {
         let sp1 = s.arr[p - 1];
         if sp1 == sp {
@@ -1242,12 +1226,12 @@ pub fn main() {
 
     println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
-    let count = log_zeta(N)[N]; // n^(2/3) / \log n
+    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
-    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
+    let count = log_zeta(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 

@@ -11,9 +11,9 @@ use crate::{
 // 1e17: res = 2623557157654233, took 896.8224632s
 // 1e16: res = 279238341033925, took 190.0312267s
 // 1e15: res = 29844570422669, took 43.0123352s
-// 1e14: res = 3204941750802, took 10.8984528s
-// 1e13: res = 346065536839, took 2.7230822s
-// 1e12: res = 37607912018, took 552.6843ms
+// 1e14: res = 3204941750802, took 10.3329261s
+// 1e13: res = 346065536839, took 2.3627085s
+// 1e12: res = 37607912018, took 493.5248ms
 // 1e11: res = 4118054813, took 120.5901ms
 // 1e10: res = 455052511, took 23.8138ms
 #[must_use]
@@ -47,7 +47,7 @@ pub fn log_zeta(n: usize) -> FIArray {
         ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
     }
 
-    let mut pow_zeta = mult(&zeta, &zeta); //dirichlet_mul_zero_prefix(&zeta, &zeta, n, x - 1, x - 1);
+    let mut pow_zeta = mult(&zeta, &zeta);
     /* let ind = pow_zeta.get_index(x.pow(2));
     assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
     dbg!(ind, len, len - ind); */

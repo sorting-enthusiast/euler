@@ -11,11 +11,15 @@
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
 
-use crate::utils::{
-    multiplicative_function_summation::mertens,
-    primes::{
-        log_zeta::log_zeta,
-        primecount::{lucy_fenwick, mertens_min25},
+use crate::{
+    p300_399::e362::mult,
+    utils::{
+        FIArray::FIArray,
+        multiplicative_function_summation::mertens,
+        primes::{
+            log_zeta::log_zeta,
+            primecount::{lucy_fenwick, mertens_min25},
+        },
     },
 };
 
@@ -53,6 +57,26 @@ pub fn main() {
     let s1 = mertens_min25(N);
     let end = start.elapsed();
     dbg!(end, s1[N]);
+    let pi = log_zeta(N as _);
+    let mut pi2 = FIArray::new(N as _);
+    for p in 2..=pi.isqrt {
+        if pi.arr[p - 1] == pi.arr[p - 2] {
+            continue;
+        }
+        pi2[p * p] += 1;
+    }
+    for i in 1..pi2.arr.len() {
+        pi2.arr[i] += pi2.arr[i - 1];
+    }
+    let pi_squared = mult(&pi, &pi);
+    for i in 0..pi2.arr.len() {
+        pi2.arr[i] += pi_squared.arr[i];
+    }
+    for i in 0..pi2.arr.len() {
+        pi2.arr[i] >>= 1;
+    }
+    dbg!(pi2[N as _]);
+    p100_199::e187::main();
     //utils::primes::prime_sieves::main();
     println!("Finished running at: {} ", Local::now().time());
 }
