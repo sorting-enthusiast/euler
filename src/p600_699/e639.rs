@@ -2,7 +2,7 @@ use crate::utils::{
     FIArray::FIArrayI64, powerful_numbers::PowerfulExtAlt, primes::prime_sieves::sift,
 };
 
-const N: i64 = 1e12 as i64;
+const N: usize = 1e12 as _;
 const MOD: i64 = 1e9 as i64 + 7;
 const KMAX: usize = 50;
 
@@ -129,10 +129,10 @@ pub fn main() {
             let pk = powmod(p, k as _);
             (pk * (MOD + 1 - pk)) % MOD
         };
-        for (n, hn) in PowerfulExtAlt::<_, MOD>::new(N, h, &ps).filter(|&(_, hn)| hn != 0) {
-            let i = cache.get_index(N / n);
+        for (n, hn) in PowerfulExtAlt::<_, MOD>::new(N as _, h, &ps).filter(|&(_, hn)| hn != 0) {
+            let i = cache.get_index(N / n as usize);
             if cache.arr[i] == 0 {
-                cache.arr[i] = sum_k(N / n, k);
+                cache.arr[i] = sum_k(N as i64 / n, k);
             }
             sum += (hn * cache.arr[i]) % MOD;
             sum %= MOD;

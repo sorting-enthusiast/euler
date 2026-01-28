@@ -22,20 +22,20 @@ const N: i64 = 1e12 as i64;
 pub fn main() {
     let start = std::time::Instant::now();
 
-    let cubed = |p: i64| {
-        let p = p % MOD;
+    let cubed = |p: usize| {
+        let p = p as i64 % MOD;
         ((p * p) % MOD * p) % MOD
     };
-    let sum_cubes = |v: i64| {
+    let sum_cubes = |v: usize| {
         // sum of cubes - 1
         let sn = sum_n_i64::<MOD>(v);
         ((sn * sn) % MOD + MOD - 1) % MOD
     };
-    let s = sum_over_primes::<MOD>(N, cubed, sum_cubes);
+    let s = sum_over_primes::<MOD>(N as _, cubed, sum_cubes);
     let mut sum = 0;
     for p in sift(N.isqrt() as u64) {
-        let p = p as i64;
-        sum += (cubed(p) * (s[N / p] + MOD - s.arr[p as usize - 1]) % MOD) % MOD;
+        let p = p as usize;
+        sum += (cubed(p) * (s[N as usize / p] + MOD - s.arr[p - 1]) % MOD) % MOD;
         if sum >= MOD {
             sum -= MOD;
         }

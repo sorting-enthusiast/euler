@@ -1,8 +1,5 @@
 use super::{
-    fenwick::{
-        FenwickTreeI32, FenwickTreeI64, FenwickTreeI128, FenwickTreeIsize, FenwickTreeU32,
-        FenwickTreeU64, FenwickTreeU128, FenwickTreeUsize,
-    },
+    fenwick::*,
     multiplicative_function_summation::{
         sum_n_i32, sum_n_i64, sum_n_i128, sum_n_isize, sum_n_u32, sum_n_u64, sum_n_u128,
         sum_n_usize,
@@ -16,41 +13,41 @@ macro_rules! FIArray_impl_for {
         paste!{
             #[derive(Debug, Clone, PartialEq, Eq)]
             pub struct [<FIArray $type:camel>] {
-                pub x: $type,
-                pub isqrt: $type,
+                pub x: usize,
+                pub isqrt: usize,
                 pub arr: Box<[$type]>,
             }
 
             impl [<FIArray $type:camel>] {
-                #[must_use] pub fn new(x: $type) -> Self {
+                #[must_use] pub fn new(x: usize) -> Self {
                     let isqrt = x.isqrt();
-                    let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
+                    let l = (isqrt << 1) - usize::from(isqrt == x / isqrt);
                     Self {
                         x,
                         isqrt,
                         arr: vec![0; l as usize].into_boxed_slice(),
                     }
                 }
-                #[must_use] pub fn unit(x: $type) -> Self {
+                #[must_use] pub fn unit(x: usize) -> Self {
                     let isqrt = x.isqrt();
-                    let arr = Self::keys(x).collect_vec().into_boxed_slice();
+                    let arr = Self::keys(x).map(|v| v as $type).collect_vec().into_boxed_slice();
                     Self { x, isqrt, arr }
                 }
-                #[must_use] pub fn id<const MOD: $type>(x: $type) -> Self {
+                #[must_use] pub fn id<const MOD: $type>(x: usize) -> Self {
                     let isqrt = x.isqrt();
                     let arr = Self::keys(x).map(|v| [<sum_n_ $type>]::<MOD>(v)).collect_vec().into_boxed_slice();
                     Self { x, isqrt, arr }
                 }
-                #[must_use] pub fn eps(x: $type) -> Self {
+                #[must_use] pub fn eps(x: usize) -> Self {
                     let isqrt = x.isqrt();
-                    let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
+                    let l = (isqrt << 1) - usize::from(isqrt == x / isqrt);
                     Self {
                         x,
                         isqrt,
                         arr: vec![1; l as usize].into_boxed_slice(),
                     }
                 }
-                #[must_use] pub fn keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
+                #[must_use] pub fn keys(x: usize) -> impl DoubleEndedIterator<Item = usize> + use<> {
                     let isqrt = x.isqrt();
                     (1..=isqrt)
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
@@ -60,64 +57,64 @@ macro_rules! FIArray_impl_for {
                     let isqrt = x.isqrt();
                     (1..isqrt).chain((isqrt != x / isqrt).then_some(isqrt))
                 }
-                #[must_use] pub fn get_index(&self, v: $type) -> usize {
+                #[must_use] pub fn get_index(&self, v: usize) -> usize {
                     if v <= 0 {
                         0
                     } else if v <= self.isqrt {
-                        v as usize - 1
+                        v - 1
                     } else {
                         let l = self.arr.len();
-                        l - (self.x / v) as usize
+                        l - (self.x / v)
                     }
                 }
             }
 
-            impl Index<$type> for [<FIArray $type:camel>] {
+            impl Index<usize> for [<FIArray $type:camel>] {
                 type Output = $type;
-                fn index(&self, v: $type) -> &Self::Output {
+                fn index(&self, v: usize) -> &Self::Output {
                     if v <= 0 {
                         &0
                     } else if v <= self.isqrt {
-                        &self.arr[v as usize - 1]
+                        &self.arr[v - 1]
                     } else {
                         let l = self.arr.len();
-                        &self.arr[l - (self.x / v) as usize]
+                        &self.arr[l - (self.x / v)]
                     }
                 }
             }
-            impl IndexMut<$type> for [<FIArray $type:camel>] {
-                fn index_mut(&mut self, v: $type) -> &mut Self::Output {
+            impl IndexMut<usize> for [<FIArray $type:camel>] {
+                fn index_mut(&mut self, v: usize) -> &mut Self::Output {
                     if v <= 0 {
                         unsafe { core::hint::unreachable_unchecked() };
                     }
                     if v <= self.isqrt {
-                        &mut self.arr[v as usize - 1]
+                        &mut self.arr[v - 1]
                     } else {
                         let l = self.arr.len();
-                        &mut self.arr[l - (self.x / v) as usize]
+                        &mut self.arr[l - (self.x / v)]
                     }
                 }
             }
             #[derive(Debug, Clone, PartialEq, Eq)]
             pub struct [<DirichletFenwick $type:camel>] {
-                pub x: $type,
-                pub isqrt: $type,
+                pub x: usize,
+                pub isqrt: usize,
                 pub bit: [<FenwickTree $type:camel>],
             }
 
             impl [<DirichletFenwick $type:camel>] {
-                #[must_use] pub fn new(x: $type) -> Self {
+                #[must_use] pub fn new(x: usize) -> Self {
                     let isqrt = x.isqrt();
-                    let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
+                    let l = (isqrt << 1) - usize::from(isqrt == x / isqrt);
                     Self {
                         x,
                         isqrt,
                         bit: [<FenwickTree $type:camel>]::new(l as usize, 0),
                     }
                 }
-                #[must_use] pub fn zeta(x: $type) -> Self {
+                #[must_use] pub fn zeta(x: usize) -> Self {
                     let isqrt = x.isqrt();
-                    let mut arr = Self::keys(x).collect_vec().into_boxed_slice();
+                    let mut arr = Self::keys(x).map(|v| v as $type).collect_vec().into_boxed_slice();
                     for i in (2..arr.len()).rev() {
                         let j = i & (i + 1);
                         if j != 0 {
@@ -126,9 +123,9 @@ macro_rules! FIArray_impl_for {
                     }
                     Self { x, isqrt, bit: [<FenwickTree $type:camel>] { 0: arr } }
                 }
-                #[must_use] pub fn eps(x: $type) -> Self {
+                #[must_use] pub fn eps(x: usize) -> Self {
                     let isqrt = x.isqrt();
-                    let l = (isqrt << 1) - $type::from(isqrt == x / isqrt);
+                    let l = (isqrt << 1) - usize::from(isqrt == x / isqrt);
                     let mut arr = vec![0; l as usize].into_boxed_slice();
                     arr[0] = 1;
                     let mut f = [<FenwickTree $type:camel>] { 0: arr };
@@ -139,35 +136,35 @@ macro_rules! FIArray_impl_for {
                         bit: f,
                     }
                 }
-                #[must_use] pub fn keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
+                #[must_use] pub fn keys(x: usize) -> impl DoubleEndedIterator<Item = usize> + use<> {
                     let isqrt = x.isqrt();
                     (1..=isqrt)
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
                         .chain((1..isqrt).rev().map(move |n| x / n))
                 }
-                #[must_use] pub fn get_prefix(&self, v: $type) -> $type {
+                #[must_use] pub fn get_prefix(&self, v: usize) -> $type {
                     self.bit.sum(self.get_index(v))
                 }
                 #[must_use] pub fn get_bucket_prefix(&self, i: usize) -> $type {
                     self.bit.sum(i)
                 }
-                #[must_use] pub fn get_index(&self, v: $type) -> usize {
+                #[must_use] pub fn get_index(&self, v: usize) -> usize {
                     if v <= 0 {
                         unsafe { core::hint::unreachable_unchecked() };
                     } else if v <= self.isqrt {
-                        v as usize - 1
+                        v - 1
                     } else {
                         let l = self.bit.0.len();
-                        l - (self.x / v) as usize
+                        l - (self.x / v)
                     }
                 }
                 /// 1 / (1 - w x^-s)
-                pub fn sparse_mul_unlimited(&mut self, x: $type, w: $type) {
+                pub fn sparse_mul_unlimited(&mut self, x: usize, w: $type) {
                     let lim = self.x / x;
                     let mut prev = 0;
                     let mut i = 1;
                     while i <= lim / i {
-                        let cur = self.bit.sum(i as usize - 1);
+                        let cur = self.bit.sum(i - 1);
                         if cur != prev {
                             self.bit.add(self.get_index(i * x), w * (cur - prev));
                             prev = cur;
@@ -183,7 +180,7 @@ macro_rules! FIArray_impl_for {
                     }
                 }
                 /// 1 - w x^-s
-                pub fn sparse_mul_at_most_one(&mut self, x: $type, w: $type) {
+                pub fn sparse_mul_at_most_one(&mut self, x: usize, w: $type) {
                     let lim = self.x / x;
                     let len = self.bit.0.len();
                     let mut j = 1;
@@ -191,13 +188,13 @@ macro_rules! FIArray_impl_for {
                     while (j + 1) <= lim / (j + 1) {
                         let next = self.get_prefix(lim / (j + 1));
                         if next != cur {
-                            self.bit.sub(len - j as usize, w * (cur - next));
+                            self.bit.sub(len - j, w * (cur - next));
                             cur = next;
                         }
                         j += 1;
                     }
                     for i in (2..=lim / j).rev() {
-                        let next = self.bit.sum(i as usize - 2);
+                        let next = self.bit.sum(i - 2);
                         if next != cur {
                             self.bit.sub(self.get_index(x * i), w * (cur - next));
                             cur = next;
@@ -233,6 +230,135 @@ macro_rules! FIArray_impl_for {
                     }
                 }
             }
+
+        #[derive(Debug, Clone, PartialEq, Eq)]
+            pub struct [<DirichletFenwick $type:camel Mod>]<const MOD: $type> {
+                pub x: usize,
+                pub isqrt: usize,
+                pub bit: [<FenwickTree $type:camel Mod>]<MOD>,
+            }
+
+            impl<const MOD: $type> [<DirichletFenwick $type:camel Mod>]<MOD> {
+                #[must_use] pub fn new(x: usize) -> Self {
+                    let isqrt = x.isqrt();
+                    let l = (isqrt << 1) - usize::from(isqrt == x / isqrt);
+                    Self {
+                        x,
+                        isqrt,
+                        bit: [<FenwickTree $type:camel Mod>]::<MOD>::new(l as usize, 0),
+                    }
+                }
+                #[must_use] pub fn zeta(x: usize) -> Self {
+                    [<FIArray $type:camel>]::unit(x).into()
+                }
+                #[must_use] pub fn eps(x: usize) -> Self {
+                    let isqrt = x.isqrt();
+                    let l = (isqrt << 1) - usize::from(isqrt == x / isqrt);
+                    let mut arr = vec![0; l as usize].into_boxed_slice();
+                    arr[0] = 1;
+                    let mut f = [<FenwickTree $type:camel Mod>]::<MOD> { 0: arr };
+                    f.construct();
+                    Self {
+                        x,
+                        isqrt,
+                        bit: f,
+                    }
+                }
+                #[must_use] pub fn get_prefix(&self, v: usize) -> $type {
+                    self.bit.sum(self.get_index(v))
+                }
+                #[must_use] pub fn get_bucket_prefix(&self, i: usize) -> $type {
+                    self.bit.sum(i)
+                }
+                #[must_use] pub fn get_index(&self, v: usize) -> usize {
+                    if v <= 0 {
+                        unsafe { core::hint::unreachable_unchecked() };
+                    } else if v <= self.isqrt {
+                        v - 1
+                    } else {
+                        let l = self.bit.0.len();
+                        l - (self.x / v)
+                    }
+                }
+                /// 1 / (1 - w x^-s)
+                pub fn sparse_mul_unlimited(&mut self, x: usize, w: $type) {
+                    let w = w as u64;
+                    let lim = self.x / x;
+                    let mut prev = 0;
+                    let mut i = 1;
+                    while i <= lim / i {
+                        let cur = self.bit.sum(i - 1);
+                        if cur != prev {
+                            self.bit.add(self.get_index(i * x), ((w * ((cur + MOD - prev) % MOD) as u64) % MOD as u64) as $type);
+                            prev = cur;
+                        }
+                        i += 1;
+                    }
+                    for j in (1..=lim / i).rev() {
+                        let cur = self.get_prefix(lim / j);
+                        if cur != prev {
+                            self.bit.add(self.bit.0.len() - j, ((w * ((cur + MOD - prev) % MOD) as u64) % MOD as u64) as $type);
+                            prev = cur;
+                        }
+                    }
+                }
+                /// 1 - w x^-s
+                pub fn sparse_mul_at_most_one(&mut self, x: usize, w: $type) {
+                    let w = w as u64;
+                    let lim = self.x / x;
+                    let len = self.bit.0.len();
+                    let mut j = 1;
+                    let mut cur = self.get_prefix(lim);
+                    while (j + 1) <= lim / (j + 1) {
+                        let next = self.get_prefix(lim / (j + 1));
+                        if next != cur {
+                            self.bit.sub(len - j, ((w * ((cur + MOD - next) % MOD) as u64) % MOD as u64) as $type);
+                            cur = next;
+                        }
+                        j += 1;
+                    }
+                    for i in (2..=lim / j).rev() {
+                        let next = self.bit.sum(i - 2);
+                        if next != cur {
+                            self.bit.sub(self.get_index(x * i), ((w * ((cur + MOD - next) % MOD) as u64) % MOD as u64) as $type);
+                            cur = next;
+                        }
+                    }
+                    if cur != 0 {
+                        self.bit.sub(self.get_index(x), ((w * (cur as u64)) % MOD as u64) as $type);
+                    }
+                }
+            }
+            impl<const MOD: $type> std::convert::From<[<FIArray $type:camel>]> for [<DirichletFenwick $type:camel Mod>]<MOD> {
+                fn from(value: [<FIArray $type:camel>]) -> Self {
+                    let mut bit = value.arr;
+                    for i in (2..bit.len()).rev() {
+                        let j = i & (i + 1);
+                        bit[i] %= MOD;
+                        if j != 0 {
+                            bit[i] += MOD - bit[j - 1];
+                            if bit[i] > MOD {
+                                bit[i] -= MOD;
+                            }
+                        }
+                    }
+                    Self {
+                        x: value.x,
+                        isqrt: value.isqrt,
+                        bit: [<FenwickTree $type:camel Mod>]::<MOD> { 0: bit}
+                    }
+                }
+            }
+            impl<const MOD: $type> std::convert::From<[<DirichletFenwick $type:camel Mod>]<MOD>> for [<FIArray $type:camel>] {
+                fn from(value: [<DirichletFenwick $type:camel Mod>]<MOD>) -> Self {
+                    Self {
+                        x: value.x,
+                        isqrt: value.isqrt,
+                        arr: value.bit.flatten()
+                    }
+                }
+            }
+
         }
     )+ };
 }

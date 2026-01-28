@@ -5,10 +5,10 @@ const MOD: i64 = 1e9 as i64;
 const N: usize = 510_510;
 const PHI_N: usize = 92160;
 
-const M: i64 = 1e11 as i64;
+const M: usize = 1e11 as _;
 
-const PRIMES: [i64; 7] = [2, 3, 5, 7, 11, 13, 17];
-const fn lookup_create() -> [(i64, i64); 128] {
+const PRIMES: [usize; 7] = [2, 3, 5, 7, 11, 13, 17];
+const fn lookup_create() -> [(usize, usize); 128] {
     let mut ret = [(1, 1); 128];
     let mut i = 1_usize;
     while i < 128 {
@@ -23,20 +23,20 @@ const fn lookup_create() -> [(i64, i64); 128] {
     }
     ret
 }
-const LOOKUP: [(i64, i64); 128] = lookup_create();
+const LOOKUP: [(usize, usize); 128] = lookup_create();
 const fn mobius(pmask: i8) -> i64 {
     1 - ((pmask.count_ones() as i64 & 1) << 1)
 }
 
 fn original_s(
     n: i8,
-    m: i64,
+    m: usize,
     totient_sums: &FIArrayI64,
-    cache: &mut HashMap<(i8, i64), i64>,
+    cache: &mut HashMap<(i8, usize), i64>,
 ) -> i64 {
     let phi_n = LOOKUP[n as usize].1;
     if m == 1 {
-        return phi_n;
+        return phi_n as _;
     }
 
     if let Some(&v) = cache.get(&(n, m)) {
@@ -71,7 +71,7 @@ fn original_s(
         }
 
         let coeff = (phi_n * d) / phi_d;
-        sum += coeff * inner;
+        sum += coeff as i64 * inner;
         sum %= MOD;
         d_submask = (d_submask - 1) & n;
     }
@@ -97,46 +97,46 @@ fn original_s(
             inner -= MOD;
         }
 
-        sum += phi_n * inner;
+        sum += phi_n as i64 * inner;
         sum %= MOD;
     }
     cache.insert((n, m), sum);
     sum
 }
 
-fn s(n: i8, m: i64, totient_sums: &FIArrayI64) -> i64 {
+fn s(n: i8, m: usize, totient_sums: &FIArrayI64) -> i64 {
     let phi_n = LOOKUP[n as usize].1;
     if m == 0 {
         0
     } else if m == 1 {
-        phi_n
+        phi_n as _
     } else {
         assert_ne!(n, 0); // only times when n would be 0 are unrolled
         let mut sum = 0;
         let mut d_submask = n;
         loop {
             let (d, phi_d) = LOOKUP[d_submask as usize];
-            sum += ((phi_n / phi_d) * s(d_submask, m / d, totient_sums)) % MOD;
+            sum += ((phi_n / phi_d) as i64 * s(d_submask, m / d, totient_sums)) % MOD;
             sum %= MOD;
             d_submask = (d_submask - 1) & n;
             if d_submask == 0 {
                 break;
             }
         }
-        sum += phi_n * totient_sums[m];
+        sum += phi_n as i64 * totient_sums[m];
         sum % MOD
     }
 }
 
-fn s_prime_rec(n: i8, m: i64, totient_sums: &FIArrayI64) -> i64 {
+fn s_prime_rec(n: i8, m: usize, totient_sums: &FIArrayI64) -> i64 {
     let phi_n = LOOKUP[n as usize].1;
     if m == 1 {
-        phi_n
+        phi_n as _
     } else if n == 0 {
         totient_sums[m]
     } else {
         let p = PRIMES[n.trailing_zeros() as usize];
-        let mut sum = (p - 1) * s_prime_rec(n & (n - 1), m, totient_sums);
+        let mut sum = (p - 1) as i64 * s_prime_rec(n & (n - 1), m, totient_sums);
         if m >= p {
             sum += s_prime_rec(n, m / p, totient_sums);
         }

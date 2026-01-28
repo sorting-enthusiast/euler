@@ -1,19 +1,11 @@
 use crate::utils::{
     FIArray::{DirichletFenwickU32Mod, FIArrayU32},
     math::iroot,
-    multiplicative_function_summation::general_divisor_summatory_alt,
+    multiplicative_function_summation::{sum_n_u64, totient_sum},
 };
-const N: usize = 1e9 as _;
-const MOD: u64 = 1_234_567_891;
-// bruh
-// sum of coefficients up to n in \zeta(s)^n
-pub fn main() {
-    solve(); // O(n^2/3 log^{-4/3}(n))
-    let start = std::time::Instant::now();
-    let res = general_divisor_summatory_alt::<{ MOD as _ }>(N, N)[N]; // O(n^2/3 log(n))
-    println!("res = {res}, took {:?}", start.elapsed());
-}
 
+const N: usize = 1e14 as _;
+const MOD: u64 = 998_244_353; //1e9 as u64 + 7;
 const N_MOD: u64 = N as u64 % MOD;
 const Reciprocal: [u64; N.ilog2() as usize + 1] = const {
     let mut ret = [0; N.ilog2() as usize + 1];
@@ -25,35 +17,49 @@ const Reciprocal: [u64; N.ilog2() as usize + 1] = const {
     }
     ret
 };
-const Binomials: [u64; N.ilog2() as usize + 1] = const {
-    let mut ret = Reciprocal;
-    ret[1] = (ret[1] * N_MOD) % MOD;
-    let mut i = 2;
-    while i < ret.len() {
-        ret[i] = (((ret[i] * ret[i - 1]) % MOD) * ((N_MOD + i as u64 - 1) % MOD)) % MOD;
-        i += 1;
-    }
-    ret
-};
-fn solve() {
+pub fn main() {
     let start = std::time::Instant::now();
     let mut zeta_mod = FIArrayU32::new(N);
     for (i, v) in FIArrayU32::keys(N).enumerate() {
         zeta_mod.arr[i] = (v % MOD as usize) as u32;
     }
-    let mut pi = inverse_pseudo_euler_transform_mod(zeta_mod);
+    let mut id_mod = FIArrayU32::new(N);
+    for (i, v) in FIArrayU32::keys(N).enumerate() {
+        id_mod.arr[i] = sum_n_u64::<MOD>(v) as u32;
+    }
+    //dbg!(start.elapsed());
+    let pi = inverse_pseudo_euler_transform_mod(zeta_mod);
+    //dbg!(start.elapsed());
+
     let mut primes = vec![];
     for p in 2..=pi.isqrt {
         if pi.arr[p - 1] != pi.arr[p - 2] {
             primes.push(p);
         }
     }
+
+    //dbg!(start.elapsed());
+    let mut pisums = inverse_pseudo_euler_transform_mod(id_mod);
+    //dbg!(start.elapsed());
+
     for i in 0..pi.arr.len() {
-        pi.arr[i] = ((u64::from(pi.arr[i]) * N_MOD) % MOD) as u32;
+        pisums.arr[i] += MOD as u32 - pi.arr[i];
+        if pisums.arr[i] >= MOD as u32 {
+            pisums.arr[i] -= MOD as u32;
+        }
     }
-    let approx = pseudo_euler_transform_mod(pi);
-    let zeta_n = mult_correction(&approx, &primes, |_, _, e| Binomials[e as usize] as u32);
-    let res = zeta_n[N];
+
+    //dbg!(start.elapsed());
+    let approx = pseudo_euler_transform_mod(pisums);
+    //dbg!(start.elapsed());
+    let accurate = mult_correction(&approx, &primes, |pp, p, e| {
+        ((pp - pp / p) % MOD as usize) as u32
+    });
+    let res = accurate[N];
+    println!("res = {res}, took {:?}", start.elapsed());
+
+    let start = std::time::Instant::now();
+    let res = totient_sum::<{ MOD as _ }>(N)[N];
     println!("res = {res}, took {:?}", start.elapsed());
 }
 fn mult_correction(

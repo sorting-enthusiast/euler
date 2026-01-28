@@ -1,7 +1,8 @@
 use itertools::Itertools;
 
 use crate::{
-    p300_399::e362::{mult, mult_sparse},
+    mult_sparse_i64,
+    p300_399::e362::mult,
     utils::{
         FIArray::{
             DirichletFenwick, FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize,
@@ -134,7 +135,7 @@ pub fn divisor_sieve(n: usize) -> Vec<i64> {
 }
 
 #[must_use]
-pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
+pub fn totient_sum<const MOD: i64>(x: usize) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
@@ -156,16 +157,20 @@ pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
         }
         let vsqrt = v.isqrt();
 
-        let mut phi_v = (sum_n_i64::<MOD>(v) + MOD - v % MOD) % MOD;
+        let mut phi_v = if MOD != 0 {
+            (sum_n_i64::<MOD>(v) + MOD - v as i64 % MOD) % MOD
+        } else {
+            sum_n_i64::<MOD>(v) - v as i64
+        };
         for i in 2..=vsqrt {
-            let c = (small_phi[i as usize] - small_phi[i as usize - 1]) * (v / i);
+            let c = (small_phi[i as usize] - small_phi[i as usize - 1]) * (v / i) as i64;
             phi_v -= if MOD == 0 { c } else { c % MOD };
             phi_v -= Phi[v / i];
             if MOD != 0 {
                 phi_v %= MOD;
             }
         }
-        phi_v += Phi[vsqrt] * vsqrt;
+        phi_v += Phi[vsqrt] * vsqrt as i64;
         if MOD != 0 {
             phi_v %= MOD;
             if phi_v < 0 {
@@ -177,7 +182,7 @@ pub fn totient_sum<const MOD: i64>(x: i64) -> FIArrayI64 {
     Phi
 }
 #[must_use]
-pub fn mertens(x: i64) -> FIArrayI64 {
+pub fn mertens(x: usize) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e9 as usize).min((x as f64).powf(2. / 3.) as usize >> 2)
     } else {
@@ -197,21 +202,21 @@ pub fn mertens(x: i64) -> FIArrayI64 {
         let vsqrt = v.isqrt();
 
         let mut mu_v = 1;
-        mu_v -= v;
+        mu_v -= v as i64;
 
         for i in 2..=vsqrt {
-            mu_v -= (M.arr[i as usize - 1] - M.arr[i as usize - 2]) * (v / i);
+            mu_v -= (M.arr[i as usize - 1] - M.arr[i as usize - 2]) * (v / i) as i64;
             mu_v -= M[v / i];
         }
-        mu_v += vsqrt * M[vsqrt];
+        mu_v += vsqrt as i64 * M[vsqrt];
         M.arr[i] = mu_v;
     }
     M
 }
 #[must_use]
-pub fn divisor_summatory(x: i64) -> FIArrayI64 {
+pub fn divisor_summatory(x: usize) -> FIArrayI64 {
     let u = FIArrayI64::unit(x);
-    dirichlet_mul_i64(&u, &u, x as _)
+    dirichlet_mul_i64(&u, &u, x)
 }
 
 /// O(n^\frac12 \log n \log \log n) time, O(n^\frac12) space
@@ -224,19 +229,36 @@ pub fn count_squarefree(x: usize) -> FIArray {
     }
     s.into()
 }
+pub fn sqf(x: usize) -> FIArrayI64 {
+    let zeta = FIArrayI64::unit(x);
+    let R2 = zeta.isqrt;
+    let len = zeta.arr.len();
+
+    let mob = mobius_sieve(R2 + 1);
+    let mut mertens_sqrt = FIArrayI64::new(x);
+    for i in 1..=R2 {
+        mertens_sqrt[i * i] += mob[i] as i64;
+    }
+    for i in 1..len {
+        mertens_sqrt.arr[i] += mertens_sqrt.arr[i - 1];
+    }
+    mult_sparse_i64(&zeta, &mertens_sqrt)
+}
 /// Time complexity depends on sparsity:
 /// On sparse inputs, i.e. only taking values at a \frac{1}{\log n} fraction of integers, takes O(n^2/3) time.
 /// On dense inputs the function will take O(n^2/3 \log n) time.
 #[must_use]
-pub fn pseudo_euler_transform(a: &FIArray) -> FIArray {
-    let mut r = a.clone();
+pub fn pseudo_euler_transform(a: FIArray) -> FIArray {
     let n = a.x;
+    let rt = a.isqrt;
     let x = iroot::<3>(n) + 1;
+    let mut r = a;
+    let a = r.clone();
     for e in &mut r.arr[x - 1..] {
         *e -= a.arr[x - 2];
     }
     r.arr[..x - 1].fill(0);
-    for i in x..=a.isqrt {
+    for i in x..=rt {
         let vi = a.arr[i - 1] - a.arr[i - 2];
         if vi == 0 {
             continue;
@@ -299,22 +321,22 @@ pub fn inverse_pseudo_euler_transform(a: FIArray) -> FIArray {
 
 // faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 1296 before reducing
 #[must_use]
-pub fn pseudo_euler_transform_fraction(a: &FIArray) -> FIArray {
+pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
     const INVS: [usize; 4] = [0, 6, 3, 2];
 
-    let mut a_vals = a.clone();
-    let len = a_vals.arr.len();
-    let n = a_vals.x;
-    let rt = a_vals.isqrt;
+    let mut a = a;
+    let len = a.arr.len();
+    let n = a.x;
+    let rt = a.isqrt;
     let x = iroot::<4>(n) + 1;
 
     for i in (1..len).rev() {
-        a_vals.arr[i] -= a_vals.arr[i - 1];
-        a_vals.arr[i] *= INVS[1];
+        a.arr[i] -= a.arr[i - 1];
+        a.arr[i] *= INVS[1];
     }
-    a_vals.arr[0] *= INVS[1]; // kinda pointless tbh
+    a.arr[0] *= INVS[1]; // kinda pointless tbh
     for i in (x..=rt).rev() {
-        let v = a_vals.arr[i - 1] / INVS[1];
+        let v = a.arr[i - 1] / INVS[1];
         if v == 0 {
             continue;
         }
@@ -325,15 +347,14 @@ pub fn pseudo_euler_transform_fraction(a: &FIArray) -> FIArray {
             e += 1;
             pi *= i;
             pv *= v;
-            a_vals[pi] += pv * INVS[e];
+            a[pi] += pv * INVS[e];
         }
     }
 
     let mut v = FIArray::new(n);
     for i in x..=len {
-        v.arr[i - 1] = v.arr[i - 2] + a_vals.arr[i - 1];
+        v.arr[i - 1] = v.arr[i - 2] + a.arr[i - 1];
     }
-    let v = v;
 
     let mut ret = v.clone();
     for e in &mut ret.arr {
@@ -344,7 +365,20 @@ pub fn pseudo_euler_transform_fraction(a: &FIArray) -> FIArray {
     for i in x..=len {
         ret.arr[i - 1] += v_2.arr[i - 1] * 3 * INVS[1];
     }
-    v_2 = mult_sparse(&v, &v_2);
+    {
+        //v_2 = mult_sparse(&v, &v_2);
+        v.arr[rt..].fill(0);
+        for i in x..=rt {
+            let y = v.arr[i - 1] - v.arr[i - 2];
+            if y != 0 {
+                for j in 1..=rt / i {
+                    v.arr[len - j] += y * v_2.arr[len - i * j];
+                }
+            }
+        }
+        v.arr[..rt].fill(0);
+        core::mem::swap(&mut v_2, &mut v);
+    }
 
     for i in 1..=len {
         ret.arr[i - 1] += v_2.arr[i - 1];
@@ -352,7 +386,7 @@ pub fn pseudo_euler_transform_fraction(a: &FIArray) -> FIArray {
     }
     let mut ret = DirichletFenwick::from(ret);
     for i in (2..x).rev() {
-        let ai = a_vals.arr[i - 1] / INVS[1];
+        let ai = a.arr[i - 1] / INVS[1];
         if ai == 0 {
             continue;
         }
@@ -492,7 +526,7 @@ pub fn sqf(x: usize) -> FIArray {
     Sqf
 } */
 #[must_use]
-pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
+pub fn totient_sum_single<const MOD: i64>(x: usize) -> i64 {
     let M = mertens(x);
     let mut sum = M[x] + sum_n_i64::<MOD>(x);
     if MOD != 0 {
@@ -500,7 +534,7 @@ pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     }
     let isqrt = x.isqrt();
     for i in 2..=isqrt {
-        sum += i * M[x / i];
+        sum += i as i64 * M[x / i];
         sum += (M.arr[i as usize - 1] - M.arr[i as usize - 2]) * sum_n_i64::<MOD>(x / i);
         if MOD != 0 {
             sum %= MOD;
@@ -516,7 +550,7 @@ pub fn totient_sum_single<const MOD: i64>(x: i64) -> i64 {
     sum
 }
 #[must_use]
-pub fn mertens_slow(x: i64) -> FIArrayI64 {
+pub fn mertens_slow(x: usize) -> FIArrayI64 {
     let y = if x > 1023 {
         x.isqrt() as usize
     } else {
@@ -534,22 +568,22 @@ pub fn mertens_slow(x: i64) -> FIArrayI64 {
         let vsqrt = v.isqrt();
 
         let mut mu_v = 1;
-        mu_v -= v;
+        mu_v -= v as i64;
 
         for i in 2..=vsqrt {
-            mu_v -= i64::from(mobius[i as usize]) * (v / i);
+            mu_v -= i64::from(mobius[i as usize]) * (v / i) as i64;
             mu_v -= M[v / i];
         }
-        mu_v += vsqrt * M[vsqrt];
+        mu_v += vsqrt as i64 * M[vsqrt];
         M.arr[i] = mu_v;
     }
     M
 }
 
 pub fn sum_over_primes<const MOD: i64>(
-    x: i64,
-    mut f: impl FnMut(i64) -> i64,
-    mut F: impl FnMut(i64) -> i64,
+    x: usize,
+    mut f: impl FnMut(usize) -> i64,
+    mut F: impl FnMut(usize) -> i64,
 ) -> FIArrayI64 {
     let primes = wheel_sieve(x.isqrt() as u64 + 1);
     let mut s = FIArrayI64::new(x);
@@ -559,10 +593,10 @@ pub fn sum_over_primes<const MOD: i64>(
     for (i, &v) in keys.iter().enumerate() {
         s.arr[i] = F(v);
     }
-    unsafe { core::hint::assert_unchecked(s.arr.len() as i64 > x.isqrt()) };
+    unsafe { core::hint::assert_unchecked(s.arr.len() > x.isqrt()) };
     for p in primes {
-        let p = p as i64;
-        let sp = s.arr[p as usize - 2];
+        let p = p as usize;
+        let sp = s.arr[p - 2];
         let fp = f(p);
         for (i, &v) in keys.iter().enumerate().rev() {
             if v < p * p {
@@ -601,18 +635,19 @@ use paste::paste;
 macro_rules! min25_sieve_impl_for {
     ($($type:ty),+) => { $(
         paste!{
-            #[must_use] pub const fn [<divisor_summatory_ $type>](x: $type) -> $type {
+            #[must_use] pub const fn [<divisor_summatory_ $type>](x: usize) -> $type {
                 let mut sum = 0;
                 let sqrt = x.isqrt();
                 let mut n = 1;
                 while n <= sqrt {
-                    sum += x / n;
+                    sum += (x / n) as $type;
                     n += 1;
                 }
                 sum <<= 1;
-                sum - sqrt * sqrt
+                sum - (sqrt * sqrt) as $type
             }
-            pub const fn [<sum_n_ $type>]<const MOD: $type>(x: $type) -> $type {
+            pub const fn [<sum_n_ $type>]<const MOD: $type>(x: usize) -> $type {
+                let x = x as $type;
                 if MOD == 0 {
                     if x & 1 == 0 {
                         (x / 2) * (x + 1)
@@ -627,62 +662,6 @@ macro_rules! min25_sieve_impl_for {
                         ((x + 1) / 2) * x
                     }) % MOD
                 }
-            }
-            pub fn [<min25_sieve_ $type>]<const MOD: $type>(
-                x: $type,
-                mut g: impl FnMut($type) -> $type,
-                mut G: impl FnMut($type) -> $type,
-                mut f: impl FnMut($type, $type) -> $type,
-            ) -> [<FIArray $type:camel>] {
-                let primes = super::primes::prime_sieves::sift(x.isqrt() as u64 + 1);
-                let mut s = [<FIArray $type:camel>]::new(x);
-                let keys = [<FIArray $type:camel>]::keys(x).collect_vec();
-
-                unsafe { core::hint::assert_unchecked(s.arr.len() == keys.len()) };
-                for (i, &v) in keys.iter().enumerate() {
-                    s.arr[i] = G(v);
-                }
-                for &p in &primes {
-                    let sp = s.arr[p as usize - 2];
-                    let p = p as $type;
-                    let gp = g(p);
-                    for (i, &v) in keys.iter().enumerate().rev() {
-                        if v < p * p {
-                            break;
-                        }
-                        s.arr[i] -= gp * (s[v / p] - sp);
-                        if MOD != 0 {
-                            s.arr[i] %= MOD;
-                            if s.arr[i] < 0 {
-                                s.arr[i] += MOD;
-                            }
-                        }
-                    }
-                }
-
-                for &p in primes.iter().rev() {
-                    let sp = s.arr[p as usize - 1];
-                    let p = p as $type;
-                    for (i, &v) in keys.iter().enumerate().rev() {
-                        if v < p * p {
-                            break;
-                        }
-                        let mut e = 1;
-                        let mut u = v / p;
-                        while u >= p {
-                            s.arr[i] += f(p, e) * (s[u] - sp) + f(p, e + 1);
-                            if MOD != 0 {
-                                s.arr[i] %= MOD;
-                                if s.arr[i] < 0 {
-                                    s.arr[i] += MOD;
-                                }
-                            }
-                            e += 1;
-                            u /= p;
-                        }
-                    }
-                }
-                s
             }
             // note: does not require the functions f and g to be multiplicative
             pub fn [<dirichlet_mul_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> [<FIArray $type:camel>] {
@@ -708,30 +687,32 @@ macro_rules! min25_sieve_impl_for {
                 };
                 propogate((1, 1), (1, 1), (1, len));
                 for k in 2..=len {
-                    let z = len + 1 - k;
-                    for x in 2.. {
-                        let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
-                        let y_hi_ord = to_ord(n / (x * z));
-                        if y_hi_ord < y_lo_ord {
-                            break;
+                    if k > rt_n {
+                        let z = len + 1 - k;
+                        for x in 2.. {
+                            let y_lo_ord = 1 + to_ord(x).max(to_ord(z));
+                            let y_hi_ord = to_ord(n / (x * z));
+                            if y_hi_ord < y_lo_ord {
+                                break;
+                            }
+                            propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
+                            propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
                         }
-                        propogate((x, x), (y_lo_ord, y_hi_ord), (k, k));
-                        propogate((y_lo_ord, y_hi_ord), (x, x), (k, k));
                     }
                     propogate((1, 1), (k, k), (k, len));
                     propogate((k, k), (1, 1), (k, len));
                     let x = k;
-                    for y in 2..k {
-                        let z_lo_ord = to_ord(x * y);
-                        let z_hi_ord = to_ord(n / x);
-                        if z_hi_ord < z_lo_ord {
-                            break;
-                        }
-                        propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
-                        propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
-                    }
-
                     if x <= rt_n {
+                        for y in 2..k {
+                            let z_lo_ord = to_ord(x * y);
+                            let z_hi_ord = to_ord(n / x);
+                            if z_hi_ord < z_lo_ord {
+                                break;
+                            }
+                            propogate((x, x), (y, y), (z_lo_ord, z_hi_ord));
+                            propogate((y, y), (x, x), (z_lo_ord, z_hi_ord));
+                        }
+
                         propogate((x, x), (x, x), (to_ord(x * x), len));
                     }
                 }
@@ -742,29 +723,14 @@ macro_rules! min25_sieve_impl_for {
                 H
             }
 
-            pub fn [<dirichlet_mul_single_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize) -> $type {
-                let rt_n = n.isqrt();
+            pub fn [<dirichlet_mul_single_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>]) -> $type {
+                let rt_n = F.isqrt;
                 let len = F.arr.len();
 
-                let mut ret = F.arr[0] * G[n as $type] + G.arr[0] * F[n as $type] - F[rt_n as $type] * G[rt_n as $type];
+                let mut ret = F.arr[0] * G.arr[len - 1] + G.arr[0] * F.arr[len - 1] - F[rt_n] * G[rt_n];
                 for i in 2..=rt_n {
                     ret += (F.arr[i - 1] - F.arr[i - 2]) * G.arr[len - i]
                         + (G.arr[i - 1] - G.arr[i - 2]) * F.arr[len - i];
-                }
-                ret
-            }
-
-            pub fn [<dirichlet_mul_single_zero_prefix_ $type>](F: &[<FIArray $type:camel>], G: &[<FIArray $type:camel>], n: usize, prefix_f: usize, prefix_g: usize) -> $type {
-                let rt_n = n.isqrt();
-                let mut ret = F.arr[0] * G[n as $type] + G.arr[0] * F[n as $type] - F[rt_n as $type] * G[rt_n as $type];
-                for i in prefix_f..prefix_g {
-                    let ni = n / i;
-                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G[ni as $type];
-                }
-                for i in prefix_g..=rt_n {
-                    let ni = n / i;
-                    ret += (F.arr[i - 1] - F.arr[i - 2]) * G[ni as $type]
-                        + (G.arr[i - 1] - G.arr[i - 2]) * F[ni as $type];
                 }
                 ret
             }
@@ -1085,6 +1051,7 @@ macro_rules! min25_sieve_impl_for {
                 }
             }
 
+
         }
     )+ };
 }
@@ -1092,7 +1059,7 @@ min25_sieve_impl_for!(u32, i32, u64, i64, usize, isize, u128, i128);
 
 // O(log(k)x^(2/3)) time, O(x^(1/2)) space, specifically ~6x^(1/2) i64's
 #[must_use]
-pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: usize) -> FIArrayI64 {
+pub fn general_divisor_summatory<const MOD: i64>(x: usize, mut k: usize) -> FIArrayI64 {
     assert!(k > 1);
     let mut buffer = FIArrayI64::new(x);
     let mut u = FIArrayI64::unit(x);
@@ -1121,7 +1088,7 @@ pub fn general_divisor_summatory<const MOD: i64>(x: i64, mut k: usize) -> FIArra
 }
 
 #[must_use]
-pub fn general_divisor_summatory_alt<const MOD: i64>(x: i64, mut k: usize) -> FIArrayI64 {
+pub fn general_divisor_summatory_alt<const MOD: i64>(x: usize, mut k: usize) -> FIArrayI64 {
     assert!(k > 1);
     let mut buffer = FIArrayI64::new(x);
     let mut u = FIArrayI64::unit(x);

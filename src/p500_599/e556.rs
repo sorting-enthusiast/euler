@@ -39,7 +39,7 @@ fn mobius_sieve(n: usize) -> Vec<i8> {
     }
     res
 }
-
+// TODO
 pub fn main() {
     dbg!(r2(8 * 8));
     let mob = mobius_sieve(SQRT_N as usize + 1);

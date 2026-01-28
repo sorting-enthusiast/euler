@@ -6,7 +6,7 @@ use crate::{
         multiplicative_function_summation::{count_squarefree, dirichlet_mul_single_usize},
     },
 };
-const N: i64 = 1e12 as _;
+const N: i64 = 1e11 as _;
 // A018892
 // sum of (d(n^2) + 1) / 2
 // let d2(n) = d(n^2)
@@ -97,6 +97,6 @@ fn initial_solution() {
     let sqf = count_squarefree(N);
     let u = FIArray::unit(N);
     let d = mult(&u, &u); //dirichlet_mul_usize(&u, &u, N);
-    let res = (N + dirichlet_mul_single_usize(&sqf, &d, N)) >> 1;
+    let res = (N + dirichlet_mul_single_usize(&sqf, &d)) >> 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }

@@ -30,7 +30,8 @@ pub fn main() {
         }
     }
     for k in 1..N / SQRT_N {
-        b += (powmod(INV2, k) * (sum_n_i64::<MOD>(N / k) + MOD - sum_n_i64::<MOD>(N / (k + 1)))
+        b += (powmod(INV2, k)
+            * (sum_n_i64::<MOD>((N / k) as _) + MOD - sum_n_i64::<MOD>((N / (k + 1)) as _))
             % MOD)
             % MOD;
         if b >= MOD {
@@ -41,6 +42,6 @@ pub fn main() {
     b %= MOD;
     println!(
         "{}",
-        (const { (sum_n_i64::<MOD>(N) * TWO_N_1) % MOD } + MOD - b) % MOD
+        (const { (sum_n_i64::<MOD>(N as _) * TWO_N_1) % MOD } + MOD - b) % MOD
     );
 }

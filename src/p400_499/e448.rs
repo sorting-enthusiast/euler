@@ -2,14 +2,14 @@ use crate::utils::{
     FIArray::FIArrayI64,
     multiplicative_function_summation::{sum_n_i64, totient_sieve},
 };
-const N: i64 = 99_999_999_019;
+const N: usize = 99_999_999_019;
 const MOD: i64 = 999_999_017;
 const fn sum_squares(x: i64) -> i64 {
     let x = x % MOD;
     (((x * (x + 1)) % MOD * (2 * x + 1)) % MOD * const { modinv(6) }) % MOD
 }
 
-fn sum_f(x: i64) -> FIArrayI64 {
+fn sum_f(x: usize) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
@@ -30,10 +30,10 @@ fn sum_f(x: i64) -> FIArrayI64 {
             ret.arr[i] = small[v as usize];
             continue;
         }
-        let mut f_v = sum_squares(v) - sum_n_i64::<MOD>(v);
+        let mut f_v = sum_squares(v as _) - sum_n_i64::<MOD>(v);
         let vsqrt = v.isqrt();
         for i in 2..=vsqrt {
-            f_v -= (i * ret[v / i]) % MOD;
+            f_v -= (i as i64 * ret[v / i]) % MOD;
             f_v -= ((ret.arr[i as usize - 1] - ret.arr[i as usize - 2]) * sum_n_i64::<MOD>(v / i))
                 % MOD;
             f_v %= MOD;
@@ -76,22 +76,23 @@ const fn modinv(x: i64) -> i64 {
 pub fn main() {
     let start = std::time::Instant::now();
     let prefix_sums = sum_f(N);
-    let mut sum = N % MOD + prefix_sums[N];
+    let mut sum = N as i64 % MOD + prefix_sums[N];
     sum -= MOD;
     let sqrt = N.isqrt();
     for i in 2..=sqrt {
-        sum += ((prefix_sums.arr[i as usize - 1] - prefix_sums.arr[i as usize - 2]) * (N / i)
+        sum += ((prefix_sums.arr[i as usize - 1] - prefix_sums.arr[i as usize - 2])
+            * (N / i) as i64
             % MOD)
             % MOD;
         sum += prefix_sums[N / i];
         sum %= MOD;
     }
-    sum -= (sqrt * prefix_sums[sqrt]) % MOD;
+    sum -= (sqrt as i64 * prefix_sums[sqrt]) % MOD;
     sum %= MOD;
     if sum < 0 {
         sum += MOD;
     }
-    sum += N % MOD;
+    sum += N as i64 % MOD;
     sum %= MOD;
     sum *= const { modinv(2) };
     sum %= MOD;

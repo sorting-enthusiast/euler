@@ -14,7 +14,7 @@ use crate::utils::{
     },
 };
 use itertools::Itertools;
-const N: usize = 1e15 as _;
+const N: usize = 1e11 as _;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -1233,12 +1233,12 @@ pub fn main() {
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
-    let count = inverse_pseudo_euler_transform_fraction(FIArray::unit(N))[N]; // n^(2/3) / \log n
+    let count = log_zeta(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
     let start = Instant::now();
-    let count = log_zeta(N)[N]; // n^(2/3) / \log n
+    let count = inverse_pseudo_euler_transform_fraction(FIArray::unit(N))[N]; // n^(2/3) / \log n
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -1289,7 +1289,7 @@ pub fn main() {
 }
 // TODO: impl pseudo-euler transform based version of the unsieve step, and optimize dirichlet mul to that end
 #[must_use]
-pub fn mertens_min25(x: i64) -> FIArrayI64 {
+pub fn mertens_min25(x: usize) -> FIArrayI64 {
     let mut s = FIArrayI64::new(x);
     //let keys = FIArrayI64::keys(x).collect_vec().into_boxed_slice();
     let xsqrt = s.isqrt;
@@ -1298,12 +1298,12 @@ pub fn mertens_min25(x: i64) -> FIArrayI64 {
 
     for (i, v) in FIArrayI64::keys(x).enumerate() {
         //keys.iter().enumerate() {
-        s.arr[i] = /* v - 1;  */(v + 1) >> 1;
+        s.arr[i] = /* v - 1;  */((v + 1) >> 1) as _;
     }
     s.arr[0] = 0;
     let cutoff = xsqrt
         .isqrt()
-        .max(2 * iroot::<3>((xsqrt / x.ilog2() as i64).pow(2) as usize) as i64)
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
         | 1; // iroot::<3>(x) | 1;
     //dbg!(cutoff, iroot::<3>(x) | 1);
     let lim = primes.partition_point(|&p| p <= cutoff as u64);
@@ -1325,7 +1325,7 @@ pub fn mertens_min25(x: i64) -> FIArrayI64 {
         }
     };
     for &p in &primes[1..lim] {
-        let p = p as i64;
+        let p = p as usize;
 
         let lim = x / p;
         let mut j = 1;
@@ -1349,15 +1349,15 @@ pub fn mertens_min25(x: i64) -> FIArrayI64 {
     }
     s.arr = s_fenwick.flatten();
     for &p in &primes[lim..] {
-        let p = p as i64;
-        let sp = s.arr[p as usize - 2];
+        let p = p as usize;
+        let sp = s.arr[p - 2];
         let mut ip = 0;
         for i in 1..=(x / p) / p {
             ip += p;
-            s.arr[len - i as usize] -= if ip <= xsqrt {
-                s.arr[len - ip as usize]
+            s.arr[len - i] -= if ip <= xsqrt {
+                s.arr[len - ip]
             } else {
-                s.arr[(x / ip) as usize - 1]
+                s.arr[(x / ip) - 1]
             } - sp;
         }
     }
@@ -1365,15 +1365,15 @@ pub fn mertens_min25(x: i64) -> FIArrayI64 {
         *e *= -1;
     }
     for &p in primes[lim..].iter().rev() {
-        let p = p as i64;
-        let sp = s.arr[p as usize - 1];
+        let p = p as usize;
+        let sp = s.arr[p - 1];
         let mut ip = 0;
         for i in 1..=(x / p) / p {
             ip += p;
-            s.arr[len - i as usize] -= if ip <= xsqrt {
-                s.arr[len - ip as usize]
+            s.arr[len - i] -= if ip <= xsqrt {
+                s.arr[len - ip]
             } else {
-                s.arr[(x / ip) as usize - 1]
+                s.arr[(x / ip) - 1]
             } - sp;
         }
     }
@@ -1395,7 +1395,7 @@ pub fn mertens_min25(x: i64) -> FIArrayI64 {
         }
     };
     for &p in primes[..lim].iter().rev() {
-        let p = p as i64;
+        let p = p as usize;
 
         let lim = x / p;
         let mut j = 1;
@@ -1440,7 +1440,7 @@ for &p in primes.iter().rev() {
         }
     }
 } */
-pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
+pub fn min_25_sieve_wip(x: usize, f: impl Fn(usize, u32) -> i64) -> FIArrayI64 {
     let mut s = FIArrayI64::new(x);
     //let keys = FIArrayI64::keys(x).collect_vec().into_boxed_slice();
     let xsqrt = s.isqrt;
@@ -1449,12 +1449,12 @@ pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
 
     for (i, v) in FIArrayI64::keys(x).enumerate() {
         //keys.iter().enumerate() {
-        s.arr[i] = /* v - 1;  */(v + 1) >> 1;
+        s.arr[i] = /* v - 1;  */((v + 1) >> 1) as _;
     }
     s.arr[0] = 0;
     let cutoff = xsqrt
         .isqrt()
-        .max(2 * iroot::<3>((xsqrt / x.ilog2() as i64).pow(2) as usize) as i64)
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
         | 1; // iroot::<3>(x) | 1;
     //dbg!(cutoff, iroot::<3>(x) | 1);
     let lim = primes.partition_point(|&p| p <= cutoff as u64);
@@ -1477,7 +1477,7 @@ pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
             }
         };
         for &p in &primes[1..lim] {
-            let p = p as i64;
+            let p = p as usize;
 
             let lim = x / p;
             let mut j = 1;
@@ -1501,7 +1501,7 @@ pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
         }
         s.arr = s_fenwick.flatten();
         for &p in &primes[lim..] {
-            let p = p as i64;
+            let p = p as usize;
             let sp = s.arr[p as usize - 2];
             let mut ip = 0;
             for i in 1..=(x / p) / p {
@@ -1518,7 +1518,7 @@ pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
         *e *= -1;
     }
     for &p in primes[lim..].iter().rev() {
-        let p = p as i64;
+        let p = p as usize;
         let sp = s.arr[p as usize - 1];
         for i in 1..=(x / p) / p {
             let mut e = 1;
@@ -1547,7 +1547,7 @@ pub fn min_25_sieve_wip(x: i64, f: impl Fn(i64, u32) -> i64) -> FIArrayI64 {
         }
     };
     for &p in primes[..lim].iter().rev() {
-        let p = p as i64;
+        let p = p as usize;
 
         let lim = x / p;
         let mut j = 1;

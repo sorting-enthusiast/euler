@@ -12,6 +12,7 @@ pub fn main() {
     println!("res = {}", 2_327_213_148_095_366_u64);
     solve();
 }
+/// TODO: optimize to o(n^1/2) time
 /// O(n^1/2) time, O(n^1/3) space
 /// Using the identity (n+3)/4 = sum_{d<=n^1/2, d odd} SQF'(n/d^2),
 /// and the dirichlet hyperbola, we can compute all values of SQF'(n/d^2) in O(n^4/9) time, O(n^1/3) space.

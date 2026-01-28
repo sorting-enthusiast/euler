@@ -4,9 +4,9 @@ use crate::utils::{
     FIArray::FIArrayI64,
     multiplicative_function_summation::{sum_n_i64, totient_sieve},
 };
-const N: i64 = 1e11 as _;
+const N: usize = 1e11 as _;
 const MOD: i64 = 1e8 as i64;
-const N1: i64 = N + 1;
+const N1: i64 = N as i64 + 1;
 const N2: i64 = (N1 % MOD * N1 % MOD) % MOD;
 const fn powmod(mut x: i64, mut exp: i64) -> i64 {
     if exp == 0 {
@@ -39,12 +39,13 @@ pub fn main() {
     println!("{res}, took {:?}", start.elapsed());
 }
 fn s() -> i64 {
-    let f1 = sum_f(N1);
-    let f2 = sum_f2(N1);
-    let f3 = sum_f3(N1);
+    let f1 = sum_f(N1 as _);
+    let f2 = sum_f2(N1 as _);
+    let f3 = sum_f3(N1 as _);
     let f = |k| {
-        let mut s = (N2 * (2 * f1[N1 / k] - 1)) % MOD + (powmod(k, 2) * f3[N1 / k]) % MOD
-            - ((const { N1 % MOD } * (k % MOD)) % MOD * (3 * f2[N1 / k] - 1)) % MOD;
+        let mut s = (N2 * (2 * f1[(N1 / k) as _] - 1)) % MOD
+            + (powmod(k, 2) * f3[(N1 / k) as _]) % MOD
+            - ((const { N1 % MOD } * (k % MOD)) % MOD * (3 * f2[(N1 / k) as _] - 1)) % MOD;
         s %= MOD;
         if s < 0 {
             s += MOD;
@@ -71,7 +72,7 @@ fn s() -> i64 {
     dbg!(S(4, 4));
 
     let coeff = |i| {
-        let mut ret = powmod(2, i) - i % MOD - sum_n_i64::<MOD>(i - 1) - 1;
+        let mut ret = powmod(2, i) - i % MOD - sum_n_i64::<MOD>(i as usize - 1) - 1;
         ret %= MOD;
         if ret < 0 {
             ret += MOD;
@@ -96,14 +97,14 @@ const fn sum_squares(x: i64) -> i64 {
     let x = (x % (6 * MOD)) as u128;
     (((x * (x + 1) * (2 * x + 1)) / 6) % MOD as u128) as i64
 }
-const fn sum_cubes(x: i64) -> i64 {
+const fn sum_cubes(x: usize) -> i64 {
     let s = sum_n_i64::<MOD>(x);
     (s * s) % MOD
 }
 
 // (N phi) = (N (N * mu)) = (N^2) * (N mu) =>
 // N * (N phi) = N^2
-fn sum_f2(x: i64) -> FIArrayI64 {
+fn sum_f2(x: usize) -> FIArrayI64 {
     let y = if x > 15 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
@@ -125,10 +126,10 @@ fn sum_f2(x: i64) -> FIArrayI64 {
             ret.arr[i] = small[v as usize];
             continue;
         }
-        let mut f_v = (sum_squares(v) - sum_n_i64::<MOD>(v)) % MOD;
+        let mut f_v = (sum_squares(v as _) - sum_n_i64::<MOD>(v)) % MOD;
         let vsqrt = v.isqrt();
         for i in 2..=vsqrt {
-            f_v -= ((i % MOD) * ret[v / i]) % MOD;
+            f_v -= ((i as i64 % MOD) * ret[v / i]) % MOD;
             f_v -= ((ret.arr[i as usize - 1] - ret.arr[i as usize - 2]) % MOD
                 * sum_n_i64::<MOD>(v / i))
                 % MOD;
@@ -146,7 +147,7 @@ fn sum_f2(x: i64) -> FIArrayI64 {
 }
 
 // u * phi = N
-fn sum_f(x: i64) -> FIArrayI64 {
+fn sum_f(x: usize) -> FIArrayI64 {
     let y = if x > 15 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
@@ -167,14 +168,15 @@ fn sum_f(x: i64) -> FIArrayI64 {
         }
         let vsqrt = v.isqrt();
 
-        let mut phi_v = (sum_n_i64::<MOD>(v) + MOD - v % MOD) % MOD;
+        let mut phi_v = (sum_n_i64::<MOD>(v) + MOD - v as i64 % MOD) % MOD;
         for i in 2..=vsqrt {
-            phi_v -=
-                ((Phi.arr[i as usize - 1] - Phi.arr[i as usize - 2]) % MOD * ((v / i) % MOD)) % MOD;
+            phi_v -= ((Phi.arr[i as usize - 1] - Phi.arr[i as usize - 2]) % MOD
+                * ((v / i) as i64 % MOD))
+                % MOD;
             phi_v -= Phi[v / i];
             phi_v %= MOD;
         }
-        phi_v += (Phi[vsqrt] * vsqrt) % MOD;
+        phi_v += (Phi[vsqrt] * vsqrt as i64) % MOD;
         phi_v %= MOD;
         if phi_v < 0 {
             phi_v += MOD;
@@ -186,7 +188,7 @@ fn sum_f(x: i64) -> FIArrayI64 {
 
 // (N^2 phi) = (N^2 (N * mu)) = (N^3) * (N^2 mu) =>
 // (N^2) * (N^2 phi) = N^3
-fn sum_f3(x: i64) -> FIArrayI64 {
+fn sum_f3(x: usize) -> FIArrayI64 {
     let y = if x > 15 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
@@ -208,15 +210,16 @@ fn sum_f3(x: i64) -> FIArrayI64 {
             ret.arr[i] = small[v as usize];
             continue;
         }
-        let mut f_v = (sum_cubes(v) - sum_squares(v)) % MOD;
+        let mut f_v = (sum_cubes(v as _) - sum_squares(v as _)) % MOD;
         let vsqrt = v.isqrt();
         for i in 2..=vsqrt {
-            f_v -= (powmod(i, 2) * ret[v / i]) % MOD;
-            f_v -= ((ret.arr[i as usize - 1] - ret.arr[i as usize - 2]) % MOD * sum_squares(v / i))
+            f_v -= (powmod(i as _, 2) * ret[v / i]) % MOD;
+            f_v -= ((ret.arr[i as usize - 1] - ret.arr[i as usize - 2]) % MOD
+                * sum_squares((v / i) as _))
                 % MOD;
             f_v %= MOD;
         }
-        f_v += (ret[vsqrt] * sum_squares(vsqrt)) % MOD;
+        f_v += (ret[vsqrt] * sum_squares(vsqrt as _)) % MOD;
         f_v %= MOD;
         if f_v < 0 {
             f_v += MOD;

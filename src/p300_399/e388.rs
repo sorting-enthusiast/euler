@@ -21,8 +21,8 @@ pub fn main() {
 
     let len = m.arr.len();
 
-    let mut r = i128::from(m[N as i64]) + N.pow(3) - i128::from(m[SQRT_N as i64]) * SQRT_N.pow(3);
-    let mut tot = i128::from(m[N as i64]) + sum_n(N) - sum_n(SQRT_N) * i128::from(m[SQRT_N as i64]);
+    let mut r = i128::from(m[N as _]) + N.pow(3) - i128::from(m[SQRT_N as _]) * SQRT_N.pow(3);
+    let mut tot = i128::from(m[N as _]) + sum_n(N) - sum_n(SQRT_N) * i128::from(m[SQRT_N as _]);
     for i in 2..=SQRT_N as usize {
         r += i128::from(m.arr[i - 1] - m.arr[i - 2]) * (N / i as i128).pow(3);
         r += (3 * i * i - 3 * i + 1) as i128 * i128::from(m.arr[len - i]);
@@ -41,9 +41,9 @@ fn alt() {
 
     let len = m.arr.len();
 
-    let mut j2 = i128::from(m[N as i64]) + sum_squares(N)
-        - sum_squares(SQRT_N) * i128::from(m[SQRT_N as i64]);
-    let mut j1 = i128::from(m[N as i64]) + sum_n(N) - sum_n(SQRT_N) * i128::from(m[SQRT_N as i64]);
+    let mut j2 =
+        i128::from(m[N as _]) + sum_squares(N) - sum_squares(SQRT_N) * i128::from(m[SQRT_N as _]);
+    let mut j1 = i128::from(m[N as _]) + sum_n(N) - sum_n(SQRT_N) * i128::from(m[SQRT_N as _]);
     for i in 2..=SQRT_N as usize {
         let mu_i = i128::from(m.arr[i - 1] - m.arr[i - 2]);
 

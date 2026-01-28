@@ -2,7 +2,7 @@ use crate::utils::multiplicative_function_summation::totient_sum;
 
 pub fn main() {
     let start = std::time::Instant::now();
-    let mut n = 5e8 as i64;
+    let mut n = 5e8 as usize;
     let sums = totient_sum::<0>(n);
     let mut res = sums[n];
     n >>= 1;

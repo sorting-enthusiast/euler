@@ -1,5 +1,5 @@
 use crate::utils::multiplicative_function_summation::totient_sum;
-const N: i64 = 1e11 as _;
+const N: usize = 1e11 as _;
 const MOD: i64 = 1e9 as i64 + 7;
 
 pub fn main() {

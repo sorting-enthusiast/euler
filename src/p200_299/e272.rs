@@ -39,28 +39,28 @@ pub fn main() {
         .filter(|p| p % 3 == 1)
         .collect_vec();
     dbg!(start.elapsed());
-    let mut s = FIArrayU64::id::<0>(N);
-    let keys = FIArrayU64::keys(N)
-        .take_while(|&v| v <= N / 482_391)
+    let mut s = FIArrayU64::id::<0>(N as _);
+    let keys = FIArrayU64::keys(N as _)
+        .take_while(|&v| v as u64 <= N / 482_391)
         .collect_vec()
         .into_boxed_slice();
     let lim = primes.partition_point(|&p| p <= N / 482_391);
     for &p in &primes[..lim] {
         for (i, &v) in keys.iter().enumerate().rev() {
-            if p > v {
+            if p > v as u64 {
                 break;
             }
-            s.arr[i] -= p * s[v / p];
+            s.arr[i] -= p * s[v / p as usize];
         }
     }
     dbg!(start.elapsed());
 
     let res = dfs(
-        &|prod| prod * s[N / prod] - 9 * prod * s[N / (9 * prod)],
+        &|prod| prod * s[(N / prod) as _] - 9 * prod * s[(N / (9 * prod)) as _],
         5,
         1,
         N,
         &primes,
-    ) + dfs(&|prod| prod * s[N / prod], 4, 9, N / 9, &primes);
+    ) + dfs(&|prod| prod * s[(N / prod) as _], 4, 9, N / 9, &primes);
     println!("res = {res}, took {:?}", start.elapsed());
 }

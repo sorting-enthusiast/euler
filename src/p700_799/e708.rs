@@ -1,10 +1,9 @@
 use std::time::Instant;
 
 use crate::utils::{
-    FIArray::FIArrayI64, fast_divisor_sums::divisor_summatory,
-    powerful_numbers::PowerfulExtSkipZero,
+    FIArray::FIArray, fast_divisor_sums::divisor_summatory, powerful_numbers::PowerfulExtSkipZero,
 };
-const N: i64 = 1e14 as i64;
+const N: usize = 1e14 as usize;
 
 // powerful number trick
 // f(p) = d(p) => g = d
@@ -17,13 +16,13 @@ pub fn main() {
         1i64 << (e - 2)
     };
     let mut sum = 0;
-    let mut cache = FIArrayI64::new(N);
-    for (n, hn) in PowerfulExtSkipZero::<_, { i64::MAX }>::new(N, h) {
-        let i = cache.get_index(N / n);
+    let mut cache = FIArray::new(N);
+    for (n, hn) in PowerfulExtSkipZero::<_, { i64::MAX }>::new(N as _, h) {
+        let i = cache.get_index(N / n as usize);
         if cache.arr[i] == 0 {
-            cache.arr[i] = divisor_summatory((N / n) as _) as i64;
+            cache.arr[i] = divisor_summatory(N / n as usize);
         }
-        sum += hn * cache.arr[i];
+        sum += hn * cache.arr[i] as i64;
     }
 
     let end = start.elapsed();

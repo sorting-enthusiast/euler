@@ -75,6 +75,6 @@ fn min_25() {
     }
     //dbg!(start.elapsed());
 
-    res += 2 * dirichlet_mul_single_usize(&s, &C1, N);
+    res += 2 * dirichlet_mul_single_usize(&s, &C1);
     println!("res = {res}, took {:?}", start.elapsed());
 }

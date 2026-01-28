@@ -7,7 +7,7 @@ use crate::{
     },
 };
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
-// O(n^(2/3) / \log n) time, O(n^(1/2)) space.
+// O(n^\frac23  \log^{-(1+c)} n) time, O(n^(1/2)) space. (not entirely sure what the value of c is)
 // equivalent to inverse_pseudo_euler_transform_fraction(FIArray::unit(n))
 // 1e17: res = 2623557157654233, took 896.8224632s
 // 1e16: res = 279238341033925, took 190.0312267s
@@ -48,7 +48,84 @@ pub fn log_zeta(n: usize) -> FIArray {
         ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
     }
 
-    let mut pow_zeta = mult(&zeta, &zeta);
+    let pa = {
+        let mut vec = vec![];
+        for i in x..=rt {
+            if zeta.arr[i - 1] != zeta.arr[i - 2] {
+                vec.push(i);
+            }
+        }
+        vec.push(rt + 1);
+        vec
+    };
+    let va = &pa[..pa.len() - 1];
+    let mut pow_zeta = //mult(&zeta, &zeta);
+    {
+        let mut res = FIArray::new(n);
+        let mut r = va.len();
+        let mut l = 0;
+        for &x in va {
+            res[x * x] += 1;
+
+            l += 1;
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1] < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = rt / x;
+            let Nx = n / x;
+
+            let mut i = l;
+            /* while i != r {
+                res[x * pa[i]] += 2;
+                i += 1;
+            } */
+            while i != r && pa[i] <= X {
+                res.arr[x * pa[i] - 1] += 2 ;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pa[i]] += 2 ;
+                i += 1;
+            }
+            
+            if r != 0 && pa[r] <= Nx {
+                res[x * pa[r]] -= zeta.arr[pa[r - 1] - 1] * 2;
+            }
+        }
+        for i in 1..len {
+            res.arr[i] += res.arr[i - 1];
+        }
+        r = va.len();
+        l = 0;
+        for &x in va {
+            l += 1;
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1] < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            /* for i in (1..=Nx / pa[r]).rev() {
+                res[n / i] += 2 * zeta[Nx / i];
+            } */
+            let mut i = Nx / pa[r];
+            let X = rt / x;
+            while i > X {
+                res.arr[len - i] += 2 * zeta.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += 2 * zeta.arr[len - x * i];
+                i -= 1;
+            }
+        }
+        res
+    };
     /* let ind = pow_zeta.get_index(x.pow(2));
     assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
     dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
@@ -60,13 +137,10 @@ pub fn log_zeta(n: usize) -> FIArray {
         //pow_zeta = mult_sparse(&zeta, &pow_zeta);
 
         zeta.arr[rt..].fill(0);
-        for i in x..=rt {
-            let y = zeta.arr[i - 1] - zeta.arr[i - 2];
-            if y != 0 {
-                //assert_eq!(y, 1);
-                for j in 1..=rt / i {
-                    zeta.arr[len - j] += /* y * */ pow_zeta.arr[len - i * j];
-                }
+        for &i in va {
+            for j in 1..=rt / i {
+                //zeta[n / j] += pow_zeta[n / (i * j)];
+                zeta.arr[len - j] += pow_zeta.arr[len - i * j];
             }
         }
         //zeta.arr[..rt].fill(0);
