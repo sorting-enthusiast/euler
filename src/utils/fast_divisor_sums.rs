@@ -210,7 +210,7 @@ fn S_R(
         + S_R(n, w - u_7, v_5, a_3, b_3, c_1 + c_2 + u_7, a_2, b_2, c_2)
 }
 
-fn d(n: i64) -> i64 {
+pub fn d(n: i64) -> i64 {
     let x_max = n.isqrt();
     2 * s(n, x_max) - x_max * x_max
 }

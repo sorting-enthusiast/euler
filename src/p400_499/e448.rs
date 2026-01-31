@@ -13,7 +13,7 @@ fn sum_f(x: usize) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e8 as usize).min((x as f64).powf(2. / 3.) as usize >> 1)
     } else {
-        x as usize
+        x
     };
     let mut small = totient_sieve(y + 1);
     for i in 2..=y {
@@ -26,16 +26,15 @@ fn sum_f(x: usize) -> FIArrayI64 {
     let mut ret = FIArrayI64::new(x);
 
     for (i, v) in FIArrayI64::keys(x).enumerate() {
-        if v as usize <= y {
-            ret.arr[i] = small[v as usize];
+        if v <= y {
+            ret.arr[i] = small[v];
             continue;
         }
         let mut f_v = sum_squares(v as _) - sum_n_i64::<MOD>(v);
         let vsqrt = v.isqrt();
         for i in 2..=vsqrt {
             f_v -= (i as i64 * ret[v / i]) % MOD;
-            f_v -= ((ret.arr[i as usize - 1] - ret.arr[i as usize - 2]) * sum_n_i64::<MOD>(v / i))
-                % MOD;
+            f_v -= ((ret.arr[i - 1] - ret.arr[i - 2]) * sum_n_i64::<MOD>(v / i)) % MOD;
             f_v %= MOD;
         }
         f_v += (ret[vsqrt] * sum_n_i64::<MOD>(vsqrt)) % MOD;
@@ -80,10 +79,7 @@ pub fn main() {
     sum -= MOD;
     let sqrt = N.isqrt();
     for i in 2..=sqrt {
-        sum += ((prefix_sums.arr[i as usize - 1] - prefix_sums.arr[i as usize - 2])
-            * (N / i) as i64
-            % MOD)
-            % MOD;
+        sum += ((prefix_sums.arr[i - 1] - prefix_sums.arr[i - 2]) * (N / i) as i64 % MOD) % MOD;
         sum += prefix_sums[N / i];
         sum %= MOD;
     }

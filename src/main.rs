@@ -13,11 +13,14 @@ use chrono::Local;
 
 use crate::{
     p300_399::e362::mult,
+    p600_699::e625::div_i128,
     utils::{
-        FIArray::{DirichletFenwickI64, FIArray, FIArrayI64},
-        fast_divisor_sums,
+        FIArray::{DirichletFenwickI64, DirichletFenwickI128, FIArray, FIArrayI64, FIArrayI128},
+        fast_divisor_sums::{self, d},
         math::iroot,
-        multiplicative_function_summation::{count_squarefree, divisor_summatory, mertens, sqf},
+        multiplicative_function_summation::{
+            count_squarefree, dirichlet_mul_single_i128, divisor_summatory, mertens, sqf, sqf_icy,
+        },
         primes::{
             log_zeta::log_zeta,
             primecount::{lucy_fenwick, mertens_min25},
@@ -42,59 +45,159 @@ pub mod utils;
 const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
-// TODO: understand convex hull based lattice point counting, optimize dirichlet mul
+// TODO: understand convex hull based lattice point counting, copy sparse_div from https://loj.ac/s/2344195
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //p500_599::e580::main();
     //p800_899::e890::main();
     //test2::main();
+    p0_99::e78::main();
     p400_499::e452::main();
     p300_399::e379::main();
-    const N: usize = 1e11 as _;
-    let start = std::time::Instant::now();
-    let mut pi = inverse_pseudo_euler_transform_i64(FIArrayI64::unit(N));
-    let mut primes = vec![];
-    for p in 2..=pi.isqrt {
-        if pi.arr[p - 1] != pi.arr[p - 2] {
-            primes.push(p);
-        }
-    }
-    for i in 0..pi.arr.len() {
-        pi.arr[i] *= 3;
-    }
-
-    let s2 = mult_correction(&pseudo_euler_transform_i64(pi), &primes, |pp, p, e| {
-        2 * e as i64 + 1
-    });
-    let end = start.elapsed();
-    dbg!(end, (s2[N] + N as i64) >> 1); //2278024873139110749
+    /* p600_699::e625::solve_ext();
+    p600_699::e625::solve_ext_alt();
 
     let start = std::time::Instant::now();
-    let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
-    let mut primes = vec![];
-    for p in 2..=pi.isqrt {
-        if pi.arr[p - 1] != pi.arr[p - 2] {
-            primes.push(p);
-        }
-    }
-    for i in 0..pi.arr.len() {
-        pi.arr[i] *= 3;
-    }
+    let id = FIArrayI128::id::<0>(1 << 50);
+    let tot = div_i128(&id, &FIArrayI128::unit(1 << 50));
+    let res = dirichlet_mul_single_i128(&id, &tot);
+    println!("res = {res}, took {:?}", start.elapsed());
 
-    let s2 = mult_correction(
-        &pseudo_euler_transform_fraction_i64(pi),
-        &primes,
-        |pp, p, e| 2 * e as i64 + 1,
+    const LIM: usize = 1 << 54;
+    let start = std::time::Instant::now();
+    let mut id = DirichletFenwickI128::from(FIArrayI128::id::<0>(LIM));
+    let mut zeta = DirichletFenwickI128::zeta(LIM);
+    let lim = iroot::<8>(2 * LIM) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    for p in 2..lim {
+        if zeta.get_bucket_prefix(p - 1) == 1 {
+            continue;
+        }
+        primes.push(p);
+        id.sparse_mul_at_most_one(p, p as _);
+        zeta.sparse_mul_at_most_one(p, 1);
+    }
+    let id_lim = FIArrayI128::from(id);
+    let zeta_lim = FIArrayI128::from(zeta);
+    println!(
+        "Finished removal of primes < {lim}, started division: {:?}",
+        start.elapsed()
     );
+    let mut approx = DirichletFenwickI128::from(div_i128(&id_lim, &zeta_lim));
+    drop(id_lim);
+    drop(zeta_lim);
+    println!(
+        "Finished division, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for &p in primes.iter().rev() {
+        approx.sparse_mul_unlimited(p, p as i128 - 1);
+    }
+    let approx = FIArrayI128::from(approx);
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    let mut res = crate::p600_699::e625::mult_correction_single(&approx, &primes, |pp, p, e| {
+        pp as i128 - (pp / p) as i128
+    });
+    /* for e in &mut res.arr {
+        *e -= 1;
+    } */
     let end = start.elapsed();
-    dbg!(end, (s2[N] + N as i64) >> 1);
-    assert_eq!(lucy_fenwick(N as _), log_zeta(N as _));
+    dbg!(end, res - 1);
+    /* for i in 1..=52 {
+        print!("{i}:{},", res[1 << i]);
+    } */
+    println!(); */
+    const N: usize = 1e2 as _;
+    println!("counting sqf");
+    let start = std::time::Instant::now();
+    let s1 = count_squarefree(N);
+    let end = start.elapsed();
+    dbg!(end, s1[N]);
+    let start = std::time::Instant::now();
+    let s1 = sqf(N);
+    let end = start.elapsed();
+    dbg!(end, s1[N]);
+    let start = std::time::Instant::now();
+    let s2 = sqf_icy(N);
+    let end = start.elapsed();
+    dbg!(end, s2[N]);
+    assert_eq!(s1, s2);
+    {
+        let start = std::time::Instant::now();
+        let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
+        let mut primes = vec![];
+        for p in 2..=pi.isqrt {
+            if pi.arr[p - 1] != pi.arr[p - 2] {
+                primes.push(p);
+            }
+        }
+        for i in 0..pi.arr.len() {
+            pi.arr[i] *= 3;
+        }
+
+        let s2 = mult_correction(
+            &pseudo_euler_transform_fraction_i64(pi),
+            &primes,
+            |pp, p, e| 2 * e as i64 + 1,
+        );
+        let res = (s2[N] + N as i64) >> 1;
+        println!("res = {res}, took {:?}", start.elapsed());
+    }
+
     println!("summing mobius");
     let start = std::time::Instant::now();
     let s1 = mertens(N);
     let end = start.elapsed();
     dbg!(end, s1[N]);
+
+    let start = std::time::Instant::now();
+    let s2 = div_i64(&FIArrayI64::eps(N), &FIArrayI64::unit(N));
+    let end = start.elapsed();
+    dbg!(end, s2[N]);
+    /*let start = std::time::Instant::now();
+    let s2 = inv_i64(&FIArrayI64::unit(N));
+    let end = start.elapsed();
+    dbg!(end, s2[N]);
+    assert_eq!(s1, s2);*/
+    let start = std::time::Instant::now();
+    let mut zeta = DirichletFenwickI64::zeta(N);
+    let lim = iroot::<7>(N) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    for p in 2..lim {
+        if zeta.get_bucket_prefix(p - 1) == 1 {
+            continue;
+        }
+        primes.push(p);
+        zeta.sparse_mul_at_most_one(p, 1);
+    }
+    let zeta_lim = FIArrayI64::from(zeta);
+    println!(
+        "Finished removal of primes < {lim}, started convolution: {:?}",
+        start.elapsed()
+    );
+    let mut zeta_2 = DirichletFenwickI64::from(div_i64(&FIArrayI64::eps(N), &zeta_lim));
+    println!(
+        "Finished convolution, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for &p in primes.iter().rev() {
+        zeta_2.sparse_mul_at_most_one(p, 1);
+    }
+    let approx = FIArrayI64::from(zeta_2);
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    //let accurate = mult_correction(&approx, &primes, |_, _, e| 0);
+    let end = start.elapsed();
+    dbg!(end, approx[N]);
+    assert_eq!(s2, approx);
     let start = std::time::Instant::now();
     let s1 = mertens_min25(N);
     let end = start.elapsed();
@@ -118,58 +221,221 @@ pub fn main() {
     );
     let end = start.elapsed();
     dbg!(end, s1[N]);
-    let start = std::time::Instant::now();
-    let mut pi = inverse_pseudo_euler_transform_i64(FIArrayI64::unit(N));
-    let mut primes = vec![];
-    for p in 2..=pi.isqrt {
-        if pi.arr[p - 1] != pi.arr[p - 2] {
-            primes.push(p);
-        }
-    }
-    for e in &mut pi.arr {
-        *e *= -1;
-    }
-
-    let s1 = mult_correction(
-        &pseudo_euler_transform_i64(pi),
-        &primes,
-        |pp, p, e| match e {
-            0 => 1,
-            1 => -1,
-            _ => 0,
-        },
-    );
-    let end = start.elapsed();
-    dbg!(end, s1[N]);
     println!("hello and goodbye");
     println!("summing divisor counts");
     dbg!(fast_divisor_sums::divisor_summatory(N));
-    let start = std::time::Instant::now();
-    let s1 = divisor_summatory(N);
-    let end = start.elapsed();
-    dbg!(end, s1[N]);
-    let start = std::time::Instant::now();
-    let u = FIArray::unit(N);
-    let s1 = mult(&u, &u);
-    let end = start.elapsed();
-    dbg!(end, s1[N]);
-    let start = std::time::Instant::now();
-    let mut pi = inverse_pseudo_euler_transform_i64(FIArrayI64::unit(N));
-    let mut primes = vec![];
-    for p in 2..=pi.isqrt {
-        if pi.arr[p - 1] != pi.arr[p - 2] {
+    /* {
+        let start = std::time::Instant::now();
+        let mut zeta = DirichletFenwickI64::zeta(N);
+        let lim = iroot::<9>(N) + 1;
+        let mut primes = vec![];
+        println!("started removal of primes < {lim}: {:?}", start.elapsed());
+        for p in 2..lim {
+            if zeta.get_bucket_prefix(p - 1) == 1 {
+                continue;
+            }
             primes.push(p);
+            zeta.sparse_mul_at_most_one(p, 1);
         }
+        let zeta_lim = FIArrayI64::from(zeta);
+        println!(
+            "Finished removal of primes < {lim}, started convolution: {:?}",
+            start.elapsed()
+        );
+        let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+        println!(
+            "Finished convolution, started adding back primes < {lim}: {:?}",
+            start.elapsed()
+        );
+        for &p in primes.iter().rev() {
+            zeta_2.sparse_mul_unlimited(p, 2);
+        }
+        let approx = FIArrayI64::from(zeta_2);
+        println!(
+            "Finished adding back primes < {lim}, started correction: {:?}",
+            start.elapsed()
+        );
+        let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+        let end = start.elapsed();
+        dbg!(end, accurate[N]);
     }
-    for i in 0..pi.arr.len() {
-        pi.arr[i] *= 2;
-    }
+     */
 
-    let s2 = mult_correction(&pseudo_euler_transform_i64(pi), &primes, |pp, p, e| {
-        e as i64 + 1
-    });
+    let start = std::time::Instant::now();
+    let mut zeta = DirichletFenwickI64::zeta(N);
+    let lim = iroot::<8>(N) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    for p in 2..lim {
+        if zeta.get_bucket_prefix(p - 1) == 1 {
+            continue;
+        }
+        primes.push(p);
+        zeta.sparse_mul_at_most_one(p, 1);
+    }
+    let zeta_lim = FIArrayI64::from(zeta);
+    println!(
+        "Finished removal of primes < {lim}, started convolution: {:?}",
+        start.elapsed()
+    );
+    let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+    println!(
+        "Finished convolution, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for &p in primes.iter().rev() {
+        zeta_2.sparse_mul_unlimited(p, 2);
+    }
+    let approx = FIArrayI64::from(zeta_2);
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
     let end = start.elapsed();
-    dbg!(end, s2[N]);
+    dbg!(end, accurate[N]); // 1e16: 185.5163734s, 1e15: 43.4229948s, 1e14: 9.991973s
+
+    /* {
+           let start = std::time::Instant::now();
+           let mut zeta = DirichletFenwickI64::zeta(N);
+           let lim = iroot::<7>(N) + 1;
+           let mut primes = vec![];
+           println!("started removal of primes < {lim}: {:?}", start.elapsed());
+           for p in 2..lim {
+               if zeta.get_bucket_prefix(p - 1) == 1 {
+                   continue;
+               }
+               primes.push(p);
+               zeta.sparse_mul_at_most_one(p, 1);
+           }
+           let zeta_lim = FIArrayI64::from(zeta);
+           println!(
+               "Finished removal of primes < {lim}, started convolution: {:?}",
+               start.elapsed()
+           );
+           let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+           println!(
+               "Finished convolution, started adding back primes < {lim}: {:?}",
+               start.elapsed()
+           );
+           for &p in primes.iter().rev() {
+               zeta_2.sparse_mul_unlimited(p, 2);
+           }
+           let approx = FIArrayI64::from(zeta_2);
+           println!(
+               "Finished adding back primes < {lim}, started correction: {:?}",
+               start.elapsed()
+           );
+           let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+           let end = start.elapsed();
+           dbg!(end, accurate[N]);
+       }
+       {
+           let start = std::time::Instant::now();
+           let mut zeta = DirichletFenwickI64::zeta(N);
+           let lim = iroot::<6>(N) + 1;
+           let mut primes = vec![];
+           println!("started removal of primes < {lim}: {:?}", start.elapsed());
+           for p in 2..lim {
+               if zeta.get_bucket_prefix(p - 1) == 1 {
+                   continue;
+               }
+               primes.push(p);
+               zeta.sparse_mul_at_most_one(p, 1);
+           }
+           let zeta_lim = FIArrayI64::from(zeta);
+           println!(
+               "Finished removal of primes < {lim}, started convolution: {:?}",
+               start.elapsed()
+           );
+           let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+           println!(
+               "Finished convolution, started adding back primes < {lim}: {:?}",
+               start.elapsed()
+           );
+           for &p in primes.iter().rev() {
+               zeta_2.sparse_mul_unlimited(p, 2);
+           }
+           let approx = FIArrayI64::from(zeta_2);
+           println!(
+               "Finished adding back primes < {lim}, started correction: {:?}",
+               start.elapsed()
+           );
+           let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+           let end = start.elapsed();
+           dbg!(end, accurate[N]);
+       }
+       {
+           let start = std::time::Instant::now();
+           let mut zeta = DirichletFenwickI64::zeta(N);
+           let lim = iroot::<5>(N) + 1;
+           let mut primes = vec![];
+           println!("started removal of primes < {lim}: {:?}", start.elapsed());
+           for p in 2..lim {
+               if zeta.get_bucket_prefix(p - 1) == 1 {
+                   continue;
+               }
+               primes.push(p);
+               zeta.sparse_mul_at_most_one(p, 1);
+           }
+           let zeta_lim = FIArrayI64::from(zeta);
+           println!(
+               "Finished removal of primes < {lim}, started convolution: {:?}",
+               start.elapsed()
+           );
+           let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+           println!(
+               "Finished convolution, started adding back primes < {lim}: {:?}",
+               start.elapsed()
+           );
+           for &p in primes.iter().rev() {
+               zeta_2.sparse_mul_unlimited(p, 2);
+           }
+           let approx = FIArrayI64::from(zeta_2);
+           println!(
+               "Finished adding back primes < {lim}, started correction: {:?}",
+               start.elapsed()
+           );
+           let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+           let end = start.elapsed();
+           dbg!(end, accurate[N]);
+       }
+       {
+           let start = std::time::Instant::now();
+           let mut zeta = DirichletFenwickI64::zeta(N);
+           let lim = iroot::<4>(N) + 1;
+           let mut primes = vec![];
+           println!("started removal of primes < {lim}: {:?}", start.elapsed());
+           for p in 2..lim {
+               if zeta.get_bucket_prefix(p - 1) == 1 {
+                   continue;
+               }
+               primes.push(p);
+               zeta.sparse_mul_at_most_one(p, 1);
+           }
+           let zeta_lim = FIArrayI64::from(zeta);
+           println!(
+               "Finished removal of primes < {lim}, started convolution: {:?}",
+               start.elapsed()
+           );
+           let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+           println!(
+               "Finished convolution, started adding back primes < {lim}: {:?}",
+               start.elapsed()
+           );
+           for &p in primes.iter().rev() {
+               zeta_2.sparse_mul_unlimited(p, 2);
+           }
+           let approx = FIArrayI64::from(zeta_2);
+           println!(
+               "Finished adding back primes < {lim}, started correction: {:?}",
+               start.elapsed()
+           );
+           let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+           let end = start.elapsed();
+           dbg!(end, accurate[N]);
+       }
+    */
     let start = std::time::Instant::now();
     let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
     let mut primes = vec![];
@@ -185,25 +451,22 @@ pub fn main() {
     let s2 = mult_correction(
         &pseudo_euler_transform_fraction_i64(pi),
         &primes,
-        |pp, p, e| e as i64 + 1,
+        |_, _, e| e as i64 + 1,
     );
     let end = start.elapsed();
-    dbg!(end, s2[N]);
+    dbg!(end, s2[N]); // 1e16: 412.19307s, 1e15: 94.1795311s, 1e14: 23.9598301s
+    assert_eq!(accurate, s2);
 
-    //assert_eq!(s1, s2);
-    println!("hello and goodbye");
-    println!("counting sqf");
     let start = std::time::Instant::now();
-    let s1 = sqf(N);
+    let u = FIArray::unit(N);
+    let s1 = mult(&u, &u);
     let end = start.elapsed();
-    dbg!(end, s1[N]);
-    let start = std::time::Instant::now();
-    let s2 = count_squarefree(N);
-    let end = start.elapsed();
-    dbg!(end, s2[N]);
-    for i in 0..s2.arr.len() {
-        assert_eq!(s1.arr[i] as usize, s2.arr[i]);
+    dbg!(end, s1[N]); // 1e16: 930.8709046s, 1e15: 163.2886445s, 1e14: 31.1254918s
+
+    for i in 0..s1.arr.len() {
+        assert_eq!(s1.arr[i], accurate.arr[i] as usize);
     }
+    println!("hello and goodbye");
     p300_399::e362::main();
     utils::primes::primecount::main();
     //utils::primes::prime_sieves::main();
@@ -283,12 +546,13 @@ pub fn inverse_pseudo_euler_transform_i64(a: FIArrayI64) -> FIArrayI64 {
     r
 }
 
-fn mult_correction(
+#[must_use]
+pub fn mult_correction(
     d: &FIArrayI64,
     primes: &[usize],
     f: impl Fn(usize, usize, u8) -> i64,
 ) -> FIArrayI64 {
-    struct Correction(FIArrayI64);
+    struct Correction(FIArrayI64, usize);
     impl Correction {
         fn fill(
             &mut self,
@@ -299,6 +563,7 @@ fn mult_correction(
             f: &impl Fn(usize, usize, u8) -> i64,
         ) {
             self.0[x as _] += y;
+            self.1 += 1;
             for (i, &p) in primes.iter().enumerate() {
                 if p > lim / p {
                     break;
@@ -323,11 +588,12 @@ fn mult_correction(
             }
         }
     }
-    let mut correction = Correction(FIArrayI64::new(d.x));
+    let mut correction = Correction(FIArrayI64::new(d.x), 0);
     correction.fill(primes, d.x, 1, 1, &f);
     for i in 1..correction.0.arr.len() {
         correction.0.arr[i] += correction.0.arr[i - 1];
     }
+    dbg!(correction.1);
     mult_sparse_i64(d, &correction.0)
 }
 pub fn mult_sparse_with_buffer_i64(a: &FIArrayI64, b: &FIArrayI64, res: &mut FIArrayI64) {
@@ -436,8 +702,8 @@ pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         let va = &pa[..pa.len() - 1];
         let mut r = va.len();
         let mut l = 0;
-        for &(x, y) in va {
-            res[(x * x) as _] += y * y;
+        for &(x, fx) in va {
+            res[x * x] += fx * fx;
 
             l += 1;
             let Nx = n / x;
@@ -453,15 +719,15 @@ pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             let mut i = l;
 
             while i != r && pa[i].0 <= X {
-                res.arr[x * pa[i].0 - 1] += 2 * y * pa[i].1;
+                res.arr[x * pa[i].0 - 1] += 2 * fx * pa[i].1;
                 i += 1;
             }
             while i != r {
-                res.arr[len - Nx / pa[i].0] += 2 * y * pa[i].1;
+                res.arr[len - Nx / pa[i].0] += 2 * fx * pa[i].1;
                 i += 1;
             }
             if r != 0 && pa[r].0 <= Nx {
-                res[(x * pa[r].0) as _] -= y * a.arr[pa[r - 1].0 - 1] * 2;
+                res[x * pa[r].0] -= fx * a.arr[pa[r - 1].0 - 1] * 2;
             }
         }
         for i in 1..len {
@@ -469,7 +735,7 @@ pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         }
         r = va.len();
         l = 0;
-        for &(x, y) in va {
+        for &(x, fx) in va {
             l += 1;
             let Nx = n / x;
             while r > l && Nx / pa[r - 1].0 < r - 1 {
@@ -482,11 +748,11 @@ pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             let mut i = Nx / pa[r].0;
             let X = R2 / x;
             while i > X {
-                res.arr[len - i] += 2 * y * a.arr[Nx / i - 1];
+                res.arr[len - i] += 2 * fx * a.arr[Nx / i - 1];
                 i -= 1;
             }
             while i > 0 {
-                res.arr[len - i] += 2 * y * a.arr[len - x * i];
+                res.arr[len - i] += 2 * fx * a.arr[len - x * i];
                 i -= 1;
             }
         }
@@ -615,6 +881,337 @@ pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     }
     res
 }
+#[must_use]
+pub fn div_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
+    unsafe { core::hint::assert_unchecked(a.x == b.x) };
+    let R2 = a.isqrt;
+    let n = a.x;
+    let mut res = FIArrayI64::new(n);
+
+    let s1 = |ds: &FIArrayI64| {
+        let mut vec = vec![];
+        if ds.arr[0] != 0 {
+            vec.push((1, ds.arr[0]));
+        }
+        for i in 1..R2 {
+            if ds.arr[i] != ds.arr[i - 1] {
+                vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));
+            }
+        }
+        vec.push((R2 + 1, 0));
+        vec
+    };
+    let len = res.arr.len();
+
+    let mut pa = vec![];
+    let pb = s1(b);
+    let vb = &pb[..pb.len() - 1];
+    res.arr[0] = a.arr[0];
+    for i in 1..R2 {
+        res.arr[i] = a.arr[i] - a.arr[i - 1];
+    }
+    let mut sum = 0;
+    for i in 1..=R2 {
+        let val = res.arr[i - 1];
+        sum += val;
+        res.arr[i - 1] = sum;
+        dbg!(sum);
+        if val == 0 {
+            continue;
+        }
+        pa.push((i, val));
+        for (y, fy) in &vb[1..] {
+            if y * i > R2 {
+                break;
+            }
+            res.arr[i * y - 1] -= val * fy;
+        }
+    }
+    dbg!(&res.arr[..R2]);
+    pa.push((R2 + 1, 0));
+    let va = &pa[..pa.len() - 1];
+
+    let mut r = vb.len();
+    let mut l0 = r;
+    let mut l = 0;
+    for &(x, fx) in va {
+        while pb[l].0 <= x {
+            l += 1;
+        }
+        let Nx = n / x;
+        let X = R2 / x;
+
+        while l0 > l && X < pb[l0 - 1].0 {
+            l0 -= 1;
+        }
+        while r > l && Nx < (r - 1) * pb[r - 1].0 {
+            r -= 1;
+        }
+
+        if l.max(l0) < r {
+            for (y, fy) in &pb[l.max(l0)..r] {
+                res.arr[len - Nx / y] += fx * fy;
+            }
+        }
+        r = r.max(l);
+
+        if r > 0 && pb[r].0 <= Nx {
+            res.arr[len - Nx / pb[r].0] -= fx * b.arr[pb[r - 1].0 - 1];
+        }
+    }
+    r = va.len();
+    l0 = r;
+    l = 0;
+    let mut bound_z = n / (R2 + 1);
+    for &(y, fy) in vb {
+        while pa[l].0 < y {
+            l += 1;
+        }
+        let Ny = n / y;
+        let bound_y = Ny / (bound_z + 1);
+        while l0 > l && R2 < y * pa[l0 - 1].0 {
+            l0 -= 1;
+        }
+        while r > l && pa[r - 1].0 > bound_y && Ny < (r - 1) * pa[r - 1].0 {
+            r -= 1;
+        }
+        if l.max(l0) < r {
+            for (x, fx) in &va[l.max(l0)..r] {
+                res.arr[len - Ny / x] += fy * fx;
+            }
+        }
+
+        r = r.max(l);
+
+        if r > 0 && pa[r].0 <= Ny {
+            res.arr[len - Ny / pa[r].0] -= fy * res.arr[pa[r - 1].0 - 1];
+        }
+        bound_z = Ny / pa[r].0;
+    }
+
+    res.arr[R2] += a.arr[R2 - 1];
+    for i in R2 + 1..len {
+        res.arr[i] += res.arr[i - 1];
+    }
+    l = 0;
+    r = vb.len();
+    for &(x, fx) in va {
+        while pb[l].0 <= x {
+            l += 1;
+        }
+        let Nx = n / x;
+        while r > l && Nx < (r - 1) * pb[r - 1].0 {
+            r -= 1;
+        }
+        //assert!(r >= l);
+        //mul_sparse_large(x, Nx, fx, pairs2[std::max(l, r)].first, block2, block_out);
+        if r < l {
+            r = l;
+        }
+
+        let mut i = Nx / pb[r].0;
+        let X = R2 / x;
+        while i > X {
+            res.arr[len - i] += fx * b.arr[Nx / i - 1];
+            i -= 1;
+        }
+        while i > 0 {
+            res.arr[len - i] += fx * b.arr[len - x * i];
+            i -= 1;
+        }
+    }
+    let mut c_y = 0;
+    l = 0;
+    r = va.len();
+    bound_z = n / (R2 + 1);
+    for i in (1..=bound_z).rev() {
+        while bound_z >= i {
+            c_y += 1;
+            let y = pb[c_y].0;
+            while pa[l].0 < y {
+                l += 1;
+            }
+            let Ny = n / y;
+            let bound_y = Ny / (bound_z + 1);
+            while r > l && pa[r - 1].0 > bound_y && (r - 1) * (pa[r - 1].0) > Ny {
+                r -= 1;
+            }
+            r = r.max(l);
+            bound_z = Ny / pa[r].0;
+        }
+        let Nz = n / i;
+        let mut ans = a.arr[len - i] - res.arr[len - i];
+        for (y, fy) in &pb[1..c_y] {
+            ans -= fy * res[Nz / y];
+        }
+        res.arr[len - i] = ans;
+    }
+    res
+}
+// TODO: finish
+#[must_use]
+pub fn inv_i64(b: &FIArrayI64) -> FIArrayI64 {
+    todo!();
+    let R2 = b.isqrt;
+    let n = b.x;
+    let mut res = FIArrayI64::new(n);
+
+    let s1 = |ds: &FIArrayI64| {
+        let mut vec = vec![];
+        if ds.arr[0] != 0 {
+            vec.push((1, ds.arr[0]));
+        }
+        for i in 1..R2 {
+            if ds.arr[i] != ds.arr[i - 1] {
+                vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));
+            }
+        }
+        vec.push((R2 + 1, 0));
+        vec
+    };
+    let len = res.arr.len();
+
+    let pa = [(1, 1), (R2 + 1, 0)];
+    let va = &pa[..pa.len() - 1];
+
+    let pb = s1(b);
+    let vb = &pb[..pb.len() - 1];
+    res.arr[0] = 1;
+    let mut sum = 0;
+    for i in 1..=R2 {
+        let val = res.arr[i - 1];
+        sum += val;
+        res.arr[i - 1] = sum;
+        dbg!(sum);
+        if val == 0 {
+            continue;
+        }
+        for (y, fy) in &vb[1..] {
+            if y * i > R2 {
+                break;
+            }
+            res.arr[i * y - 1] -= val * fy;
+        }
+    }
+    dbg!(&res.arr[..R2]);
+    let mut r = vb.len();
+    let mut l0 = r;
+    let mut l = 0;
+    for &(x, fx) in va {
+        while pb[l].0 <= x {
+            l += 1;
+        }
+        let Nx = n / x;
+        let X = R2 / x;
+
+        while l0 > l && X < pb[l0 - 1].0 {
+            l0 -= 1;
+        }
+        while r > l && Nx < (r - 1) * pb[r - 1].0 {
+            r -= 1;
+        }
+
+        if l.max(l0) < r {
+            for (y, fy) in &pb[l.max(l0)..r] {
+                res.arr[len - Nx / y] += fx * fy;
+            }
+        }
+        r = r.max(l);
+
+        if r > 0 && pb[r].0 <= Nx {
+            res.arr[len - Nx / pb[r].0] -= fx * b.arr[pb[r - 1].0 - 1];
+        }
+    }
+    r = va.len();
+    l0 = r;
+    l = 0;
+    let mut bound_z = n / (R2 + 1);
+    for &(y, fy) in vb {
+        while pa[l].0 < y {
+            l += 1;
+        }
+        let Ny = n / y;
+        let bound_y = Ny / (bound_z + 1);
+        while l0 > l && R2 < y * pa[l0 - 1].0 {
+            l0 -= 1;
+        }
+        while r > l && pa[r - 1].0 > bound_y && Ny < (r - 1) * pa[r - 1].0 {
+            r -= 1;
+        }
+        if l.max(l0) < r {
+            for (x, fx) in &va[l.max(l0)..r] {
+                res.arr[len - Ny / x] += fy * fx;
+            }
+        }
+
+        r = r.max(l);
+
+        if r > 0 && pa[r].0 <= Ny {
+            res.arr[len - Ny / pa[r].0] -= fy * res.arr[pa[r - 1].0 - 1];
+        }
+        bound_z = Ny / pa[r].0;
+    }
+
+    res.arr[R2] += 1;
+    for i in R2 + 1..len {
+        res.arr[i] += res.arr[i - 1];
+    }
+    l = 0;
+    r = vb.len();
+    for &(x, fx) in va {
+        while pb[l].0 <= x {
+            l += 1;
+        }
+        let Nx = n / x;
+        while r > l && Nx < (r - 1) * pb[r - 1].0 {
+            r -= 1;
+        }
+        //assert!(r >= l);
+        //mul_sparse_large(x, Nx, fx, pairs2[std::max(l, r)].first, block2, block_out);
+        if r < l {
+            r = l;
+        }
+
+        let mut i = Nx / pb[r].0;
+        let X = R2 / x;
+        while i > X {
+            res.arr[len - i] += fx * b.arr[Nx / i - 1];
+            i -= 1;
+        }
+        while i > 0 {
+            res.arr[len - i] += fx * b.arr[len - x * i];
+            i -= 1;
+        }
+    }
+    let mut c_y = 0;
+    l = 0;
+    r = va.len();
+    bound_z = n / (R2 + 1);
+    for i in (1..=bound_z).rev() {
+        while bound_z >= i {
+            c_y += 1;
+            let y = pb[c_y].0;
+            while pa[l].0 < y {
+                l += 1;
+            }
+            let Ny = n / y;
+            let bound_y = Ny / (bound_z + 1);
+            while r > l && pa[r - 1].0 > bound_y && (r - 1) * (pa[r - 1].0) > Ny {
+                r -= 1;
+            }
+            r = r.max(l);
+            bound_z = Ny / pa[r].0;
+        }
+        let Nz = n / i;
+        let mut ans = 1 - res.arr[len - i];
+        for (y, fy) in &pb[1..c_y] {
+            ans -= fy * res[Nz / y];
+        }
+        res.arr[len - i] = ans;
+    }
+    res
+}
+
 // faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 1296 before reducing
 #[must_use]
 pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
@@ -789,7 +1386,7 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     let n = a.x;
     let mut res = FIArrayI64::new(n);
 
-    let s1 = |ds: &FIArrayI64| {
+    let collect_nonzero = |ds: &FIArrayI64| {
         let mut vec = vec![];
         if ds.arr[0] != 0 {
             vec.push((1, ds.arr[0]));
@@ -804,9 +1401,9 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     };
     let len = res.arr.len();
 
-    let pa = s1(a);
+    let pa = collect_nonzero(a);
     let va = &pa[..pa.len() - 1];
-    let pb = s1(b);
+    let pb = collect_nonzero(b);
     let vb = &pb[..pb.len() - 1];
     res.arr[0] += a.arr[0] * b.arr[0];
     for i in 2..=R2 {
@@ -814,7 +1411,7 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     }
     let mut r = vb.len();
     let mut l = 0;
-    for &(x, y) in va {
+    for &(x, fx) in va {
         while pb[l].0 <= x {
             l += 1;
         }
@@ -826,20 +1423,20 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             r = l;
         }
 
-        for (a, b) in &pb[l..r] {
-            res[x * a] += y * b;
+        for (y, fy) in &pb[l..r] {
+            res[x * y] += fx * fy;
         }
         if r != 0 && x * pb[r].0 <= n {
-            res[x * pb[r].0] -= y * b.arr[pb[r - 1].0 - 1];
+            res[x * pb[r].0] -= fx * b.arr[pb[r - 1].0 - 1];
         }
     }
     r = va.len();
     l = 0;
-    for &(x, y) in vb {
-        while pa[l].0 <= x {
+    for &(y, fy) in vb {
+        while pa[l].0 <= y {
             l += 1;
         }
-        let Nx = n / x;
+        let Nx = n / y;
         while r > l && Nx / pa[r - 1].0 < r - 1 {
             r -= 1;
         }
@@ -847,11 +1444,11 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             r = l;
         }
 
-        for (a, b) in &pa[l..r] {
-            res[x * a] += y * b;
+        for (x, fx) in &pa[l..r] {
+            res[y * x] += fy * fx;
         }
-        if r != 0 && x * pa[r].0 <= n {
-            res[x * pa[r].0] -= y * a.arr[pa[r - 1].0 - 1];
+        if r != 0 && y * pa[r].0 <= n {
+            res[y * pa[r].0] -= fy * a.arr[pa[r - 1].0 - 1];
         }
     }
     for i in 1..len {
@@ -859,7 +1456,7 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     }
     r = vb.len();
     l = 0;
-    for &(x, y) in va {
+    for &(x, fx) in va {
         while pb[l].0 <= x {
             l += 1;
         }
@@ -872,16 +1469,16 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         }
 
         for i in (1..=Nx / pb[r].0).rev() {
-            res.arr[len - i] += y * b[Nx / i];
+            res.arr[len - i] += fx * b[Nx / i];
         }
     }
     r = va.len();
     l = 0;
-    for &(x, y) in vb {
-        while pa[l].0 <= x {
+    for &(y, fy) in vb {
+        while pa[l].0 <= y {
             l += 1;
         }
-        let Nx = n / x;
+        let Nx = n / y;
         while r > l && Nx / pa[r - 1].0 < r - 1 {
             r -= 1;
         }
@@ -890,7 +1487,7 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         }
 
         for i in (1..=Nx / pa[r].0).rev() {
-            res.arr[len - i] += y * a[Nx / i];
+            res.arr[len - i] += fy * a[Nx / i];
         }
     }
 

@@ -3,10 +3,12 @@ use crate::{
     utils::{
         FIArray::FIArray,
         fast_divisor_sums::{d3, icbrt},
-        multiplicative_function_summation::{count_squarefree, dirichlet_mul_single_usize},
+        multiplicative_function_summation::{
+            count_squarefree, dirichlet_mul_single_i64, dirichlet_mul_single_usize, divisor_summatory, sqf
+        },
     },
 };
-const N: i64 = 1e11 as _;
+const N: i64 = 1e12 as _;
 // A018892
 // sum of (d(n^2) + 1) / 2
 // let d2(n) = d(n^2)
@@ -43,7 +45,6 @@ pub fn main() {
         }
         res
     }
-
     const I: i64 = icbrt(N);
     const D: i64 = (N / I).isqrt();
     let start = std::time::Instant::now();
@@ -51,7 +52,8 @@ pub fn main() {
     let mut mertens_small = mobius_sieve(D as usize + 1);
     for d in 1..=D {
         if mertens_small[d as usize] != 0 {
-            res += mertens_small[d as usize] * d3((N / (d * d)) as _) as i64;
+            let v= d3((N / (d * d)) as _) as i64;
+            res += mertens_small[d as usize] as i64 * v;
         }
         mertens_small[d as usize] += mertens_small[d as usize - 1];
     }
@@ -59,7 +61,7 @@ pub fn main() {
     for i in 1..I {
         small_diff[i as usize - 1] = d3(i as _) as i64; // can use linear sieve, but the code is simpler this way and the time complexity doesn't change
     }
-    res -= mertens_small[D as usize] * small_diff[I as usize - 2];
+    res -= mertens_small[D as usize] as i64 * small_diff[I as usize - 2];
 
     for i in (2..I).rev() {
         small_diff[i as usize - 1] -= small_diff[i as usize - 2];
@@ -79,24 +81,26 @@ pub fn main() {
             m -= (mertens_small[d] - mertens_small[d - 1]) * (v / d) as i64;
         }
         mertens_big[i as usize - 1] = m;
-        res += small_diff[i as usize - 1] * m;
+        res += small_diff[i as usize - 1] * m as i64;
     }
-    res += N;
+    res += N as i64;
     res >>= 1;
     println!("res = {res}, took {:?}", start.elapsed());
     initial_solution();
 }
 
 // using d2 = d * sqf
-// O(n^2/3) time, O(n^1/2) space
+// O(n^2/3 \log^-c n) time, O(n^1/2) space
 fn initial_solution() {
     const N: usize = self::N as _;
     const SQRT_N: usize = N.isqrt();
 
     let start = std::time::Instant::now();
-    let sqf = count_squarefree(N);
-    let u = FIArray::unit(N);
-    let d = mult(&u, &u); //dirichlet_mul_usize(&u, &u, N);
-    let res = (N + dirichlet_mul_single_usize(&sqf, &d)) >> 1;
+    let sqf = sqf(N);//count_squarefree(N);
+    /* let u = FIArray::unit(N);
+    let d = mult(&u, &u); */
+ //dirichlet_mul_usize(&u, &u, N);
+    let d = divisor_summatory(N);
+    let res = (N + dirichlet_mul_single_i64(&sqf, &d) as usize) >> 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }

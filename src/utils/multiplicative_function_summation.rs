@@ -1,12 +1,12 @@
 use itertools::Itertools;
 
 use crate::{
-    mult_sparse_i64,
+    mult_correction, mult_i64, mult_sparse_i64,
     p300_399::e362::mult,
     utils::{
         FIArray::{
-            DirichletFenwick, FIArray, FIArrayI32, FIArrayI64, FIArrayI128, FIArrayIsize,
-            FIArrayU32, FIArrayU64, FIArrayU128, FIArrayUsize,
+            DirichletFenwick, DirichletFenwickI64, FIArray, FIArrayI32, FIArrayI64, FIArrayI128,
+            FIArrayIsize, FIArrayU32, FIArrayU64, FIArrayU128, FIArrayUsize,
         },
         bit_array::BitArray,
         math::iroot,
@@ -215,8 +215,25 @@ pub fn mertens(x: usize) -> FIArrayI64 {
 }
 #[must_use]
 pub fn divisor_summatory(x: usize) -> FIArrayI64 {
-    let u = FIArrayI64::unit(x);
-    dirichlet_mul_i64(&u, &u, x)
+    /* let u = FIArrayI64::unit(x);
+    dirichlet_mul_i64(&u, &u, x) */
+    let mut zeta = DirichletFenwickI64::zeta(x);
+    let lim = iroot::<8>(x) + 1;
+    let mut primes = vec![];
+    for p in 2..lim {
+        if zeta.get_bucket_prefix(p - 1) == 1 {
+            continue;
+        }
+        primes.push(p);
+        zeta.sparse_mul_at_most_one(p, 1);
+    }
+    let zeta_lim = FIArrayI64::from(zeta);
+    let mut zeta_2 = DirichletFenwickI64::from(mult_i64(&zeta_lim, &zeta_lim));
+    for &p in primes.iter().rev() {
+        zeta_2.sparse_mul_unlimited(p, 2);
+    }
+    let approx = FIArrayI64::from(zeta_2);
+    mult_correction(&approx, &primes, |_, _, e| e as i64 + 1)
 }
 
 /// O(n^\frac12 \log n \log \log n) time, O(n^\frac12) space
@@ -229,6 +246,7 @@ pub fn count_squarefree(x: usize) -> FIArray {
     }
     s.into()
 }
+#[must_use]
 pub fn sqf(x: usize) -> FIArrayI64 {
     let zeta = FIArrayI64::unit(x);
     let R2 = zeta.isqrt;
@@ -243,6 +261,49 @@ pub fn sqf(x: usize) -> FIArrayI64 {
         mertens_sqrt.arr[i] += mertens_sqrt.arr[i - 1];
     }
     mult_sparse_i64(&zeta, &mertens_sqrt)
+}
+#[must_use]
+pub fn sqf_icy(x: usize) -> FIArrayI64 {
+    let mut Sqf = FIArrayI64::new(x);
+    let mob = mobius_sieve(Sqf.isqrt + 1);
+    for i in 1..=Sqf.isqrt {
+        if mob[i] != 0 {
+            Sqf.arr[i - 1] = 1;
+        }
+    }
+    let s_N = Sqf.isqrt;
+    let len = Sqf.arr.len();
+    for d in 1..=s_N {
+        if mob[d] == 0 {
+            continue;
+        }
+        let M = x / (d * d);
+        let mut l = 1;
+        while l <= M && l <= s_N {
+            let val = M / l;
+            if val == 0 {
+                break;
+            }
+            let r_bound = s_N.min(M / val);
+            let term = mob[d] as i64 * val as i64;
+            Sqf.arr[len - l] += term;
+            if s_N < len - r_bound {
+                Sqf.arr[len - r_bound - 1] -= term;
+            } else {
+                break;
+            }
+
+            l = r_bound + 1;
+        }
+    }
+    for i in 1..s_N {
+        Sqf.arr[i] += Sqf.arr[i - 1];
+    }
+    for i in 2..=len - s_N {
+        Sqf.arr[len - i] += Sqf.arr[len - i + 1];
+    }
+
+    Sqf
 }
 /// Time complexity depends on sparsity:
 /// On sparse inputs, i.e. only taking values at a \frac{1}{\log n} fraction of integers, takes O(n^2/3) time.
