@@ -13,8 +13,8 @@ pub fn main() {
     let start = std::time::Instant::now();
     let primes = sift(SQRT_N as _);
     println!("Sieved primes: {:?}", start.elapsed());
-    let mut pi = FIArray::new(N as _);
-    let mut pi_sums = FIArrayI64::new(N as _);
+    let mut pi = FIArray::new(N);
+    let mut pi_sums = FIArrayI64::new(N);
     let keys = FIArray::keys(N).collect_vec();
 
     for (i, &v) in keys.iter().enumerate() {
@@ -32,15 +32,15 @@ pub fn main() {
                 break;
             }
             pi.arr[i] -= pi[v / p] - sp;
-            pi_sums.arr[i] -= p as i64 * (pi_sums[(v / p) as _] - sp2);
+            pi_sums.arr[i] -= p as i64 * (pi_sums[v / p] - sp2);
             pi_sums.arr[i] %= MOD as i64;
             if pi_sums.arr[i] < 0 {
                 pi_sums.arr[i] += MOD as i64;
             }
         }
     }
-    let mut sum = ((1..SQRT_N).fold(0, |acc, k| acc + pi_sums[(N / k) as _] as usize)
-        - (SQRT_N - 1) * pi_sums[(const { N / SQRT_N }) as _] as usize)
+    let mut sum = ((1..SQRT_N).fold(0, |acc, k| acc + pi_sums[N / k] as usize)
+        - (SQRT_N - 1) * pi_sums[const { N / SQRT_N }] as usize)
         % MOD;
     if sum >= MOD {
         sum -= MOD;
@@ -51,7 +51,29 @@ pub fn main() {
     let split = primes.partition_point(|p| p * p * p <= N as u64);
     for &p in &primes[..split] {
         let p = p as usize;
-        smooth.sparse_mul_unlimited(p, 1);
+        //smooth.sparse_mul_unlimited(p, 1);
+        {
+            let x = p;
+            let w = 1;
+            let lim = smooth.x / x;
+            let mut prev = 0;
+            let mut i = 1;
+            while i <= lim / i {
+                let cur = smooth.bit.sum(i - 1);
+                if cur != prev {
+                    smooth.bit.add(smooth.get_index(i * x), w * (cur - prev));
+                    prev = cur;
+                }
+                i += 1;
+            }
+            for j in (p..=lim / i).rev() {
+                let cur = smooth.get_prefix(lim / j);
+                if cur != prev {
+                    smooth.bit.add(smooth.bit.0.len() - j, w * (cur - prev));
+                    prev = cur;
+                }
+            }
+        }
         sum += p * (smooth.get_prefix(N / p) % MOD);
         sum %= MOD;
     }

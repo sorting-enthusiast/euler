@@ -52,7 +52,7 @@ pub fn main() {
     //p500_599::e580::main();
     //p800_899::e890::main();
     //test2::main();
-    p0_99::e78::main();
+    p600_699::e642::main();
     p400_499::e452::main();
     p300_399::e379::main();
     /* p600_699::e625::solve_ext();
@@ -112,7 +112,7 @@ pub fn main() {
         print!("{i}:{},", res[1 << i]);
     } */
     println!(); */
-    const N: usize = 1e2 as _;
+    const N: usize = 2018_2018_2018; //1e12 as _;
     println!("counting sqf");
     let start = std::time::Instant::now();
     let s1 = count_squarefree(N);
@@ -915,7 +915,7 @@ pub fn div_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         let val = res.arr[i - 1];
         sum += val;
         res.arr[i - 1] = sum;
-        dbg!(sum);
+        //dbg!(sum);
         if val == 0 {
             continue;
         }
@@ -927,7 +927,7 @@ pub fn div_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             res.arr[i * y - 1] -= val * fy;
         }
     }
-    dbg!(&res.arr[..R2]);
+    //dbg!(&res.arr[..R2]);
     pa.push((R2 + 1, 0));
     let va = &pa[..pa.len() - 1];
 
