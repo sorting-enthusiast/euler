@@ -6,6 +6,7 @@ use crate::{
         math::iroot,
     },
 };
+// TODO: try implementing the original variant
 // based on https://codeforces.com/blog/entry/91632?#comment-802482, https://codeforces.com/blog/entry/117783
 // O(n^\frac23  \log^{-(1+c)} n) time, O(n^(1/2)) space. (not entirely sure what the value of c is)
 // equivalent to inverse_pseudo_euler_transform_fraction(FIArray::unit(n))

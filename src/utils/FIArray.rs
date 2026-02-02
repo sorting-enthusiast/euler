@@ -53,6 +53,16 @@ macro_rules! FIArray_impl_for {
                         .chain((isqrt != x / isqrt).then_some(x / isqrt))
                         .chain((1..isqrt).rev().map(move |n| x / n))
                 }
+                pub fn partial_sum(&mut self) {
+                    for i in 1..self.arr.len() {
+                        self.arr[i] += self.arr[i - 1];
+                    }
+                }
+                pub fn adjacent_difference(&mut self) {
+                    for i in (1..self.arr.len()).rev() {
+                        self.arr[i] -= self.arr[i - 1];
+                    }
+                }
                 #[must_use] pub fn large_keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
                     let isqrt = x.isqrt();
                     (1..isqrt).chain((isqrt != x / isqrt).then_some(isqrt))

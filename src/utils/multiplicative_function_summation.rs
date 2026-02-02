@@ -788,7 +788,7 @@ macro_rules! min25_sieve_impl_for {
                 let rt_n = F.isqrt;
                 let len = F.arr.len();
 
-                let mut ret = F.arr[0] * G.arr[len - 1] + G.arr[0] * F.arr[len - 1] - F[rt_n] * G[rt_n];
+                let mut ret = F.arr[0] * G.arr[len - 1] + G.arr[0] * F.arr[len - 1] - F.arr[rt_n - 1] * G.arr[rt_n - 1];
                 for i in 2..=rt_n {
                     ret += (F.arr[i - 1] - F.arr[i - 2]) * G.arr[len - i]
                         + (G.arr[i - 1] - G.arr[i - 2]) * F.arr[len - i];
