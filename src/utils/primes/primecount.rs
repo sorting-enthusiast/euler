@@ -14,7 +14,7 @@ use crate::utils::{
     },
 };
 use itertools::Itertools;
-const N: usize = 2018_2018_2018; //1e12 as _;
+const N: usize = 1e14 as _;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp

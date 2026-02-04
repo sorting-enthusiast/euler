@@ -289,7 +289,7 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
         }
     }
     for i in (x..=rt).rev() {
-        let v = u64::from(a.arr[i - 1]);
+        let v = a.arr[i - 1];
         if v == 0 {
             continue;
         }
@@ -301,7 +301,7 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
             pi *= i;
             pv = (pv * v) % MOD;
             let entry = &mut a[pi];
-            *entry += ((pv * Reciprocal[e]) % MOD);
+            *entry += (pv * Reciprocal[e]) % MOD;
             if *entry >= MOD {
                 *entry -= MOD;
             }
@@ -326,7 +326,7 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
 
     let mut v_2 = mult_mod(&v, &v);
     for i in rt + 1..=len {
-        ret.arr[i - 1] += ((u64::from(v_2.arr[i - 1]) * Reciprocal[2]) % MOD);
+        ret.arr[i - 1] += (v_2.arr[i - 1] * Reciprocal[2]) % MOD;
         if ret.arr[i - 1] >= MOD {
             ret.arr[i - 1] -= MOD;
         }
@@ -336,12 +336,12 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
         v.arr[rt..].fill(0);
         for i in x..=rt {
             if v.arr[i - 1] != v.arr[i - 2] {
-                let mut y = u64::from(v.arr[i - 1]) + MOD - u64::from(v.arr[i - 2]);
+                let mut y = v.arr[i - 1] + MOD - v.arr[i - 2];
                 if y >= MOD {
                     y -= MOD;
                 }
                 for j in 1..=rt / i {
-                    v.arr[len - j] += ((y * u64::from(v_2.arr[len - i * j])) % MOD);
+                    v.arr[len - j] += (y * v_2.arr[len - i * j]) % MOD;
                     if v.arr[len - j] >= MOD {
                         v.arr[len - j] -= MOD;
                     }
@@ -353,12 +353,12 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
     }
 
     for i in rt + 1..=len {
-        ret.arr[i - 1] += ((u64::from(v_2.arr[i - 1]) * Reciprocal[6]) % MOD);
+        ret.arr[i - 1] += (v_2.arr[i - 1] * Reciprocal[6]) % MOD;
         if ret.arr[i - 1] >= MOD {
             ret.arr[i - 1] -= MOD;
         }
     }
-    let mut ret = DirichletFenwickU64Mod::<{ MOD }>::from(ret);
+    let mut ret = DirichletFenwickU64Mod::<MOD>::from(ret);
     for i in (2..x).rev() {
         let ai = a.arr[i - 1];
         if ai == 0 {
@@ -368,8 +368,9 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
     }
     ret.into()
 }
-
+// TODO: write up forum post
 pub fn solve_ext() {
+    // 2^50: res = 2386818655053411238089407138215904, took 843.2601867s
     // 2^53: res = 208557046825781087145648840805722969, took 3377.3351333s
     // 2^54: res = 923832323918027518930451439968932656, took 5598.1159512s
     const N: usize = 1 << 50;
@@ -390,7 +391,6 @@ pub fn solve_ext() {
     let deriv = dirichlet_mul_single_u128(&f1s, &c);
 
     let res = (N + 1) as u128 * f1s[N] - deriv - 1;
-    let res = res % MOD as u128;
     println!("res = {res}, took {:?}", start.elapsed());
 }
 fn pseudo_euler_transform_fraction_u128(a: FIArrayU128) -> FIArrayU128 {

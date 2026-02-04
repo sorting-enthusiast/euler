@@ -957,11 +957,11 @@ pub fn main() {
     let end = start.elapsed();
     println!("{end:?}");
 
-    let start = Instant::now();
-    dbg!(dijkstra_sieve(N).len());
-    let end = start.elapsed();
-    println!("{end:?}");
-
+    /* let start = Instant::now();
+       dbg!(dijkstra_sieve(N).len());
+       let end = start.elapsed();
+       println!("{end:?}");
+    */
     let start = Instant::now();
     dbg!(linear_sieve(N as u64).len());
     let end = start.elapsed();

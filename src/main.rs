@@ -52,11 +52,10 @@ pub fn main() {
     //p500_599::e580::main();
     //p800_899::e890::main();
     //test2::main();
-    //p600_699::e641::main();
-    p400_499::e452::main();
+    //p400_499::e452::main();
     p700_799::e738::main();
     p700_799::e738::solve_ext();
-    p300_399::e379::main();
+    //p300_399::e379::main();
     /* p600_699::e625::solve_ext();
     p600_699::e625::solve_ext_alt();
 
@@ -114,7 +113,7 @@ pub fn main() {
         print!("{i}:{},", res[1 << i]);
     } */
     println!(); */
-    const N: usize = 2018_2018_2018; //1e12 as _;
+    const N: usize = 1e14 as _;
     println!("counting sqf");
     let start = std::time::Instant::now();
     let s1 = count_squarefree(N);
