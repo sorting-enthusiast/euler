@@ -45,7 +45,7 @@ pub mod utils;
 const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
-// TODO: understand convex hull based lattice point counting, copy sparse_div from https://loj.ac/s/2344195
+// TODO: understand convex hull based lattice point counting, adapt https://github.com/dengtesla/acm/blob/master/acm%E6%A8%A1%E6%9D%BF/min25_new.cpp
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
