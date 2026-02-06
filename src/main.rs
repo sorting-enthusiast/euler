@@ -53,8 +53,10 @@ pub fn main() {
     //p800_899::e890::main();
     //test2::main();
     //p400_499::e452::main();
+    p700_799::e715::main();
+
     p700_799::e738::main();
-    p700_799::e738::solve_ext();
+    //p700_799::e738::solve_ext();
     //p300_399::e379::main();
     /* p600_699::e625::solve_ext();
     p600_699::e625::solve_ext_alt();
