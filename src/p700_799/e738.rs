@@ -4,7 +4,7 @@ use crate::utils::{
     multiplicative_function_summation::{dirichlet_mul_single_u64, dirichlet_mul_single_u128},
 };
 
-const N: usize = 1e10 as _;
+const N: usize = 1e15 as _;
 const MOD: u64 = 1e9 as u64 + 7;
 const N_MOD: u64 = N as u64 % MOD;
 
@@ -15,6 +15,64 @@ pub fn main() {
         *e %= MOD;
     }
     let f1s = pseudo_euler_transform_mod(u);
+    let mut correction = FIArrayU64::unit(N);
+    correction.adjacent_difference();
+    correction.arr[0] = 0;
+    for n in 2..=N.isqrt() {
+        let mut nn = n;
+        while nn <= N / n {
+            nn *= n;
+            correction[nn] += 1;
+        }
+    }
+    for i in 1..correction.arr.len() {
+        correction.arr[i] %= MOD;
+        correction.arr[i] += correction.arr[i - 1];
+        if correction.arr[i] >= MOD {
+            correction.arr[i] -= MOD;
+        }
+    }
+
+    let deriv = dirichlet_mul_single_u64(&f1s, &correction) % MOD;
+
+    let res = (((N_MOD + 1) * f1s[N] as u64) % MOD + MOD - (1 + deriv) % MOD) % MOD;
+    println!("res = {res}, took {:?}", start.elapsed());
+
+    let start = std::time::Instant::now();
+    let mut u = FIArrayU64::unit(N);
+    for e in &mut u.arr {
+        *e %= MOD;
+    }
+    let f1s = pseudo_euler_transform_mod_alt(u);
+    let mut correction = FIArrayU64::unit(N);
+    correction.adjacent_difference();
+    correction.arr[0] = 0;
+    for n in 2..=N.isqrt() {
+        let mut nn = n;
+        while nn <= N / n {
+            nn *= n;
+            correction[nn] += 1;
+        }
+    }
+    for i in 1..correction.arr.len() {
+        correction.arr[i] %= MOD;
+        correction.arr[i] += correction.arr[i - 1];
+        if correction.arr[i] >= MOD {
+            correction.arr[i] -= MOD;
+        }
+    }
+
+    let deriv = dirichlet_mul_single_u64(&f1s, &correction) % MOD;
+
+    let res = (((N_MOD + 1) * f1s[N] as u64) % MOD + MOD - (1 + deriv) % MOD) % MOD;
+    println!("res = {res}, took {:?}", start.elapsed());
+
+    let start = std::time::Instant::now();
+    let mut u = FIArrayU64::unit(N);
+    for e in &mut u.arr {
+        *e %= MOD;
+    }
+    let f1s = pseudo_euler_transform_mod_alt2(u);
     let mut correction = FIArrayU64::unit(N);
     correction.adjacent_difference();
     correction.arr[0] = 0;
@@ -265,8 +323,8 @@ fn mult_mod(a: &FIArrayU64, b: &FIArrayU64) -> FIArrayU64 {
     }
     res
 }
-const Reciprocal: [u64; 7] = const {
-    let mut ret = [0; 7];
+const Reciprocal: [u64; 128] = const {
+    let mut ret = [0; 128];
     ret[1] = 1;
     let mut i = 2;
     while i < ret.len() {
@@ -368,12 +426,186 @@ fn pseudo_euler_transform_mod(a: FIArrayU64) -> FIArrayU64 {
     }
     ret.into()
 }
-// TODO: write up forum post
+
+fn pseudo_euler_transform_mod_alt(a: FIArrayU64) -> FIArrayU64 {
+    let mut a = a;
+    let len = a.arr.len();
+    let n = a.x;
+    let rt = a.isqrt;
+    let x = iroot::<5>(n) + 1;
+
+    for i in (1..len).rev() {
+        a.arr[i] += MOD - a.arr[i - 1];
+        if a.arr[i] >= MOD {
+            a.arr[i] -= MOD;
+        }
+    }
+    for i in (x..=rt).rev() {
+        let v = a.arr[i - 1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut pi = i;
+        let mut pv = v;
+        while pi <= n / i {
+            e += 1;
+            pi *= i;
+            pv = (pv * v) % MOD;
+            let entry = &mut a[pi];
+            *entry += (pv * Reciprocal[e]) % MOD;
+            if *entry >= MOD {
+                *entry -= MOD;
+            }
+        }
+    }
+
+    let mut v = FIArrayU64::new(n);
+    for i in x..=len {
+        v.arr[i - 1] = v.arr[i - 2] + a.arr[i - 1];
+        if v.arr[i - 1] >= MOD {
+            v.arr[i - 1] -= MOD;
+        }
+    }
+
+    let mut ret = v.clone();
+    for e in &mut ret.arr {
+        *e += 1;
+        if *e >= MOD {
+            *e -= MOD;
+        }
+    }
+
+    let v_2 = mult_mod(&v, &v);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_2.arr[i - 1] * Reciprocal[2]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let v_3 = mult_mod(&v, &v_2);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_3.arr[i - 1] * Reciprocal[6]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let v_4 = mult_mod(&v_2, &v_2);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_4.arr[i - 1] * Reciprocal[24]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let mut ret = DirichletFenwickU64Mod::<MOD>::from(ret);
+    for i in (2..x).rev() {
+        let ai = a.arr[i - 1];
+        if ai == 0 {
+            continue;
+        }
+        ret.sparse_mul_unlimited(i, ai);
+    }
+    ret.into()
+}
+
+fn pseudo_euler_transform_mod_alt2(a: FIArrayU64) -> FIArrayU64 {
+    let mut a = a;
+    let len = a.arr.len();
+    let n = a.x;
+    let rt = a.isqrt;
+    let x = iroot::<6>(n) + 1;
+
+    for i in (1..len).rev() {
+        a.arr[i] += MOD - a.arr[i - 1];
+        if a.arr[i] >= MOD {
+            a.arr[i] -= MOD;
+        }
+    }
+    for i in (x..=rt).rev() {
+        let v = a.arr[i - 1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut pi = i;
+        let mut pv = v;
+        while pi <= n / i {
+            e += 1;
+            pi *= i;
+            pv = (pv * v) % MOD;
+            let entry = &mut a[pi];
+            *entry += (pv * Reciprocal[e]) % MOD;
+            if *entry >= MOD {
+                *entry -= MOD;
+            }
+        }
+    }
+
+    let mut v = FIArrayU64::new(n);
+    for i in x..=len {
+        v.arr[i - 1] = v.arr[i - 2] + a.arr[i - 1];
+        if v.arr[i - 1] >= MOD {
+            v.arr[i - 1] -= MOD;
+        }
+    }
+
+    let mut ret = v.clone();
+    for e in &mut ret.arr {
+        *e += 1;
+        if *e >= MOD {
+            *e -= MOD;
+        }
+    }
+
+    let v_2 = mult_mod(&v, &v);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_2.arr[i - 1] * Reciprocal[2]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let v_3 = mult_mod(&v, &v_2);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_3.arr[i - 1] * Reciprocal[6]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let v_4 = mult_mod(&v_2, &v_2);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_4.arr[i - 1] * Reciprocal[24]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let v_5 = mult_mod(&v_2, &v_3);
+    for i in x..=len {
+        ret.arr[i - 1] += (v_5.arr[i - 1] * Reciprocal[120]) % MOD;
+        if ret.arr[i - 1] >= MOD {
+            ret.arr[i - 1] -= MOD;
+        }
+    }
+    let mut ret = DirichletFenwickU64Mod::<MOD>::from(ret);
+    for i in (2..x).rev() {
+        let ai = a.arr[i - 1];
+        if ai == 0 {
+            continue;
+        }
+        ret.sparse_mul_unlimited(i, ai);
+    }
+    ret.into()
+}
 pub fn solve_ext() {
+    // 10^10: res = 27523066955715610432408, took 183.7176ms
+    // 10^11: res = 4146155072313131503875642, took 1.0545004s
+    // 10^12: res = 614653534334750666012110236, took 5.5429549s
+    // 10^13: res = 89833349988159904198204902249, took 30.8048768s
+    // 10^14: res = 12963259897153673037053993566833, took 146.3552248s
+    // 10^15: res = 1849270757707706829637849882798748, took 742.6764167s
     // 2^50: res = 2386818655053411238089407138215904, took 843.2601867s
     // 2^53: res = 208557046825781087145648840805722969, took 3377.3351333s
     // 2^54: res = 923832323918027518930451439968932656, took 5598.1159512s
-    const N: usize = 1 << 50;
+    const N: usize = 1e15 as _; // 1 << 50;
     let start = std::time::Instant::now();
     let f1s = pseudo_euler_transform_fraction_u128(FIArrayU128::unit(N));
     let mut c = FIArrayU128::unit(N);

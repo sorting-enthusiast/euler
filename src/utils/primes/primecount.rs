@@ -9,12 +9,12 @@ use crate::utils::{
         inverse_pseudo_euler_transform, inverse_pseudo_euler_transform_fraction,
     },
     primes::{
-        log_zeta::log_zeta,
+        log_zeta::{log_zeta, log_zeta_2},
         primepi_approx::{Li, R},
     },
 };
 use itertools::Itertools;
-const N: usize = 1e14 as _;
+const N: usize = 1e17 as _;
 
 // repeated convolution of the prefix sum representation of u with mu_p for p below sqrt(n)
 // I guess this is essentially legendre's formula for prime counting, implemented using bottom-up dp
@@ -1228,7 +1228,7 @@ pub fn main() {
 
     println!("prime counting using the logarithm of the zeta function:");
     let start = Instant::now();
-    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
+    let count = log_zeta_2(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -1239,6 +1239,11 @@ pub fn main() {
 
     let start = Instant::now();
     let count = inverse_pseudo_euler_transform_fraction(FIArray::unit(N))[N]; // n^(2/3) / \log n
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = inverse_pseudo_euler_transform(FIArray::unit(N))[N]; // n^(2/3)
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 

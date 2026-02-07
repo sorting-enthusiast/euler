@@ -183,6 +183,81 @@ pub fn log_zeta(n: usize) -> FIArray {
     ret
 }
 
+#[must_use]
+pub fn log_zeta_2(n: usize) -> FIArray {
+    const INVS: [usize; 5] = [0, 12, 6, 4, 3];
+    let mut zeta = DirichletFenwick::zeta(n);
+    let rt = zeta.isqrt;
+    let len = zeta.bit.0.len();
+
+    let mut ret = FIArray::new(n);
+
+    let x = iroot::<5>(n) + 1;
+    // remove contributions of small primes
+    for p in 2..x {
+        if zeta.bit.sum(p - 1) == 1 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        zeta.sparse_mul_at_most_one(p, 1);
+    }
+    zeta.bit.dec(0);
+    let zeta = FIArray::from(zeta);
+
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = -x^4 / 4 + x^3 / 3 - x^2 / 2 + x
+    // in order to not have to deal with rational numbers, we compute 12 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+    let zeta_2 = mult(&zeta, &zeta);
+    let mut x_pow = x * x;
+
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
+    }    
+    let zeta_3 = mult(&zeta, &zeta_2);
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
+    }
+    let zeta_4 = mult(&zeta_2, &zeta_2);
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_4.arr[i - 1] * INVS[4];
+    }
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / 12;
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+
+            ret[px] -= INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= 12;
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+
 // TODO: finish implementing ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3: https://codeforces.com/blog/entry/117783
 #[must_use]
 pub fn log_zeta_single(n: usize) -> usize {
