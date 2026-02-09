@@ -22,7 +22,7 @@ use crate::{
             count_squarefree, dirichlet_mul_single_i128, divisor_summatory, mertens, sqf, sqf_icy,
         },
         primes::{
-            log_zeta::log_zeta,
+            log_zeta::{log_zeta, log_zeta_2},
             primecount::{lucy_fenwick, mertens_min25},
         },
     },
@@ -118,6 +118,7 @@ pub fn main() {
     } */
     println!(); */
     const N: usize = 1e14 as _;
+    assert_eq!(log_zeta_2(N), lucy_fenwick(N));
     println!("counting sqf");
     let start = std::time::Instant::now();
     let s1 = count_squarefree(N);
@@ -1291,10 +1292,10 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     }
     ret.into()
 }
-// faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 6 before reducing
+// faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 12 before reducing
 #[must_use]
 pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
-    const INVS: [i64; 4] = [0, 6, 3, 2];
+    const INVS: [i64; 5] = [0, 12, 6, 4, 3];
     let mut a = DirichletFenwickI64::from(a);
     let rt = a.isqrt;
     let n = a.x;
@@ -1302,7 +1303,7 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
 
     let mut ret = FIArrayI64::new(n);
 
-    let x = iroot::<4>(n) + 1;
+    let x = iroot::<5>(n) + 1;
     for i in 2..x {
         let vi = a.bit.sum(i - 1) - 1;
         if vi == 0 {
@@ -1312,7 +1313,7 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
         a.sparse_mul_at_most_one(i, vi);
     }
     a.bit.dec(0);
-    let mut a = FIArrayI64::from(a);
+    let a = FIArrayI64::from(a);
 
     // a now equals a_t - 1
     // compute log(a_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
@@ -1323,34 +1324,20 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
         ret.arr[i - 1] = a.arr[i - 1] * INVS[1];
     }
 
-    let mut a_2 = mult_i64(&a, &a);
-    /* let ind = pow_zeta.get_index(x.pow(2));
-    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
-    dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
-
-    for i in rt + 1..=len {
+    let a_2 = mult_i64(&a, &a);
+    let mut pow_x = x * x;
+    for i in ret.get_index(pow_x) + 1..=len {
         ret.arr[i - 1] -= a_2.arr[i - 1] * INVS[2];
     }
-    {
-        //pow_zeta = mult_sparse(&zeta, &pow_zeta);
-
-        a.arr[rt..].fill(0);
-        for i in x..=rt {
-            let y = a.arr[i - 1] - a.arr[i - 2];
-            if y != 0 {
-                for j in 1..=rt / i {
-                    a.arr[len - j] += y * a_2.arr[len - i * j];
-                }
-            }
-        }
-        //zeta.arr[..rt].fill(0);
-        core::mem::swap(&mut a_2, &mut a);
+    let a_3 = mult_i64(&a, &a_2);
+    pow_x *= x;
+    for i in ret.get_index(pow_x) + 1..=len {
+        ret.arr[i - 1] += a_3.arr[i - 1] * INVS[3];
     }
-    let ind = a_2.get_index(x.pow(3));
-    //dbg!(ind, len, len - ind);
-    //assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
-    for i in ind + 1..=len {
-        ret.arr[i - 1] += a_2.arr[i - 1] * INVS[3];
+    let a_4 = mult_i64(&a_2, &a_2);
+    pow_x *= x;
+    for i in ret.get_index(pow_x) + 1..=len {
+        ret.arr[i - 1] -= a_4.arr[i - 1] * INVS[4];
     }
 
     // correction phase: get rid of contributions of prime powers
@@ -1359,7 +1346,7 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
     }
 
     for x in x..=rt {
-        let v = ret.arr[x - 1] / 6;
+        let v = ret.arr[x - 1] / INVS[1];
         if v == 0 {
             continue;
         }
@@ -1378,7 +1365,7 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
         ret.arr[i] += ret.arr[i - 1];
     }
     for i in x - 1..len {
-        ret.arr[i] /= 6;
+        ret.arr[i] /= INVS[1];
         ret.arr[i] += ret.arr[i - 1];
     }
     ret

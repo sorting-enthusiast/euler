@@ -206,7 +206,7 @@ pub fn log_zeta_2(n: usize) -> FIArray {
     let zeta = FIArray::from(zeta);
 
     // zeta now equals zeta_t - 1
-    // compute log(zeta_t) using log(x + 1) = -x^4 / 4 + x^3 / 3 - x^2 / 2 + x
+    // compute log(zeta_t) using log(x + 1) = x - x^2 / 2 + x^3 / 3 - x^4 / 4
     // in order to not have to deal with rational numbers, we compute 12 * log(zeta_t)
     // and adjust later
 
@@ -235,7 +235,7 @@ pub fn log_zeta_2(n: usize) -> FIArray {
     }
 
     for x in x..=rt {
-        let v = ret.arr[x - 1] / 12;
+        let v = ret.arr[x - 1] / INVS[1];
         if v == 0 {
             continue;
         }
@@ -252,7 +252,7 @@ pub fn log_zeta_2(n: usize) -> FIArray {
         ret.arr[i] += ret.arr[i - 1];
     }
     for i in x - 1..len {
-        ret.arr[i] /= 12;
+        ret.arr[i] /= INVS[1];
         ret.arr[i] += ret.arr[i - 1];
     }
     ret

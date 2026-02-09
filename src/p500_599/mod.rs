@@ -8,3 +8,4 @@ pub mod e548;
 pub mod e556;
 pub mod e580;
 pub mod e586;
+pub mod e596;
