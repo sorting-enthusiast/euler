@@ -13,16 +13,13 @@ use chrono::Local;
 
 use crate::{
     p300_399::e362::mult,
-    p600_699::e625::div_i128,
     utils::{
-        FIArray::{DirichletFenwickI64, DirichletFenwickI128, FIArray, FIArrayI64, FIArrayI128},
-        fast_divisor_sums::{self, d},
+        FIArray::{DirichletFenwickI64, FIArray, FIArrayI64},
+        fast_divisor_sums::{self},
         math::iroot,
-        multiplicative_function_summation::{
-            count_squarefree, dirichlet_mul_single_i128, divisor_summatory, mertens, sqf, sqf_icy,
-        },
+        multiplicative_function_summation::{count_squarefree, mertens, sqf, sqf_icy},
         primes::{
-            log_zeta::{log_zeta, log_zeta_2},
+            log_zeta::log_zeta_2,
             primecount::{lucy_fenwick, mertens_min25},
         },
     },
@@ -49,12 +46,12 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    //p500_599::e580::main();
+    //p500_599::e578::main();
     //p800_899::e890::main();
     //test2::main();
     //p400_499::e452::main();
     //p700_799::e715::main();
-
+    p300_399::e339::main();
     utils::primes::primecount::main();
 
     //p700_799::e738::main();
@@ -117,7 +114,7 @@ pub fn main() {
         print!("{i}:{},", res[1 << i]);
     } */
     println!(); */
-    const N: usize = 1e14 as _;
+    const N: usize = 1e12 as _;
     assert_eq!(log_zeta_2(N), lucy_fenwick(N));
     println!("counting sqf");
     let start = std::time::Instant::now();
@@ -133,28 +130,28 @@ pub fn main() {
     let end = start.elapsed();
     dbg!(end, s2[N]);
     assert_eq!(s1, s2);
-    {
-        let start = std::time::Instant::now();
-        let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
-        let mut primes = vec![];
-        for p in 2..=pi.isqrt {
-            if pi.arr[p - 1] != pi.arr[p - 2] {
-                primes.push(p);
-            }
-        }
-        for i in 0..pi.arr.len() {
-            pi.arr[i] *= 3;
-        }
+    /* {
+           let start = std::time::Instant::now();
+           let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
+           let mut primes = vec![];
+           for p in 2..=pi.isqrt {
+               if pi.arr[p - 1] != pi.arr[p - 2] {
+                   primes.push(p);
+               }
+           }
+           for i in 0..pi.arr.len() {
+               pi.arr[i] *= 3;
+           }
 
-        let s2 = mult_correction(
-            &pseudo_euler_transform_fraction_i64(pi),
-            &primes,
-            |pp, p, e| 2 * e as i64 + 1,
-        );
-        let res = (s2[N] + N as i64) >> 1;
-        println!("res = {res}, took {:?}", start.elapsed());
-    }
-
+           let s2 = mult_correction(
+               &pseudo_euler_transform_fraction_i64(pi),
+               &primes,
+               |pp, p, e| 2 * e as i64 + 1,
+           );
+           let res = (s2[N] + N as i64) >> 1;
+           println!("res = {res}, took {:?}", start.elapsed());
+       }
+    */
     println!("summing mobius");
     let start = std::time::Instant::now();
     let s1 = mertens(N);
@@ -473,7 +470,7 @@ pub fn main() {
         assert_eq!(s1.arr[i], accurate.arr[i] as usize);
     }
     println!("hello and goodbye");
-    p300_399::e362::main();
+    //p300_399::e362::main();
     //utils::primes::prime_sieves::main();
     println!("Finished running at: {} ", Local::now().time());
 }
