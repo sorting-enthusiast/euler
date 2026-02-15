@@ -17,7 +17,10 @@ use crate::{
         FIArray::{DirichletFenwickI64, FIArray, FIArrayI64},
         fast_divisor_sums::{self},
         math::iroot,
-        multiplicative_function_summation::{count_squarefree, mertens, sqf, sqf_icy},
+        multiplicative_function_summation::{
+            count_squarefree, divisor_sieve, mertens, sqf, sqf_icy,
+        },
+        polymul::NTT,
         primes::{
             log_zeta::log_zeta_2,
             primecount::{lucy_fenwick, mertens_min25},
@@ -51,7 +54,7 @@ pub fn main() {
     //test2::main();
     //p400_499::e452::main();
     //p700_799::e715::main();
-    p300_399::e339::main();
+    //p300_399::e339::main();
     utils::primes::primecount::main();
 
     //p700_799::e738::main();
@@ -114,6 +117,12 @@ pub fn main() {
         print!("{i}:{},", res[1 << i]);
     } */
     println!(); */
+    dbg!((10usize ^ 7 ^ 3).count_ones());
+    dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
+        &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
+        &[1, 0, 0, 1]
+    ));
+
     const N: usize = 1e12 as _;
     assert_eq!(log_zeta_2(N), lucy_fenwick(N));
     println!("counting sqf");
@@ -765,7 +774,7 @@ pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         let vb = &pb[..pb.len() - 1];
         res.arr[0] += a.arr[0] * b.arr[0];
         for i in 2..=R2 {
-            res[(i * i) as _] += (a.arr[i - 1] - a.arr[i - 2]) * (b.arr[i - 1] - b.arr[i - 2]);
+            res[i * i] += (a.arr[i - 1] - a.arr[i - 2]) * (b.arr[i - 1] - b.arr[i - 2]);
         }
         let mut r = vb.len();
         let mut l = 0;
@@ -1439,9 +1448,10 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             res[y * pa[r].0] -= fy * a.arr[pa[r - 1].0 - 1];
         }
     }
-    for i in 1..len {
+    /* for i in 1..len {
         res.arr[i] += res.arr[i - 1];
-    }
+    } */
+    res.partial_sum();
     r = vb.len();
     l = 0;
     for &(x, fx) in va {
