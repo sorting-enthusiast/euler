@@ -59,7 +59,7 @@ pub fn main() {
 
     //p700_799::e738::main();
     //p700_799::e738::solve_ext();
-    //p300_399::e379::main();
+    p300_399::e379::main();
     /* p600_699::e625::solve_ext();
     p600_699::e625::solve_ext_alt();
 
@@ -118,12 +118,12 @@ pub fn main() {
     } */
     println!(); */
     dbg!((10usize ^ 7 ^ 3).count_ones());
-    dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
-        &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-        &[1, 0, 0, 1]
-    ));
-    p500_599::e556::main();
-
+    /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
+           &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
+           &[1, 0, 0, 1]
+       ));
+       p500_599::e556::main();
+    */
     const N: usize = 1e12 as _;
     assert_eq!(log_zeta_2(N), lucy_fenwick(N));
     println!("counting sqf");

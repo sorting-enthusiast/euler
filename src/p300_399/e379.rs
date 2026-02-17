@@ -47,9 +47,11 @@ pub fn main() {
     }
     const I: i64 = icbrt(N);
     const D: i64 = (N / I).isqrt();
+    dbg!(I,D);
     let start = std::time::Instant::now();
     let mut res = 0;
     let mut mertens_small = mobius_sieve(D as usize + 1);
+    dbg!(start.elapsed());
     for d in 1..=D {
         if mertens_small[d as usize] != 0 {
             let v= d3((N / (d * d)) as _) as i64;
@@ -57,10 +59,12 @@ pub fn main() {
         }
         mertens_small[d as usize] += mertens_small[d as usize - 1];
     }
+    dbg!(start.elapsed());
     let mut small_diff = vec![0; I as usize - 1].into_boxed_slice();
     for i in 1..I {
         small_diff[i as usize - 1] = d3(i as _) as i64; // can use linear sieve, but the code is simpler this way and the time complexity doesn't change
     }
+    dbg!(start.elapsed());
     res -= mertens_small[D as usize] as i64 * small_diff[I as usize - 2];
 
     for i in (2..I).rev() {
