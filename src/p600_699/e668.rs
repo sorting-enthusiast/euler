@@ -1,11 +1,11 @@
-use crate::utils::primes::primecount::lucy_fenwick;
+use crate::utils::primes::log_zeta::log_zeta_2;
 
 // n is not square root smooth iff x=py for some prime p and p>=y
 // for given y <= N.isqrt(), subtract # of primes below N/y and above y: pi(x/y) - pi(y-1)
 pub fn main() {
     const N: usize = 1e10 as _;
     let start = std::time::Instant::now();
-    let pis = lucy_fenwick(N);
+    let pis = log_zeta_2(N);
     let len = pis.arr.len();
     let mut count = N - pis.arr[len - 1];
     for i in 2..=pis.isqrt {

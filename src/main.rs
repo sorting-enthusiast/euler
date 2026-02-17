@@ -122,6 +122,7 @@ pub fn main() {
         &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
         &[1, 0, 0, 1]
     ));
+    p500_599::e556::main();
 
     const N: usize = 1e12 as _;
     assert_eq!(log_zeta_2(N), lucy_fenwick(N));
@@ -555,6 +556,49 @@ pub fn inverse_pseudo_euler_transform_i64(a: FIArrayI64) -> FIArrayI64 {
         r.arr[i] += r.arr[i - 1];
     }
     r
+}
+
+#[must_use]
+pub fn mult_correction_single(
+    d: &FIArrayI64,
+    primes: &[usize],
+    f: impl Fn(usize, usize, u8) -> i64,
+) -> i64 {
+    fn dfs(
+        d: &FIArrayI64,
+        primes: &[usize],
+        lim: usize,
+        x: usize,
+        hx: i64,
+        f: &impl Fn(usize, usize, u8) -> i64,
+    ) -> i64 {
+        let mut res = hx * d[d.x / x];
+        for (i, &p) in primes.iter().enumerate() {
+            if p > lim / p {
+                break;
+            }
+            let fp = f(p, p, 1);
+            let mut prev = fp;
+            let mut pp = p * p;
+            let mut new_lim = lim / pp;
+            for e in 2.. {
+                let cur = f(pp, p, e);
+                let hp = cur - fp * prev;
+                if hp != 0 {
+                    res += dfs(d, &primes[i + 1..], new_lim, x * pp, hx * hp, f);
+                }
+                prev = cur;
+                if p > new_lim {
+                    break;
+                }
+                pp *= p;
+                new_lim /= p;
+            }
+        }
+        res
+    }
+
+    dfs(d, primes, d.x, 1, 1, &f)
 }
 
 #[must_use]

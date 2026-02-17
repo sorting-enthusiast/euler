@@ -1,130 +1,50 @@
-use crate::utils::{fast_divisor_sums::icbrt, primes::wheel_sieve};
+use crate::{
+    inverse_pseudo_euler_transform_fraction_i64, mult_correction_single,
+    pseudo_euler_transform_fraction_i64, utils::FIArray::FIArrayI64,
+};
 
-fn r2(t: i64) -> i64 {
-    let mut res = 0;
-    let tsqrt = t.isqrt();
-    for k in 1..=tsqrt {
-        let tk = t / k;
-        res += [0, 1, 1, 0][(tk & 3) as usize];
-        res += [0, 1, 0, -1][(k & 3) as usize] * tk;
-    }
-    res - [0, 1, 1, 0][(tsqrt & 3) as usize] * tsqrt
-}
-const N: i64 = (47 * 47) as _;
-const SQRT_N: i64 = N.isqrt();
-fn mobius_sieve(n: usize) -> Vec<i8> {
-    let mut res = vec![0; n];
-    if n < 2 {
-        return res;
-    }
-    let mut composite = crate::utils::bit_array::BitArray::zeroed(n);
-    let mut primes = vec![];
-    res[1] = 1;
-    for i in 2..n {
-        if !composite.get(i) {
-            primes.push(i);
-            res[i] = -1;
-        }
-        for &p in &primes {
-            if i * p >= n {
-                break;
-            }
-            composite.set(i * p);
-            if i.is_multiple_of(p) {
-                res[i * p] = 0;
-                break;
-            }
-            res[i * p] = -res[i];
-        }
-    }
-    res
-}
-// TODO
+const N: usize = 1e14 as _;
+// sum of coefficients of \frac{\zeta(s)\beta(s)}{\zeta(2s)\beta(2s)}
+// TODO: optimize to better time complexity than O\left(n^{2/3}\log^{-4/3}n\right)
+// can easily be done in \tilde{O}(\sqrt n) time, just need to implement a linear sieve for the dirichlet inverse of u * \chi_4
 pub fn main() {
-    dbg!(r2(8 * 8));
-    let mob = mobius_sieve(SQRT_N as usize + 1);
-    dbg!(&mob[1..]);
-    let mut res = r2(N);
-    for i in 2..=SQRT_N {
-        if mob[i as usize] != 0 {
-            res += i64::from(mob[i as usize]) * r2(N / (i * i));
-        }
-    }
-    dbg!(res);
-    solve();
-    dbg!(
-        wheel_sieve(SQRT_N as _)
-            .into_iter()
-            .filter(|&p| p & 3 == 3)
-            .count()
-    );
+    original_approach();
 }
-fn solve() {
-    fn mobius_sieve(n: usize) -> Vec<i64> {
-        let mut res = vec![0; n];
-        if n < 2 {
-            return res;
-        }
-        let mut composite = crate::utils::bit_array::BitArray::zeroed(n);
-        let mut primes = vec![];
-        res[1] = 1;
-        for i in 2..n {
-            if !composite.get(i) {
-                primes.push(i);
-                res[i] = -1;
-            }
-            for &p in &primes {
-                if i * p >= n {
-                    break;
-                }
-                composite.set(i * p);
-                if i % p == 0 {
-                    res[i * p] = 0;
-                    break;
-                }
-                res[i * p] = -res[i];
-            }
-        }
-        res
-    }
-
-    const I: i64 = icbrt(N);
-    const D: i64 = (N / I).isqrt();
+fn original_approach() {
     let start = std::time::Instant::now();
-    let mut res = 0;
-    let mut mertens_small = mobius_sieve(D as usize + 1);
-    for d in 1..=D {
-        if mertens_small[d as usize] != 0 {
-            res += mertens_small[d as usize] * r2(N / (d * d));
+    let mut chi4 = FIArrayI64::new(N);
+    for (i, v) in FIArrayI64::keys(N).enumerate() {
+        chi4.arr[i] = [0, 1, 1, 0][v & 3];
+    }
+    println!("Started first inverse transform: {:?}", start.elapsed());
+    let chi4_p = inverse_pseudo_euler_transform_fraction_i64(chi4);
+    println!("Started second inverse transform: {:?}", start.elapsed());
+    let pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
+    let mut primes = vec![];
+    for p in 2..=pi.isqrt {
+        if pi.arr[p - 1] != pi.arr[p - 2] {
+            primes.push(p);
         }
-        mertens_small[d as usize] += mertens_small[d as usize - 1];
     }
-    let mut small_diff = vec![0; I as usize - 1].into_boxed_slice();
-    for i in 1..I {
-        small_diff[i as usize - 1] = r2(i);
-    }
-    res -= mertens_small[D as usize] * small_diff[I as usize - 2];
+    let mut sum_over_primes = pi;
 
-    for i in (2..I).rev() {
-        small_diff[i as usize - 1] -= small_diff[i as usize - 2];
+    for i in 0..sum_over_primes.arr.len() {
+        sum_over_primes.arr[i] += chi4_p.arr[i];
     }
-
-    let mut mertens_big = vec![0; I as usize - 1].into_boxed_slice(); // indexed by denominator
-    for i in (1..I).rev() {
-        let v = (N / i).isqrt() as usize;
-        let vsqrt = v.isqrt();
-        let mut m = 1 - v as i64 + vsqrt as i64 * mertens_small[vsqrt];
-        for d in 2..=vsqrt {
-            m -= if v / d <= D as usize {
-                mertens_small[v / d]
-            } else {
-                mertens_big[i as usize * d * d - 1]
-            };
-            m -= (mertens_small[d] - mertens_small[d - 1]) * (v / d) as i64;
+    println!("Started transform: {:?}", start.elapsed());
+    let approx = pseudo_euler_transform_fraction_i64(sum_over_primes);
+    println!("Started correction: {:?}", start.elapsed());
+    let res = mult_correction_single(&approx, &primes, |_, p, e| {
+        if e > 2 {
+            return 0;
         }
-        mertens_big[i as usize - 1] = m;
-        res += small_diff[i as usize - 1] * m;
-    }
+        match p & 3 {
+            1 => 1 + i64::from(e == 1),
+            2 => i64::from(e == 1),
+            3 => i64::from(e == 2),
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    });
 
     println!("res = {res}, took {:?}", start.elapsed());
 }
