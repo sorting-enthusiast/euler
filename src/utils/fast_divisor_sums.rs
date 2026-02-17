@@ -267,9 +267,9 @@ pub fn sum_floors_range_fast(n: usize, x1: usize, x2: usize) -> usize {
     if x1 > x2 {
         return 0;
     }
-    if n <= 1 << 18 || x1 + 256 > x2 {
+    /*if n <= 1 << 18 || x1 + 256 > x2 {
         return S_Q(n as _, x1 as _, x2 as _) as usize;
-    }
+    }*/
     let c = (iroot::<3>(n) << 3).clamp(1, x2);
 
     if x1 <= c {
