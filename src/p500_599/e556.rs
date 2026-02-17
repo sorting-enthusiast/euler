@@ -12,27 +12,33 @@ pub fn main() {
 }
 fn original_approach() {
     let start = std::time::Instant::now();
+
     let mut chi4 = FIArrayI64::new(N);
     for (i, v) in FIArrayI64::keys(N).enumerate() {
         chi4.arr[i] = [0, 1, 1, 0][v & 3];
     }
+
     println!("Started first inverse transform: {:?}", start.elapsed());
     let chi4_p = inverse_pseudo_euler_transform_fraction_i64(chi4);
+
     println!("Started second inverse transform: {:?}", start.elapsed());
     let pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
+
     let mut primes = vec![];
     for p in 2..=pi.isqrt {
         if pi.arr[p - 1] != pi.arr[p - 2] {
             primes.push(p);
         }
     }
-    let mut sum_over_primes = pi;
 
+    let mut sum_over_primes = pi;
     for i in 0..sum_over_primes.arr.len() {
         sum_over_primes.arr[i] += chi4_p.arr[i];
     }
+
     println!("Started transform: {:?}", start.elapsed());
     let approx = pseudo_euler_transform_fraction_i64(sum_over_primes);
+
     println!("Started correction: {:?}", start.elapsed());
     let res = mult_correction_single(&approx, &primes, |_, p, e| {
         if e > 2 {
