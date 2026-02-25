@@ -1,64 +1,45 @@
-const N: usize = 7usize.pow(7);
-const MOD: usize = 1e9 as usize + 7;
+use num_bigint::BigUint;
+const MOD: u32 = 1e9 as u32 + 7;
+fn conv(a: &[u32], b: &[u32], c: &mut [u32]) {
+    c.fill(0);
+    for (i, &ai) in a.iter().enumerate() {
+        for (j, &bj) in b.iter().enumerate() {
+            let (ai, bj) = (ai as u64, bj as u64);
+            let cij = (ai * bj) % MOD as u64;
+            c[i + j] += cij as u32;
+            if c[i + j] >= MOD {
+                c[i + j] -= MOD;
+            }
+        }
+    }
+}
+
+// nice problem
 // gf F(x) = \prod_{k\ge 0} {\frac1{1-x^{2^k}}}
 // (1-x)F(x) = F(x^2)
-// n even: [x^n]F(x) = [x^{n-1}]F(x) + [x^{\frac{n}2}]F(x)
-// n odd: [x^n]F(x) = [x^{n-1}]F(x)
-// maybe compute using the following algorithm: https://math.stackexchange.com/a/4944090
+// similar to the algorithm for the n'th coefficient of a rational polynomial: https://arxiv.org/pdf/2008.08822
+// computed using https://qiita.com/ryuhe1/items/185e1a283f13ac638a53#%E4%BA%8C%E5%86%AA%E5%88%86%E5%89%B2%E6%95%B0
 pub fn main() {
-    let mut gf = vec![0; N + 1];
-    gf[0] = 1;
-    /* for i in 0..=N.ilog2() {
-        let step = 1 << i;
-        for a in step..=N {
-            gf[a] += gf[a - step];
-            if gf[a] >= MOD {
-                gf[a] -= MOD;
+    let start = std::time::Instant::now();
+    let mut N = BigUint::from(7u32).pow(777);
+
+    let mut p = vec![1];
+    let mut q = vec![1];
+    let mut tmp = vec![];
+    while N != BigUint::ZERO {
+        let lsb = usize::from(N.bit(0));
+        q.push(unsafe { *q.last().unwrap_unchecked() });
+        for i in (1..q.len() - 1).rev() {
+            q[i] += q[i - 1];
+            if q[i] >= MOD {
+                q[i] -= MOD;
             }
         }
-    } */
-    /* for i in 1..=N {
-        gf[i] = gf[i - 1];
-        if i & 1 == 0 {
-            gf[i] += gf[i / 2];
-            if gf[i] >= MOD {
-                gf[i] -= MOD;
-            }
-        }
-    } */
-    for i in 1..=N / 2 {
-        gf[i] = gf[i - 1];
-        gf[i] += gf[i / 2];
-        if gf[i] >= MOD {
-            gf[i] -= MOD;
-        }
+        tmp.resize(q.len() + p.len() - 1, 0);
+        conv(&p, &q, &mut tmp);
+        p.clear();
+        p.extend(tmp[lsb..].iter().step_by(2));
+        N >>= 1;
     }
-    dbg!(gf[N / 2], N);
-}
-const fn powmod(mut x: usize, mut exp: usize) -> usize {
-    if exp == 0 {
-        return 1;
-    }
-    let mut r = 1;
-    x %= MOD;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r = (r * x) % MOD;
-        }
-        x = (x * x) % MOD;
-        exp >>= 1;
-    }
-    (r * x) % MOD
-}
-const fn modinv(x: usize) -> usize {
-    powmod(x, MOD - 2)
-}
-fn solve() {
-    /* const LG2: usize = 2181;
-    let mut cur = 0;
-    let mut poly = [vec![1], vec![]];
-    let mut eval = vec![];
-    for i in 0..LG2 {
-        let nv = poly[cur].len();
-    } */
+    println!("res = {}, took {:?}", p[0], start.elapsed());
 }

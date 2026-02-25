@@ -11,6 +11,7 @@ const SQRT_N: usize = N.isqrt();
 pub fn main() {
     println!("res = {}", 2_327_213_148_095_366_u64);
     solve();
+    solve_ext();
 }
 /// TODO: optimize to o(n^1/2) time
 /// O(n^1/2) time, O(n^1/3) space
@@ -74,6 +75,7 @@ fn solve() {
         sqf_big[d >> 1] = sqf;
     }
 
+    dbg!(start.elapsed());
     // Could try replacing this section with code computing prime counts and the sum of \chi_4 over primes,
     // though I don't see that improving the time complexity at all
     let mut pi1_big = sqrts.clone();
@@ -181,16 +183,215 @@ fn solve() {
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }
+fn solve_ext() {
+    // 2^91: res = 576190067211407647062362849, took 24440.923937s
+    // 2^90: res = 288095033605703821626650099, took 8409.980878s
+    const N: u128 = 1 << 91;
+    const SQRT_N: u128 = N.isqrt();
+    const fn iroot<const k: u128>(x: u128) -> u128 {
+        let mut rt = 1u128 << (1 + x.ilog2().div_ceil(k as _));
+        let mut x_div_rtk1 = x / rt.pow(k as u32 - 1);
+        while rt > x_div_rtk1 {
+            rt = (rt * (k - 1) + x_div_rtk1) / k;
+            x_div_rtk1 = x / rt.pow(k as u32 - 1);
+        }
+        rt
+    }
+    const _B: u128 = iroot::<3>(N);
+    const _A: u128 = N / (_B * _B);
+    const B: usize = _B as usize;
+    const A: usize = _A as usize;
+    dbg!(A, B);
+    let start = std::time::Instant::now();
+    let sqrts = (1..=A)
+        .step_by(4)
+        .map(|i| (N / i as u128).isqrt() as usize)
+        .collect_vec()
+        .into_boxed_slice(); // precompute once, used very often
+    dbg!(start.elapsed());
+
+    let mut pi1_big = sqrts.clone();
+    let mut pi3_big = sqrts.clone();
+    let mut pi1_small = vec![0u32; (B + 3) >> 2];
+    let mut pi3_small = vec![0u32; (B + 1) >> 2].into_boxed_slice();
+    dbg!(start.elapsed());
+
+    for (i, &v) in sqrts.iter().enumerate() {
+        pi1_big[i] = ((v + 3) >> 2) - 1;
+        pi3_big[i] = (v + 1) >> 2;
+    }
+    for i in (1..=B).step_by(2) {
+        if i & 3 == 1 {
+            pi1_small[(i - 1) >> 2] = ((i as u32 + 3) >> 2) - 1;
+        } else {
+            pi3_small[(i - 3) >> 2] = (i as u32 + 1) >> 2;
+        }
+    }
+    dbg!(start.elapsed());
+
+    for p in (3..=SQRT_N.isqrt()).step_by(2) {
+        let p = p as usize;
+        if p > 3 {
+            if p & 3 == 1 {
+                if pi1_small[(p - 1 - 1) >> 2] == pi1_small[(p - 1) >> 2] {
+                    continue;
+                }
+            } else if pi3_small[(p - 1 - 3) >> 2] == pi3_small[(p - 3) >> 2] {
+                continue;
+            }
+        }
+        let pp = p * p;
+        let k = (pp - 1) >> 2;
+        let mut ind = k;
+        if p & 3 == 1 {
+            let sp1 = pi1_small[(p - 1 - 1) >> 2];
+            let sp3 = pi3_small[(p - 1 - 3) >> 2];
+            for (i, &v) in sqrts.iter().enumerate() {
+                // v = sqrt(N / (4i+1))
+                if v < pp {
+                    break;
+                }
+                pi1_big[i] -= if ind < sqrts.len() {
+                    pi1_big[ind]
+                } else {
+                    pi1_small[((v / p) - 1) >> 2] as usize
+                } - sp1 as usize;
+                pi3_big[i] -= if ind < sqrts.len() {
+                    pi3_big[ind]
+                } else {
+                    pi3_small[((v / p) - 3) >> 2] as usize
+                } - sp3 as usize;
+                ind += (k << 2) | 1;
+            }
+            for i in (p * p..B + 1).step_by(2).rev() {
+                if i & 3 == 1 {
+                    pi1_small[(i - 1) >> 2] -= pi1_small[((i / p) - 1) >> 2] - sp1;
+                } else {
+                    pi3_small[(i - 3) >> 2] -= pi3_small[((i / p) - 3) >> 2] - sp3;
+                }
+            }
+        } else {
+            let sp1 = if p > 3 {
+                pi3_small[(p - 1 - 3) >> 2]
+            } else {
+                0
+            };
+            let sp3 = pi1_small[(p - 1 - 1) >> 2];
+            for (i, &v) in sqrts.iter().enumerate() {
+                // v = sqrt(N / (4i+1))
+                if v < pp {
+                    break;
+                }
+                pi1_big[i] -= if ind < sqrts.len() {
+                    pi3_big[ind]
+                } else {
+                    pi3_small[((v / p) - 3) >> 2] as usize
+                } - sp1 as usize;
+                pi3_big[i] -= if ind < sqrts.len() {
+                    pi1_big[ind]
+                } else {
+                    pi1_small[((v / p) - 1) >> 2] as usize
+                } - sp3 as usize;
+                ind += (k << 2) | 1;
+            }
+            for i in (p * p..B + 1).step_by(2).rev() {
+                if i & 3 == 1 {
+                    pi1_small[(i - 1) >> 2] -= pi3_small[((i / p) - 3) >> 2] - sp1;
+                } else {
+                    pi3_small[(i - 3) >> 2] -= pi1_small[((i / p) - 1) >> 2] - sp3;
+                }
+            }
+        }
+        //dbg!((p, start.elapsed()));
+    }
+    drop(pi1_big);
+    dbg!(start.elapsed());
+
+    let mut sqf_small = pi1_small; //vec![1u32; (A + 3) >> 2].into_boxed_slice();
+    sqf_small.resize((A + 3) >> 2, 1);
+    sqf_small.fill(1);
+    dbg!(start.elapsed());
+    for p in (3..=A.isqrt()).step_by(2) {
+        let pp = p * p;
+        if pp > A {
+            break;
+        }
+        if sqf_small[(pp - 1) >> 2] == 0 {
+            continue;
+        }
+        for m in (pp..=A).step_by(4 * pp) {
+            sqf_small[(m - 1) >> 2] = 0;
+        }
+    }
+    for i in 1..sqf_small.len() {
+        sqf_small[i] += sqf_small[i - 1];
+    }
+    dbg!(start.elapsed());
+
+    let mut sqf_big = vec![0; (B + 1) >> 1].into_boxed_slice(); // indexed by denominator
+    dbg!(start.elapsed());
+    for d in (1..B + 1).step_by(2).rev() {
+        let _d = d as u128;
+        let v = N / (_d * _d);
+        let _b = iroot::<3>(v);
+        let _a = v / (_b * _b);
+        assert!(_a <= usize::MAX as u128);
+        assert!(_b <= usize::MAX as u128);
+
+        let b = _b as usize;
+        let a = _a as usize;
+        let mut sqf = ((v + 3) >> 2) + sqf_small[(a - 1) >> 2] as u128 * ((b + 1) >> 1) as u128
+            - (((SQRT_N / _d) + 1) >> 1);
+
+        /* for i in (5..=a).step_by(4) {
+            if sqf_small[(i - 1) >> 2] != sqf_small[(i - 2) >> 2] {
+                sqf -= ((sqrts[(i - 1) >> 2] / d) + 1) >> 1;
+            }
+        } */
+        for i in 1..=(a - 1) >> 2 {
+            if sqf_small[i] != sqf_small[i - 1] {
+                sqf -= ((sqrts[i] / d) as u128 + 1) >> 1;
+            }
+        }
+        for i in (3..=b).step_by(2) {
+            sqf -= if i * d <= B {
+                sqf_big[(i * d) >> 1]
+            } else {
+                sqf_small[((v / (i as u128 * i as u128)) as usize - 1) >> 2] as u128
+            };
+        }
+        sqf_big[d >> 1] = sqf;
+        if (d >> 1).trailing_zeros() == 22 {
+            dbg!(d, start.elapsed());
+        }
+    }
+
+    dbg!(start.elapsed());
+
+    let mut res = sqf_big[0] + pi3_big[0] as u128 + sqf_big[1];
+    for i in 1..(B + 1) >> 2 {
+        if pi3_small[i] != pi3_small[i - 1] {
+            res += sqf_big[(i << 1) | 1];
+        }
+    }
+    for i in 1..(A + 3) >> 2 {
+        if sqf_small[i] != sqf_small[i - 1] {
+            res += pi3_big[i] as u128;
+        }
+    }
+    res -= sqf_small[((A + 3) >> 2) - 1] as u128 * pi3_small[((B + 1) >> 2) - 1] as u128;
+
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+}
 /*
-use crate::utils::{
-    FIArray::FIArrayU64,
-    multiplicative_function_summation::mobius_sieve,
-    primes::prime_sieves::{sieve_it, sift},
-};
+
+use crate::utils::primes::wheel_sieve;
 fn trivial() {
-    fn incl_excl(limit: u64, primes: &[u64]) -> u64 {
+    fn incl_excl(limit: usize, primes: &[u64]) -> usize {
         let mut res = 0;
-        for (i, p) in primes.iter().enumerate() {
+        for (i, &p) in primes.iter().enumerate() {
+            let p = p as usize;
             let prod = p * p;
             if prod > limit {
                 break;
@@ -202,86 +403,93 @@ fn trivial() {
     }
 
     let start = std::time::Instant::now();
-    let primes = sift(SQRT_N);
+    let primes = wheel_sieve(SQRT_N as _);
     println!("Generated primes up to {SQRT_N}: {:?}", start.elapsed());
     let squarefree = |x| ((x + 3) >> 2) - incl_excl(x, &primes[1..]);
     let res = primes
         .iter()
         .filter(|&&p| p & 3 == 3)
-        .fold(squarefree(N), |acc, p| acc + squarefree(N / (p * p)));
+        .fold(squarefree(N), |acc, p| {
+            acc + squarefree(N / (p * p) as usize)
+        });
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }
+
+use crate::utils::{
+    FIArray::FIArrayU64, multiplicative_function_summation::mobius_sieve,
+    primes::prime_sieves::sieve_it,
+};
 fn solve_alt() {
-    let start = std::time::Instant::now();
-    let primes = sift(SQRT_N);
-    let xcbrt = (N as f64).cbrt() as u64;
-    let large_keys = (1..=xcbrt)
-        .step_by(2)
-        .map(|d| N / (d * d))
-        .collect_vec()
-        .into_boxed_slice();
-    //let small_keys = (1..=xcbrt).collect_vec().into_boxed_slice();
+let start = std::time::Instant::now();
+let primes = sift(SQRT_N);
+let xcbrt = (N as f64).cbrt() as u64;
+let large_keys = (1..=xcbrt)
+.step_by(2)
+.map(|d| N / (d * d))
+.collect_vec()
+.into_boxed_slice();
+//let small_keys = (1..=xcbrt).collect_vec().into_boxed_slice();
 
-    let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
-    let mut small_sqf = vec![0; 1 + ((xcbrt as usize - 1) >> 2)].into_boxed_slice();
+let mut large_sqf = vec![0; large_keys.len()].into_boxed_slice();
+let mut small_sqf = vec![0; 1 + ((xcbrt as usize - 1) >> 2)].into_boxed_slice();
 
-    for v in (1..=xcbrt).step_by(4) {
-        small_sqf[(v as usize - 1) >> 2] = (v + 3) >> 2;
-    }
-    for (i, &v) in large_keys.iter().enumerate() {
-        large_sqf[i] = (v + 3) >> 2;
-    }
-    for &p in &primes[1..] {
-        for (i, &v) in large_keys.iter().enumerate() {
-            if v < p * p {
-                break;
-            }
-            large_sqf[i] -= if v / (p * p) <= xcbrt {
-                small_sqf[((v / (p * p)) as usize - 1) >> 2]
-            } else {
-                large_sqf[((2 * i + 1) * (p as usize)) >> 1]
-            };
-        }
-        for v in (p * p..=(xcbrt & !3) | 1).rev().step_by(4) {
-            small_sqf[(v as usize - 1) >> 2] -= small_sqf[((v / (p * p)) as usize - 1) >> 2];
-        }
-    }
-    let mut res = large_sqf[0];
-    for p in primes {
-        if p & 3 != 3 {
-            continue;
-        }
-        res += if N / (p * p) <= xcbrt {
-            small_sqf[((N / (p * p)) as usize - 1) >> 2]
-        } else {
-            large_sqf[p as usize >> 1]
-        };
-    }
-    let end = start.elapsed();
-    println!("res = {res}, took {end:?}");
+for v in (1..=xcbrt).step_by(4) {
+small_sqf[(v as usize - 1) >> 2] = (v + 3) >> 2;
+}
+for (i, &v) in large_keys.iter().enumerate() {
+large_sqf[i] = (v + 3) >> 2;
+}
+for &p in &primes[1..] {
+for (i, &v) in large_keys.iter().enumerate() {
+if v < p * p {
+break;
+}
+large_sqf[i] -= if v / (p * p) <= xcbrt {
+small_sqf[((v / (p * p)) as usize - 1) >> 2]
+} else {
+large_sqf[((2 * i + 1) * (p as usize)) >> 1]
+};
+}
+for v in (p * p..=(xcbrt & !3) | 1).rev().step_by(4) {
+small_sqf[(v as usize - 1) >> 2] -= small_sqf[((v / (p * p)) as usize - 1) >> 2];
+}
+}
+let mut res = large_sqf[0];
+for p in primes {
+if p & 3 != 3 {
+continue;
+}
+res += if N / (p * p) <= xcbrt {
+small_sqf[((N / (p * p)) as usize - 1) >> 2]
+} else {
+large_sqf[p as usize >> 1]
+};
+}
+let end = start.elapsed();
+println!("res = {res}, took {end:?}");
 }
 fn solve_alt1() {
-    let start = std::time::Instant::now();
-    let xsqrt = N.isqrt();
-    let primes = sift(xsqrt);
-    let xcbrt = (N as f64).cbrt() as u64;
-    let mut keys = (1..=xcbrt)
-        .step_by(2)
-        .map(|d| N / (d * d))
-        .chain((1..=xcbrt).rev())
-        .collect_vec();
-    keys.reverse();
-    assert!(keys.is_sorted());
-    keys.dedup();
-    let keys = keys.into_boxed_slice();
+let start = std::time::Instant::now();
+let xsqrt = N.isqrt();
+let primes = sift(xsqrt);
+let xcbrt = (N as f64).cbrt() as u64;
+let mut keys = (1..=xcbrt)
+.step_by(2)
+.map(|d| N / (d * d))
+.chain((1..=xcbrt).rev())
+.collect_vec();
+keys.reverse();
+assert!(keys.is_sorted());
+keys.dedup();
+let keys = keys.into_boxed_slice();
 
-    let rank = |e| {
-        if e <= xcbrt {
-            e as usize - 1
-        } else {
-            xcbrt as usize + keys[xcbrt as usize..].partition_point(|&v| v < e)
-            /* xcbrt as usize
+let rank = |e| {
+if e <= xcbrt {
+e as usize - 1
+} else {
+xcbrt as usize + keys[xcbrt as usize..].partition_point(|&v| v < e)
+/* xcbrt as usize
             + binsearch(
                 keys.len() - xcbrt as usize,
                 |i| keys[xcbrt as usize..][i],
@@ -460,7 +668,7 @@ fn lucy_based_2(x: u64) -> u64 {
         .fold(squarefree[x], |acc, p| acc + squarefree[x / (p * p)])
 }
  */
-fn test() {
+/* fn test() {
     let mu = crate::utils::multiplicative_function_summation::mobius_sieve(SQRT_N as usize + 1);
     let mut sqf = (N + 3) >> 2;
     for d in (3..=SQRT_N).step_by(2) {
@@ -471,7 +679,7 @@ fn test() {
         }
     }
     dbg!(sqf);
-}
+} */
 // can try reordering the convolutions, computing first 1_{p;4,3}^sqrt * (odd \mu^sqrt), and then convolving with (is_hilbert)
 // what I currently do is first (odd \mu^sqrt) * (is_hilbert), i.e. count squarefree hilbert numbers, and then convolve with 1_{p;4,3}^sqrt
 // the change would reduce the space complexity by a constant factor, but increase the time complexity a bit

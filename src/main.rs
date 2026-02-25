@@ -27,6 +27,7 @@ use crate::{
         },
     },
 };
+pub mod aebp;
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -40,26 +41,23 @@ pub mod p900_999;
 pub mod test;
 pub mod test2;
 pub mod utils;
-
 // digital root of n is just n mod 9 if n mod 9 != 0, otherwise 9
 const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
 // TODO: understand convex hull based lattice point counting, adapt https://github.com/dengtesla/acm/blob/master/acm%E6%A8%A1%E6%9D%BF/min25_new.cpp
+// try adding hole into fenwick tree, as described in https://en.algorithmica.org/hpc/data-structures/segment-trees/
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    //p500_599::e578::main();
-    //p800_899::e890::main();
     //test2::main();
     //p400_499::e452::main();
     //p700_799::e715::main();
     //p300_399::e339::main();
-    utils::primes::primecount::main();
+    //utils::primes::primecount::main();
 
     //p700_799::e738::main();
     //p700_799::e738::solve_ext();
-    p300_399::e379::main();
     /* p600_699::e625::solve_ext();
     p600_699::e625::solve_ext_alt();
 
@@ -1365,11 +1363,6 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
     a.bit.dec(0);
     let a = FIArrayI64::from(a);
 
-    // a now equals a_t - 1
-    // compute log(a_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
-    // in order to not have to deal with rational numbers, we compute 6 * log(a_t)
-    // and adjust later
-
     for i in x..=len {
         ret.arr[i - 1] = a.arr[i - 1] * INVS[1];
     }
@@ -1390,7 +1383,6 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
         ret.arr[i - 1] -= a_4.arr[i - 1] * INVS[4];
     }
 
-    // correction phase: get rid of contributions of prime powers
     for i in (x..len).rev() {
         ret.arr[i] -= ret.arr[i - 1];
     }
