@@ -56,7 +56,7 @@ pub fn main() {
     let approx = FIArrayU32::from(approx);
     dbg!(start.elapsed());
 
-    let accurate = mult_correction(&approx, &primes, |pe, p, e| {
+    let accurate = mult_correction(&approx, &primes, |pe, p, _e| {
         let chi = [0, 1, 0, -1][p & 3];
         let pemod = pe as u64 % MOD;
         let pe3 = ((pemod * pemod % MOD) * pemod) % MOD;
@@ -118,7 +118,7 @@ pub fn main() {
     let approx = pseudo_euler_transform_mod(id3_p);
     dbg!(start.elapsed());
     let primes = unsafe { transmute::<Vec<u64>, Vec<usize>>(wheel_sieve(SQRT_N as u64)) };
-    let accurate = mult_correction(&approx, &primes, |pe, p, e| {
+    let accurate = mult_correction(&approx, &primes, |pe, p, _e| {
         let chi = [0, 1, 0, -1][p & 3];
         let pemod = pe as u64 % MOD;
         let pe3 = ((pemod * pemod % MOD) * pemod) % MOD;

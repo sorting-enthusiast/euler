@@ -4,7 +4,7 @@ use std::vec;
 use itertools::Itertools;
 
 //const N: usize = 123_567_101_113;
-use super::eratosthenes_variants::sieve_of_eratosthenes;
+pub use super::eratosthenes_variants::sieve_of_eratosthenes;
 pub use super::sieve_of_pritchard::{BIT64TOVAL240, sift};
 use crate::utils::bit_array::BitArray;
 pub const WHEEL_2_3_5_7: [u8; 48] = [

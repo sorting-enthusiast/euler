@@ -259,29 +259,6 @@ pub fn log_zeta_2(n: usize) -> FIArray {
 }
 
 // TODO: finish implementing ecnerwala's approach: sieve up to n^1/4, flatten, and compute P2 and P3: https://codeforces.com/blog/entry/117783
-#[must_use]
-pub fn log_zeta_single(n: usize) -> usize {
-    let mut f = DirichletFenwick::zeta(n);
-    let rt = f.isqrt;
-    let len = f.bit.0.len();
-
-    let mut ret = 0;
-
-    let x = iroot::<4>(n) + 1;
-    // remove contributions of small primes
-    for p in 2..x {
-        if f.bit.sum(p - 1) == 1 {
-            //not prime
-            continue;
-        }
-        ret += 1;
-        f.sparse_mul_at_most_one(p, 1);
-    }
-    let f = FIArray::from(f);
-    ret += f[n];
-
-    ret
-}
 
 #[must_use]
 pub fn dirichlet_mul_zero_prefix(

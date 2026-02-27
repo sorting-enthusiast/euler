@@ -1,10 +1,8 @@
 use crate::{
-    p300_399::e362::mult,
     utils::{
-        FIArray::FIArray,
         fast_divisor_sums::{d3, icbrt},
         multiplicative_function_summation::{
-            count_squarefree, dirichlet_mul_single_i64, dirichlet_mul_single_usize, divisor_summatory, sqf
+             dirichlet_mul_single_i64,  divisor_summatory, sqf
         },
     },
 };

@@ -28,6 +28,7 @@ use crate::{
     },
 };
 pub mod aebp;
+pub mod fenwick_holes_test;
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -51,11 +52,12 @@ pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //test2::main();
-    //p400_499::e452::main();
+    p400_499::e432::solve_lucy();
+    p400_499::e432::main();
+    //fenwick_holes_test::main();
     //p700_799::e715::main();
     //p300_399::e339::main();
-    //utils::primes::primecount::main();
-
+    p500_599::e578::main();
     //p700_799::e738::main();
     //p700_799::e738::solve_ext();
     /* p600_699::e625::solve_ext();
@@ -228,7 +230,7 @@ pub fn main() {
     let s1 = mult_correction(
         &pseudo_euler_transform_fraction_i64(pi),
         &primes,
-        |pp, p, e| -i64::from(e < 2),
+        |_pp, _p, e| -i64::from(e < 2),
     );
     let end = start.elapsed();
     dbg!(end, s1[N]);
@@ -480,6 +482,7 @@ pub fn main() {
     println!("hello and goodbye");
     //p300_399::e362::main();
     //utils::primes::prime_sieves::main();
+    //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
 

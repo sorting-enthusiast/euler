@@ -6,10 +6,10 @@ use crate::utils::{
     multiplicative_function_summation::sum_n_u64,
 };
 
-const MOD: u64 = 469762049;
-const N: usize = 9994070595599;
-const A: u64 = 209907780;
-const B: u64 = 360301068;
+const MOD: u64 = 469_762_049;
+const N: usize = 9_994_070_595_599;
+const A: u64 = 209_907_780;
+const B: u64 = 360_301_068;
 pub fn main() {
     let start = std::time::Instant::now();
     let mut id_mod = FIArrayU32::new(N);

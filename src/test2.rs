@@ -52,7 +52,7 @@ pub fn main() {
     //dbg!(start.elapsed());
     let approx = pseudo_euler_transform_mod(pisums);
     //dbg!(start.elapsed());
-    let accurate = mult_correction(&approx, &primes, |pp, p, e| {
+    let accurate = mult_correction(&approx, &primes, |pp, p, _e| {
         ((pp - pp / p) % MOD as usize) as u32
     });
     let res = accurate[N];

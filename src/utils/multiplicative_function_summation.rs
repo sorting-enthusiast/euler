@@ -233,7 +233,7 @@ pub fn divisor_summatory(x: usize) -> FIArrayI64 {
         zeta_2.sparse_mul_unlimited(p, 2);
     }
     let approx = FIArrayI64::from(zeta_2);
-    mult_correction(&approx, &primes, |_, _, e| e as i64 + 1)
+    mult_correction(&approx, &primes, |_, _, e| i64::from(e) + 1)
 }
 
 /// O(n^\frac12 \log n \log \log n) time, O(n^\frac12) space

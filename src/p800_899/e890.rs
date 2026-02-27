@@ -4,8 +4,8 @@ fn conv(a: &[u32], b: &[u32], c: &mut [u32]) {
     c.fill(0);
     for (i, &ai) in a.iter().enumerate() {
         for (j, &bj) in b.iter().enumerate() {
-            let (ai, bj) = (ai as u64, bj as u64);
-            let cij = (ai * bj) % MOD as u64;
+            let (ai, bj) = (u64::from(ai), u64::from(bj));
+            let cij = (ai * bj) % u64::from(MOD);
             c[i + j] += cij as u32;
             if c[i + j] >= MOD {
                 c[i + j] -= MOD;

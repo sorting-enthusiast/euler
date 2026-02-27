@@ -83,7 +83,7 @@ pub fn solve_ext() {
         start.elapsed()
     );
     let res = mult_correction(&approx, &primes, |pp, p, e| {
-        pp as i128 * (e as i128 + 1) - e as i128 * (pp / p) as i128
+        pp as i128 * (i128::from(e) + 1) - i128::from(e) * (pp / p) as i128
     })[N];
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
@@ -127,7 +127,7 @@ pub fn solve_ext_alt() {
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()
     );
-    let totient = mult_correction(&approx, &primes, |pp, p, e| pp as i128 - (pp / p) as i128);
+    let totient = mult_correction(&approx, &primes, |pp, p, _e| pp as i128 - (pp / p) as i128);
     let rt_n = totient.isqrt;
     let len = totient.arr.len();
     let mut res =
