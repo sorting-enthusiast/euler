@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::utils::{
     FIArray::{DirichletFenwickI128, FIArrayI128},
     math::iroot,
@@ -30,7 +32,7 @@ pub fn main() {
 }
 // 131.5644394s
 pub fn solve_ext() {
-    const N: usize = 1 << 50; // 3812934143065599435357584102851032
+    const N: usize = 1 << 54; // 3812934143065599435357584102851032
 
     let start = std::time::Instant::now();
     let mut id = DirichletFenwickI128::from(FIArrayI128::id::<0>(N));
@@ -82,14 +84,97 @@ pub fn solve_ext() {
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()
     );
-    let res = mult_correction(&approx, &primes, |pp, p, e| {
+    let res = mult_correction_single(&approx, &primes, |pp, p, e| {
         pp as i128 * (i128::from(e) + 1) - i128::from(e) * (pp / p) as i128
-    })[N];
+    }); //[N];
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
 }
+pub fn solve_ext_no_fenwick() {
+    const N: usize = 1 << 54; // 3812934143065599435357584102851032
+
+    let start = std::time::Instant::now();
+    let mut id = (FIArrayI128::id::<0>(N));
+    let lim = iroot::<7>(N) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    let keys = FIArrayI128::keys(N).collect_vec();
+
+    for p in 2..lim {
+        /* if id.get_bucket_prefix(p - 1) == 1 {
+            continue;
+        }
+        primes.push(p);
+        id.sparse_mul_at_most_one(p, p as _); */
+        if id.arr[p - 1] == 1 {
+            continue;
+        }
+        primes.push(p);
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            id.arr[i] -= p as i128 * id[v / p];
+        }
+    }
+    let mut id_lim = id; // FIArrayI128::from(id);
+    drop(keys);
+    println!(
+        "Finished removal of primes < {lim}, started convolution: {:?}",
+        start.elapsed()
+    );
+    let id2_lim = mult_i128(&id_lim, &id_lim);
+    println!(
+        "finished convolution, started removing primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for (i, v) in FIArrayI128::keys(N).enumerate() {
+        id_lim.arr[i] = v as i128;
+    }
+    let mut zeta = id_lim;
+    let keys = FIArrayI128::keys(N).collect_vec();
+
+    for &p in &primes {
+        //zeta.sparse_mul_at_most_one(p, 1);
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[v / p];
+        }
+    }
+    let zeta_lim = zeta;
+    println!(
+        "Finished removal of primes < {lim}, started division: {:?}",
+        start.elapsed()
+    );
+    let mut approx = div_i128(&id2_lim, &zeta_lim);
+    drop(id2_lim);
+    drop(zeta_lim);
+    println!(
+        "Finished division, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for &p in primes.iter().rev() {
+        for (i, &v) in keys.iter().enumerate().skip(p - 1) {
+            approx.arr[i] += (2 * p as i128 - 1) * approx[v / p];
+        }
+        //approx.sparse_mul_unlimited(p, 2 * p as i128 - 1);
+    }
+    let approx = approx;
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    let res = mult_correction_single(&approx, &primes, |pp, p, e| {
+        pp as i128 * (i128::from(e) + 1) - i128::from(e) * (pp / p) as i128
+    }); //[N];
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+}
+
 pub fn solve_ext_alt() {
-    const N: usize = 1 << 50; // 3812934143065599435357584102851032
+    const N: usize = 1 << 54; // 3812934143065599435357584102851032
 
     let start = std::time::Instant::now();
     let mut id = DirichletFenwickI128::from(FIArrayI128::id::<0>(N));
@@ -123,6 +208,73 @@ pub fn solve_ext_alt() {
         approx.sparse_mul_unlimited(p, p as i128 - 1);
     }
     let approx = FIArrayI128::from(approx);
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    let totient = mult_correction(&approx, &primes, |pp, p, _e| pp as i128 - (pp / p) as i128);
+    let rt_n = totient.isqrt;
+    let len = totient.arr.len();
+    let mut res =
+        totient.arr[len - 1] + sum_n_i128::<0>(N) - totient.arr[rt_n - 1] * sum_n_i128::<0>(rt_n);
+    for i in 2..=rt_n {
+        res += i as i128 * totient.arr[len - i]
+            + (totient.arr[i - 1] - totient.arr[i - 2]) * sum_n_i128::<0>(N / i);
+    }
+    let end = start.elapsed();
+    println!("res = {res}, took {end:?}");
+}
+
+pub fn solve_ext_alt_no_fenwick() {
+    const N: usize = 1 << 54; // 3812934143065599435357584102851032
+
+    let start = std::time::Instant::now();
+    let mut id = FIArrayI128::id::<0>(N);
+    let mut zeta = FIArrayI128::unit(N);
+    let lim = iroot::<7>(N) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    let keys = FIArrayI128::keys(N).collect_vec();
+
+    for p in 2..lim {
+        if zeta.arr[p - 1] == 1 {
+            continue;
+        }
+        primes.push(p);
+
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            let i_vp = zeta.get_index(v / p);
+            zeta.arr[i] -= zeta.arr[i_vp];
+            id.arr[i] -= p as i128 * id.arr[i_vp];
+        }
+    }
+    drop(keys);
+    let id_lim = id;
+    let zeta_lim = zeta;
+
+    println!(
+        "Finished removal of primes < {lim}, started division: {:?}",
+        start.elapsed()
+    );
+    let mut approx = div_i128(&id_lim, &zeta_lim);
+    drop(id_lim);
+    drop(zeta_lim);
+    println!(
+        "Finished division, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    let keys = FIArrayI128::keys(N).collect_vec();
+
+    for &p in primes.iter().rev() {
+        for (i, &v) in keys.iter().enumerate().skip(p - 1) {
+            approx.arr[i] += (p as i128 - 1) * approx[v / p];
+        }
+        //approx.sparse_mul_unlimited(p, p as i128 - 1);
+    }
+    let approx = approx;
     println!(
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()

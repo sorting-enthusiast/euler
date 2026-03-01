@@ -10,8 +10,10 @@
 #![allow(non_upper_case_globals)]
 #![allow(clippy::large_stack_arrays)]
 use chrono::Local;
+use itertools::Itertools;
 
 use crate::{
+    fenwick_holes_test::{log_zeta_3, log_zeta_3_odd},
     p300_399::e362::mult,
     utils::{
         FIArray::{DirichletFenwickI64, FIArray, FIArrayI64},
@@ -24,6 +26,7 @@ use crate::{
         primes::{
             log_zeta::log_zeta_2,
             primecount::{lucy_fenwick, mertens_min25},
+            wheel_sieve,
         },
     },
 };
@@ -47,22 +50,24 @@ const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
 // TODO: understand convex hull based lattice point counting, adapt https://github.com/dengtesla/acm/blob/master/acm%E6%A8%A1%E6%9D%BF/min25_new.cpp
-// try adding hole into fenwick tree, as described in https://en.algorithmica.org/hpc/data-structures/segment-trees/
+// optimize forward p.e.t. to exploit inverses of odd numbers mod 2^n
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //test2::main();
-    p400_499::e432::solve_lucy();
-    p400_499::e432::main();
+    //p400_499::e433::main();
+    //aebp::main();
     //fenwick_holes_test::main();
     //p700_799::e715::main();
     //p300_399::e339::main();
-    p500_599::e578::main();
     //p700_799::e738::main();
     //p700_799::e738::solve_ext();
-    /* p600_699::e625::solve_ext();
+    p600_699::e625::solve_ext_no_fenwick();
+    p600_699::e625::solve_ext_alt_no_fenwick();
+    p600_699::e625::solve_ext();
     p600_699::e625::solve_ext_alt();
 
+    /*
     let start = std::time::Instant::now();
     let id = FIArrayI128::id::<0>(1 << 50);
     let tot = div_i128(&id, &FIArrayI128::unit(1 << 50));
@@ -122,10 +127,11 @@ pub fn main() {
            &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
            &[1, 0, 0, 1]
        ));
-       p500_599::e556::main();
     */
-    const N: usize = 1e12 as _;
-    assert_eq!(log_zeta_2(N), lucy_fenwick(N));
+    //p500_599::e556::main();
+
+    const N: usize = 1 << 48; //1e13 as _;
+    assert_eq!(log_zeta_3_odd(N), lucy_fenwick(N));
     println!("counting sqf");
     let start = std::time::Instant::now();
     let s1 = count_squarefree(N);
@@ -166,12 +172,12 @@ pub fn main() {
     let start = std::time::Instant::now();
     let s1 = mertens(N);
     let end = start.elapsed();
-    dbg!(end, s1[N]);
+    println!("griff's blog: {end:?}, {}", s1[N]);
 
     let start = std::time::Instant::now();
     let s2 = div_i64(&FIArrayI64::eps(N), &FIArrayI64::unit(N));
     let end = start.elapsed();
-    dbg!(end, s2[N]);
+    println!("Dirichlet division: {end:?}, {}", s2[N]);
     /*let start = std::time::Instant::now();
     let s2 = inv_i64(&FIArrayI64::unit(N));
     let end = start.elapsed();
@@ -207,14 +213,56 @@ pub fn main() {
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()
     );
-    //let accurate = mult_correction(&approx, &primes, |_, _, e| 0);
     let end = start.elapsed();
-    dbg!(end, approx[N]);
-    assert_eq!(s2, approx);
+    println!("Sparse division (fenwick): {end:?}, {}", approx[N]);
+
+    let start = std::time::Instant::now();
+    let mut zeta = FIArrayI64::unit(N);
+    let lim = iroot::<7>(N) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    let keys = FIArray::keys(N).collect_vec();
+
+    for p in 2..lim {
+        if zeta.arr[p - 1] == 1 {
+            continue;
+        }
+        primes.push(p);
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[v / p];
+        }
+    }
+    println!(
+        "Finished removal of primes < {lim}, started convolution: {:?}",
+        start.elapsed()
+    );
+    let mut mu_lim = div_i64(&FIArrayI64::eps(N), &zeta);
+    println!(
+        "Finished convolution, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for &p in primes.iter().rev() {
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            mu_lim.arr[i] -= mu_lim[v / p];
+        }
+    }
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    let end = start.elapsed();
+    println!("Sparse division (naive): {end:?}, {}", mu_lim[N]);
+
     let start = std::time::Instant::now();
     let s1 = mertens_min25(N);
     let end = start.elapsed();
-    dbg!(end, s1[N]);
+    println!("Min_25 sieve based: {end:?}, {}", s1[N]);
     let start = std::time::Instant::now();
     let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
     let mut primes = vec![];
@@ -233,7 +281,75 @@ pub fn main() {
         |_pp, _p, e| -i64::from(e < 2),
     );
     let end = start.elapsed();
-    dbg!(end, s1[N]);
+    println!("Pseudo-euler transform based: {end:?}, {}", s1[N]);
+
+    let start = std::time::Instant::now();
+
+    let mut zeta = FIArrayI64::unit(N);
+    let lim = iroot::<8>(N) + 1;
+    let primes = wheel_sieve(zeta.isqrt as u64);
+    let keys = FIArray::keys(N).collect_vec();
+
+    for &p in &primes {
+        let p = p as usize;
+        if p >= lim {
+            break;
+        }
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[v / p];
+        }
+    }
+    let zeta_lim = zeta;
+
+    let mut mu0 = FIArrayI64::new(N);
+    mu0.arr[0] = 1;
+    for i in 1..=mu0.isqrt {
+        for &p in &primes {
+            let p = p as usize;
+            if i * p > mu0.isqrt {
+                break;
+            }
+            if p < lim {
+                mu0.arr[i * p - 1] = 0;
+                if i % p == 0 {
+                    break;
+                }
+            } else {
+                if i % p != 0 {
+                    mu0.arr[i * p - 1] = -mu0.arr[i - 1];
+                } else {
+                    mu0.arr[i * p - 1] = 0;
+                    break;
+                }
+            }
+        }
+    }
+    mu0.partial_sum();
+
+    let mut mu = mult_i64(&zeta_lim, &mu0);
+    for e in &mut mu.arr {
+        *e -= 1;
+    }
+    let tmp = mult_sparse_i64(&mu0, &mu);
+    for i in 0..mu.arr.len() {
+        mu.arr[i] = mu0.arr[i] - tmp.arr[i];
+    }
+    let i = primes.partition_point(|&p| p < lim as u64);
+    for &p in primes[..i].iter().rev() {
+        let p = p as usize;
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            mu.arr[i] -= mu[v / p];
+        }
+    }
+    let end = start.elapsed();
+    println!("Sparse inv (naive + newton iter): {end:?}, {}", mu[N]);
+
     println!("hello and goodbye");
     println!("summing divisor counts");
     dbg!(fast_divisor_sums::divisor_summatory(N));
@@ -307,6 +423,50 @@ pub fn main() {
     let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
     let end = start.elapsed();
     dbg!(end, accurate[N]); // 1e16: 185.5163734s, 1e15: 43.4229948s, 1e14: 9.991973s
+
+    let start = std::time::Instant::now();
+    let mut zeta = FIArrayI64::unit(N);
+    let lim = iroot::<8>(N) + 1;
+    let mut primes = vec![];
+    println!("started removal of primes < {lim}: {:?}", start.elapsed());
+    let keys = FIArray::keys(N).collect_vec();
+
+    for p in 2..lim {
+        if zeta.arr[p - 1] == 1 {
+            continue;
+        }
+        primes.push(p);
+        for (i, &v) in keys.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[v / p];
+        }
+    }
+
+    let zeta_lim = zeta;
+    println!(
+        "Finished removal of primes < {lim}, started convolution: {:?}",
+        start.elapsed()
+    );
+    let mut zeta_2 = mult_i64(&zeta_lim, &zeta_lim);
+    println!(
+        "Finished convolution, started adding back primes < {lim}: {:?}",
+        start.elapsed()
+    );
+    for &p in primes.iter().rev() {
+        for (i, &v) in keys.iter().enumerate().skip(p - 1) {
+            zeta_2.arr[i] += 2 * zeta_2[v / p];
+        }
+    }
+    let approx = zeta_2;
+    println!(
+        "Finished adding back primes < {lim}, started correction: {:?}",
+        start.elapsed()
+    );
+    let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+    let end = start.elapsed();
+    dbg!(end, accurate[N]);
 
     /* {
            let start = std::time::Instant::now();
@@ -1346,7 +1506,18 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
 // faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 12 before reducing
 #[must_use]
 pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
-    const INVS: [i64; 5] = [0, 12, 6, 4, 3];
+    const fn inv_odd(mut k: i64) -> i64 {
+        let mut exp = (1u64 << 63) - 1;
+
+        let mut r: i64 = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0
+    }
+    const INVS: [i64; 5] = [0, 4, 2, inv_odd(3) << 2, 1]; //inv_odd(5) << 2, inv_odd(3) << 1];
     let mut a = DirichletFenwickI64::from(a);
     let rt = a.isqrt;
     let n = a.x;

@@ -240,7 +240,7 @@ macro_rules! FenwickTree_impl_for {
 
 FenwickTree_impl_for!(usize);
 
-use crate::{p300_399::e362::mult, utils::{
+use crate::{p300_399::e362::{mult, mult_sparse}, utils::{
     FIArray::FIArray,
     math::iroot,
     primes::{log_zeta::{log_zeta, log_zeta_2}, primecount::lucy_fenwick},
@@ -443,7 +443,7 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
 // res = 2623557157654233, took 1295.5591953s
 // res = 2623557157654233, took 1212.7197351s
 pub fn main() {
-    const N: usize = 1e15 as _;
+    const N: usize = 1e14 as _;
     let start = Instant::now();
     let count = log_zeta_2(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
@@ -451,6 +451,21 @@ pub fn main() {
 
     let start = Instant::now();
     let count = log_zeta_2_hole(N)[N]; // n^(2/3) / \log n
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = log_zeta_3_hole(N)[N]; // n^(2/3) / \log n
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = log_zeta_3(N)[N]; // n^(2/3) / \log n
+    let end = start.elapsed();
+    println!("res = {count}, took {end:?}");
+
+    let start = Instant::now();
+    let count = log_zeta_3_odd(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
     println!("res = {count}, took {end:?}");
 
@@ -478,7 +493,19 @@ pub fn main() {
 }
 #[must_use]
 pub fn log_zeta_2_hole(n: usize) -> FIArray {
-    const INVS: [usize; 5] = [0, 12, 6, 4, 3];
+    const fn inv_odd(mut k: usize) -> usize{
+        let mut exp = (1u64 << 63) - 1;
+        
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0    
+    }
+    const INVS: [usize; 5] = [0, 4, 2, 4usize.overflowing_mul(inv_odd(3)).0, 1];
+    let start = std::time::Instant::now();
     let mut zeta = DirichletFenwickHole::zeta(n);
     let rt = zeta.isqrt;
     let len = zeta.bit.len;
@@ -497,7 +524,7 @@ pub fn log_zeta_2_hole(n: usize) -> FIArray {
     }
     zeta.bit.dec(0);
     let zeta = FIArray::from(zeta);
-
+    println!("Finished sieving: {:?}",start.elapsed());
     // zeta now equals zeta_t - 1
     // compute log(zeta_t) using log(x + 1) = x - x^2 / 2 + x^3 / 3 - x^4 / 4
     // in order to not have to deal with rational numbers, we compute 12 * log(zeta_t)
@@ -506,18 +533,26 @@ pub fn log_zeta_2_hole(n: usize) -> FIArray {
     for i in x..=len {
         ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
     }
+    println!("started first mul: {:?}",start.elapsed());
     let zeta_2 = mult(&zeta, &zeta);
+    println!("finished first mul: {:?}",start.elapsed());
+
     let mut x_pow = x * x;
 
     for i in ret.get_index(x_pow)..=len {
         ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
     }    
+    println!("started second mul: {:?}",start.elapsed());
     let zeta_3 = mult(&zeta, &zeta_2);
+    println!("finished second mul: {:?}",start.elapsed());
+
     x_pow *= x;
     for i in ret.get_index(x_pow)..=len {
         ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
     }
-    let zeta_4 = mult(&zeta_2, &zeta_2);
+    println!("started third mul: {:?}",start.elapsed());
+    let zeta_4 = mult_sparse(&zeta, &zeta_3);
+    println!("finished third mul: {:?}",start.elapsed());
     x_pow *= x;
     for i in ret.get_index(x_pow)..=len {
         ret.arr[i - 1] -= zeta_4.arr[i - 1] * INVS[4];
@@ -552,8 +587,343 @@ pub fn log_zeta_2_hole(n: usize) -> FIArray {
 }
 
 #[must_use]
+pub fn log_zeta_3_hole(n: usize) -> FIArray {
+    const INVS: [usize; 7] = [0, 60, 30, 20, 15, 12, 10];
+    let start = std::time::Instant::now();
+    let mut zeta = DirichletFenwickHole::zeta(n);
+    let rt = zeta.isqrt;
+    let len = zeta.bit.len;
+
+    let mut ret = FIArray::new(n);
+
+    let x = iroot::<7>(n) + 1;
+    // remove contributions of small primes
+    for p in 2..x {
+        if zeta.bit.sum(p - 1) == 1 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        zeta.sparse_mul_at_most_one(p, 1);
+    }
+    zeta.bit.dec(0);
+    let zeta = FIArray::from(zeta);
+    println!("Finished sieving: {:?}",start.elapsed());
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x - x^2 / 2 + x^3 / 3 - x^4 / 4 + x^5 / 5 - x^6 / 6
+    // in order to not have to deal with rational numbers, we compute 12 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+    println!("started first mul: {:?}",start.elapsed());
+    let zeta_2 = mult(&zeta, &zeta);
+    println!("finished first mul: {:?}",start.elapsed());
+
+    let mut x_pow = x * x;
+
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
+    }    
+    println!("started second mul: {:?}",start.elapsed());
+    let zeta_3 = mult(&zeta, &zeta_2);
+    println!("finished second mul: {:?}",start.elapsed());
+
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
+    }
+    println!("started third mul: {:?}",start.elapsed());
+    let zeta_4 = mult(&zeta_2, &zeta_2);
+    println!("finished third mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_4.arr[i - 1] * INVS[4];
+    }
+    println!("started fourth mul: {:?}",start.elapsed());
+    let zeta_5 = mult_sparse(&zeta, &zeta_4);
+    println!("finished fourth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_5.arr[i - 1] * INVS[5];
+    }
+    println!("started fifth mul: {:?}",start.elapsed());
+    let zeta_6 = mult_sparse(&zeta_2, &zeta_4);
+    println!("finished fifth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_6.arr[i - 1] * INVS[6];
+    }
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / INVS[1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+
+            ret[px] -= INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= INVS[1];
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+
+#[must_use]
+pub fn log_zeta_3(n: usize) -> FIArray {
+    const INVS: [usize; 7] = [0, 60, 30, 20, 15, 12, 10];
+    //let start = std::time::Instant::now();
+    let mut zeta = FIArray::unit(n);
+    let rt = zeta.isqrt;
+    let len = zeta.arr.len();
+
+    let mut ret = FIArray::new(n);
+
+    let x = iroot::<7>(n) + 1;
+    // remove contributions of small primes
+    let keys = zeta.clone();
+    for p in 2..x {
+        if zeta.arr[p - 1] == 1 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        for (i,&v) in keys.arr.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[v / p];
+        }
+    }
+    for e in &mut zeta.arr {
+        *e -= 1;
+    }
+    let zeta = zeta;
+    //println!("Finished sieving: {:?}",start.elapsed());
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x - x^2 / 2 + x^3 / 3 - x^4 / 4 + x^5 / 5 - x^6 / 6
+    // in order to not have to deal with rational numbers, we compute 12 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+    //println!("started first mul: {:?}",start.elapsed());
+    let zeta_2 = mult(&zeta, &zeta);
+    //println!("finished first mul: {:?}",start.elapsed());
+
+    let mut x_pow = x * x;
+
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
+    }    
+    //println!("started second mul: {:?}",start.elapsed());
+    let zeta_3 = mult(&zeta, &zeta_2);
+    //println!("finished second mul: {:?}",start.elapsed());
+
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
+    }
+    //println!("started third mul: {:?}",start.elapsed());
+    let zeta_4 = mult(&zeta_2, &zeta_2);
+    //println!("finished third mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_4.arr[i - 1] * INVS[4];
+    }
+    //println!("started fourth mul: {:?}",start.elapsed());
+    let zeta_5 = mult_sparse(&zeta, &zeta_4);
+    //println!("finished fourth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_5.arr[i - 1] * INVS[5];
+    }
+    //println!("started fifth mul: {:?}",start.elapsed());
+    let zeta_6 = mult_sparse(&zeta_2, &zeta_4);
+    //println!("finished fifth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_6.arr[i - 1] * INVS[6];
+    }
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / INVS[1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+
+            ret[px] -= INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= INVS[1];
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+
+#[must_use]
+pub fn log_zeta_3_odd(n: usize) -> FIArray {
+    const fn inv_odd(mut k: usize) -> usize{
+        let mut exp = (1u64 << 63) - 1;
+        
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0    
+    }
+    const INVS: [usize; 7] = [0, 4, 2, inv_odd(3) << 2, 1, inv_odd(5) << 2, inv_odd(3) << 1];
+    //let start = std::time::Instant::now();
+    let mut zeta = FIArray::unit(n);
+    let rt = zeta.isqrt;
+    let len = zeta.arr.len();
+
+    let mut ret = FIArray::new(n);
+
+    let x = iroot::<7>(n) + 1;
+    // remove contributions of small primes
+    let keys = zeta.clone();
+    for p in 2..x {
+        if zeta.arr[p - 1] == 1 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        for (i,&v) in keys.arr.iter().enumerate().rev() {
+            if v < p {
+                break;
+            }
+            zeta.arr[i] -= zeta[v / p];
+        }
+    }
+    for e in &mut zeta.arr {
+        *e -= 1;
+    }
+    let zeta = zeta;
+    //println!("Finished sieving: {:?}",start.elapsed());
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x - x^2 / 2 + x^3 / 3 - x^4 / 4 + x^5 / 5 - x^6 / 6
+    // in order to not have to deal with rational numbers, we compute 4 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+    //println!("started first mul: {:?}",start.elapsed());
+    let zeta_2 = mult(&zeta, &zeta);
+    //println!("finished first mul: {:?}",start.elapsed());
+
+    let mut x_pow = x * x;
+
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
+    }    
+    //println!("started second mul: {:?}",start.elapsed());
+    let zeta_3 = mult(&zeta, &zeta_2);
+    //println!("finished second mul: {:?}",start.elapsed());
+
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
+    }
+    //println!("started third mul: {:?}",start.elapsed());
+    let zeta_4 = mult(&zeta_2, &zeta_2);
+    //println!("finished third mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_4.arr[i - 1] * INVS[4];
+    }
+    //println!("started fourth mul: {:?}",start.elapsed());
+    let zeta_5 = mult_sparse(&zeta, &zeta_4);
+    //println!("finished fourth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] += zeta_5.arr[i - 1] * INVS[5];
+    }
+    //println!("started fifth mul: {:?}",start.elapsed());
+    let zeta_6 = mult_sparse(&zeta_2, &zeta_4);
+    //println!("finished fifth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow)..=len {
+        ret.arr[i - 1] -= zeta_6.arr[i - 1] * INVS[6];
+    }
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / INVS[1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+
+            ret[px] -= INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= INVS[1];
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+
+
+#[must_use]
 pub fn log_zeta_hole(n: usize) -> FIArray {
-    const INVS: [usize; 4] = [0, 6, 3, 2];
+    const fn inv_odd(mut k: usize) -> usize{
+        let mut exp = (1u64 << 63) - 1;
+        
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0    
+    }
+    
+    const INVS: [usize; 4] = [0, 2, 1, inv_odd(3) << 1];
+    let start = std::time::Instant::now();
     let mut zeta = DirichletFenwickHole::zeta(n);
     let rt = zeta.isqrt;
     let len = zeta.bit.len;
@@ -572,15 +942,17 @@ pub fn log_zeta_hole(n: usize) -> FIArray {
     }
     zeta.bit.dec(0);
     let mut zeta = FIArray::from(zeta);
+    dbg!(start.elapsed());
 
     // zeta now equals zeta_t - 1
     // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
-    // in order to not have to deal with rational numbers, we compute 6 * log(zeta_t)
+    // in order to not have to deal with rational numbers, we compute 2 * log(zeta_t)
     // and adjust later
 
     for i in x..=len {
         ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
     }
+    dbg!(start.elapsed());
 
     let pa = {
         let mut vec = vec![];
@@ -660,6 +1032,7 @@ pub fn log_zeta_hole(n: usize) -> FIArray {
         }
         res
     };
+    dbg!(start.elapsed());
     /* let ind = pow_zeta.get_index(x.pow(2));
     assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
     dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
@@ -667,6 +1040,7 @@ pub fn log_zeta_hole(n: usize) -> FIArray {
     for i in rt + 1..=len {
         ret.arr[i - 1] -= pow_zeta.arr[i - 1] * INVS[2];
     }
+    dbg!(start.elapsed());
     {
         //pow_zeta = mult_sparse(&zeta, &pow_zeta);
 
@@ -680,6 +1054,8 @@ pub fn log_zeta_hole(n: usize) -> FIArray {
         //zeta.arr[..rt].fill(0);
         core::mem::swap(&mut pow_zeta, &mut zeta);
     }
+    dbg!(start.elapsed());
+
     let ind = pow_zeta.get_index(x.pow(3));
     //dbg!(ind, len, len - ind);
     //assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
@@ -693,7 +1069,7 @@ pub fn log_zeta_hole(n: usize) -> FIArray {
     }
 
     for x in x..=rt {
-        let v = ret.arr[x - 1] / 6;
+        let v = ret.arr[x - 1] / INVS[1];
         if v == 0 {
             continue;
         }
@@ -710,7 +1086,7 @@ pub fn log_zeta_hole(n: usize) -> FIArray {
         ret.arr[i] += ret.arr[i - 1];
     }
     for i in x - 1..len {
-        ret.arr[i] /= 6;
+        ret.arr[i] /= INVS[1];
         ret.arr[i] += ret.arr[i - 1];
     }
     ret

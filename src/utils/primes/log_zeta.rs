@@ -185,7 +185,19 @@ pub fn log_zeta(n: usize) -> FIArray {
 
 #[must_use]
 pub fn log_zeta_2(n: usize) -> FIArray {
-    const INVS: [usize; 5] = [0, 12, 6, 4, 3];
+    const fn inv_odd(mut k: usize) -> usize{
+        let mut exp = (1u64 << 63) - 1;
+        
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0    
+    }
+    
+    const INVS: [usize; 5] = [0, 4, 2, inv_odd(3) << 2, 1];
     let mut zeta = DirichletFenwick::zeta(n);
     let rt = zeta.isqrt;
     let len = zeta.bit.0.len();
@@ -224,7 +236,7 @@ pub fn log_zeta_2(n: usize) -> FIArray {
     for i in ret.get_index(x_pow)..=len {
         ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
     }
-    let zeta_4 = mult(&zeta_2, &zeta_2);
+    let zeta_4 = mult_sparse(&zeta, &zeta_3);
     x_pow *= x;
     for i in ret.get_index(x_pow)..=len {
         ret.arr[i - 1] -= zeta_4.arr[i - 1] * INVS[4];
