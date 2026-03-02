@@ -380,10 +380,22 @@ pub fn inverse_pseudo_euler_transform(a: FIArray) -> FIArray {
     r
 }
 
-// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 1296 before reducing
+// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 48 before reducing
 #[must_use]
 pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
-    const INVS: [usize; 4] = [0, 6, 3, 2];
+    const fn inv_odd(mut k: usize) -> usize {
+        let mut exp = (1u64 << 63) - 1;
+
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0
+    }
+
+    const INVS: [usize; 4] = [0, 2, 1, inv_odd(3) << 1];
 
     let mut a = a;
     let len = a.arr.len();
@@ -395,7 +407,7 @@ pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
         a.arr[i] -= a.arr[i - 1];
         a.arr[i] *= INVS[1];
     }
-    a.arr[0] *= INVS[1]; // kinda pointless tbh
+    //a.arr[0] *= INVS[1]; // kinda pointless tbh, since it is implicitly assumed to be 0 anyway, and never accessed
     for i in (x..=rt).rev() {
         let v = a.arr[i - 1] / INVS[1];
         if v == 0 {

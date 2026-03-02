@@ -63,10 +63,7 @@ macro_rules! FIArray_impl_for {
                         self.arr[i] -= self.arr[i - 1];
                     }
                 }
-                #[must_use] pub fn large_keys(x: $type) -> impl DoubleEndedIterator<Item = $type> + use<> {
-                    let isqrt = x.isqrt();
-                    (1..isqrt).chain((isqrt != x / isqrt).then_some(isqrt))
-                }
+
                 #[must_use] pub fn get_index(&self, v: usize) -> usize {
                     if v <= 0 {
                         0

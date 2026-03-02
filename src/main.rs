@@ -62,10 +62,10 @@ pub fn main() {
     //p300_399::e339::main();
     //p700_799::e738::main();
     //p700_799::e738::solve_ext();
-    p600_699::e625::solve_ext_no_fenwick();
+    /* p600_699::e625::solve_ext_no_fenwick();
     p600_699::e625::solve_ext_alt_no_fenwick();
     p600_699::e625::solve_ext();
-    p600_699::e625::solve_ext_alt();
+    p600_699::e625::solve_ext_alt(); */
 
     /*
     let start = std::time::Instant::now();
@@ -128,10 +128,29 @@ pub fn main() {
            &[1, 0, 0, 1]
        ));
     */
-    //p500_599::e556::main();
 
-    const N: usize = 1 << 48; //1e13 as _;
+    assert_eq!(
+        mult_simple(&FIArray::unit(10000), &FIArray::unit(10000)),
+        mult(&FIArray::unit(10000), &FIArray::unit(10000))
+    );
+    assert_eq!(
+        icy_mult(&FIArray::unit(10000), &FIArray::unit(10000)),
+        mult(&FIArray::unit(10000), &FIArray::unit(10000))
+    );
+
+    const N: usize = 1e15 as _;
     assert_eq!(log_zeta_3_odd(N), lucy_fenwick(N));
+    /* assert_eq!(
+        inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N)),
+        inverse_pseudo_euler_transform_i64(FIArrayI64::unit(N))
+    ); */
+    /* assert_eq!(
+        pseudo_euler_transform_fraction_i64_test(inverse_pseudo_euler_transform_fraction_i64(
+            FIArrayI64::unit(N)
+        )),
+        FIArrayI64::unit(N)
+    ); */
+
     println!("counting sqf");
     let start = std::time::Instant::now();
     let s1 = count_squarefree(N);
@@ -146,6 +165,10 @@ pub fn main() {
     let end = start.elapsed();
     dbg!(end, s2[N]);
     assert_eq!(s1, s2);
+
+    p300_399::e362::main();
+    p500_599::e556::main();
+
     /* {
            let start = std::time::Instant::now();
            let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
@@ -639,13 +662,70 @@ pub fn main() {
     for i in 0..s1.arr.len() {
         assert_eq!(s1.arr[i], accurate.arr[i] as usize);
     }
+    let start = std::time::Instant::now();
+    let u = FIArray::unit(N);
+    let s1 = icy_mult(&u, &u);
+    let end = start.elapsed();
+    dbg!(end, s1[N]);
+
+    let start = std::time::Instant::now();
+    let u = FIArray::unit(N);
+    let s1 = mult_simple(&u, &u);
+    let end = start.elapsed();
+    dbg!(end, s1[N]);
     println!("hello and goodbye");
-    //p300_399::e362::main();
     //utils::primes::prime_sieves::main();
     //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
+fn icy_mult(F: &FIArray, G: &FIArray) -> FIArray {
+    unsafe { core::hint::assert_unchecked(F.x == G.x) };
+    unsafe { core::hint::assert_unchecked(F.isqrt == G.isqrt) };
+    unsafe { core::hint::assert_unchecked(F.arr.len() == G.arr.len()) };
 
+    let f = |i: usize| {
+        if i == 1 {
+            F.arr[0]
+        } else {
+            F.arr[i - 1] - F.arr[i - 2]
+        }
+    };
+    let g = |i: usize| {
+        if i == 1 {
+            G.arr[0]
+        } else {
+            G.arr[i - 1] - G.arr[i - 2]
+        }
+    };
+    let N = F.x;
+    let c_N = iroot::<3>(N);
+
+    let mut H = FIArray::new(N);
+    let len = H.arr.len();
+    for x in 1..=c_N {
+        let (fx, gx) = (f(x), g(x));
+        let max_y = (N / x).isqrt();
+        H[x * x] += fx * gx;
+        for y in x + 1..=max_y {
+            H[x * y] += fx * g(y) + gx * f(y);
+        }
+        H.arr[len - max_y] -= f(x) * G.arr[max_y - 1] + g(x) * F.arr[max_y - 1];
+    }
+    H.arr[len - c_N] += F.arr[c_N - 1] * G.arr[c_N - 1];
+    H.partial_sum();
+    for x in 1..=c_N {
+        let Nx = N / x;
+        let (fx, gx) = (f(x), g(x));
+        let max_y = Nx.isqrt();
+        H.arr[len - x] += fx * G[Nx / x] + gx * F[Nx / x];
+        for y in x + 1..=max_y {
+            H.arr[len - x] += f(y) * G[Nx / y] + g(y) * F[Nx / y];
+            H.arr[len - y] += fx * G[Nx / y] + gx * F[Nx / y];
+        }
+        H.arr[len - x] -= G.arr[max_y - 1] * F.arr[max_y - 1];
+    }
+    H
+}
 #[must_use]
 pub fn pseudo_euler_transform_i64(a: FIArrayI64) -> FIArrayI64 {
     let n = a.x;
@@ -892,12 +972,216 @@ pub fn mult_sparse_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     mult_sparse_with_buffer_i64(a, b, &mut res);
     res
 }
+pub fn mult_with_buffer_i64(a: &FIArrayI64, b: &FIArrayI64, res: &mut FIArrayI64) {
+    res.arr.fill(0);
+    unsafe { core::hint::assert_unchecked(a.x == b.x) };
+    let R2 = a.isqrt;
+    let n = a.x;
+    let mut res = FIArrayI64::new(n);
+
+    let s1 = |ds: &FIArrayI64| {
+        let mut vec = vec![];
+        if ds.arr[0] != 0 {
+            vec.push((1, ds.arr[0]));
+        }
+        for i in 1..R2 {
+            if ds.arr[i] != ds.arr[i - 1] {
+                vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));
+            }
+        }
+        vec.push((R2 + 1, 0));
+        vec
+    };
+    let len = res.arr.len();
+    if a == b {
+        let pa = s1(a);
+        let va = &pa[..pa.len() - 1];
+        let mut r = va.len();
+        let mut l = 0;
+        for &(x, fx) in va {
+            res[x * x] += fx * fx;
+
+            l += 1;
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = R2 / x;
+            let Nx = n / x;
+
+            let mut i = l;
+
+            while i != r && pa[i].0 <= X {
+                res.arr[x * pa[i].0 - 1] += 2 * fx * pa[i].1;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pa[i].0] += 2 * fx * pa[i].1;
+                i += 1;
+            }
+            if r != 0 && pa[r].0 <= Nx {
+                res[x * pa[r].0] -= fx * a.arr[pa[r - 1].0 - 1] * 2;
+            }
+        }
+        for i in 1..len {
+            res.arr[i] += res.arr[i - 1];
+        }
+        r = va.len();
+        l = 0;
+        for &(x, fx) in va {
+            l += 1;
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+
+            let mut i = Nx / pa[r].0;
+            let X = R2 / x;
+            while i > X {
+                res.arr[len - i] += 2 * fx * a.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += 2 * fx * a.arr[len - x * i];
+                i -= 1;
+            }
+        }
+    } else {
+        let pa = s1(a);
+        let va = &pa[..pa.len() - 1];
+        let pb = s1(b);
+        let vb = &pb[..pb.len() - 1];
+        res.arr[0] += a.arr[0] * b.arr[0];
+        for i in 2..=R2 {
+            res[i * i] += (a.arr[i - 1] - a.arr[i - 2]) * (b.arr[i - 1] - b.arr[i - 2]);
+        }
+        let mut r = vb.len();
+        let mut l = 0;
+        for &(x, y) in va {
+            while pb[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pb[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = R2 / x;
+            let Nx = n / x;
+
+            let mut i = l;
+
+            while i != r && pb[i].0 <= X {
+                res.arr[x * pb[i].0 - 1] += y * pb[i].1;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pb[i].0] += y * pb[i].1;
+                i += 1;
+            }
+            if r != 0 && pb[r].0 <= Nx {
+                res[(x * pb[r].0) as _] -= y * b.arr[pb[r - 1].0 - 1];
+            }
+        }
+        r = va.len();
+        l = 0;
+        for &(x, y) in vb {
+            while pa[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+            let X = R2 / x;
+            let Nx = n / x;
+
+            let mut i = l;
+
+            while i != r && pa[i].0 <= X {
+                res.arr[x * pa[i].0 - 1] += y * pa[i].1;
+                i += 1;
+            }
+            while i != r {
+                res.arr[len - Nx / pa[i].0] += y * pa[i].1;
+                i += 1;
+            }
+            if r != 0 && pa[r].0 <= Nx {
+                res[(x * pa[r].0) as _] -= y * a.arr[pa[r - 1].0 - 1];
+            }
+        }
+        for i in 1..len {
+            res.arr[i] += res.arr[i - 1];
+        }
+        r = vb.len();
+        l = 0;
+        for &(x, y) in va {
+            while pb[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pb[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+
+            let mut i = Nx / pb[r].0;
+            let X = R2 / x;
+            while i > X {
+                res.arr[len - i] += y * b.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += y * b.arr[len - x * i];
+                i -= 1;
+            }
+        }
+        r = va.len();
+        l = 0;
+        for &(x, y) in vb {
+            while pa[l].0 <= x {
+                l += 1;
+            }
+            let Nx = n / x;
+            while r > l && Nx / pa[r - 1].0 < r - 1 {
+                r -= 1;
+            }
+            if r < l {
+                r = l;
+            }
+
+            let mut i = Nx / pa[r].0;
+            let X = R2 / x;
+            while i > X {
+                res.arr[len - i] += y * a.arr[Nx / i - 1];
+                i -= 1;
+            }
+            while i > 0 {
+                res.arr[len - i] += y * a.arr[len - x * i];
+                i -= 1;
+            }
+        }
+    }
+}
 #[must_use]
 pub fn mult_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     unsafe { core::hint::assert_unchecked(a.x == b.x) };
-    let R2 = a.isqrt as usize;
-    let n = a.x as usize;
-    let mut res = FIArrayI64::new(n as _);
+    let R2 = a.isqrt;
+    let n = a.x;
+    let mut res = FIArrayI64::new(n);
 
     let s1 = |ds: &FIArrayI64| {
         let mut vec = vec![];
@@ -1428,7 +1712,7 @@ pub fn inv_i64(b: &FIArrayI64) -> FIArrayI64 {
     res
 }
 
-// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 1296 before reducing
+/* // faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 1296 before reducing
 #[must_use]
 pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     const INVS: [i64; 4] = [0, 6, 3, 2];
@@ -1503,8 +1787,97 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     }
     ret.into()
 }
-// faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 12 before reducing
+ */
+// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 48 before reducing
 #[must_use]
+pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
+    const fn inv_odd(mut k: i64) -> i64 {
+        let mut exp = (1u64 << 63) - 1;
+
+        let mut r: i64 = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0
+    }
+
+    const INVS: [i64; 4] = [0, 2, 1, inv_odd(3) << 1];
+
+    let mut a = a;
+    let len = a.arr.len();
+    let n = a.x;
+    let rt = a.isqrt;
+    let x = iroot::<4>(n) + 1;
+
+    for i in (1..len).rev() {
+        a.arr[i] -= a.arr[i - 1];
+        a.arr[i] *= INVS[1];
+    }
+    a.arr[0] *= INVS[1]; // kinda pointless tbh
+    for i in (x..=rt).rev() {
+        let v = a.arr[i - 1] / INVS[1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut pi = i;
+        let mut pv = v;
+        while pi <= n / i {
+            e += 1;
+            pi *= i;
+            pv *= v;
+            a[pi] += pv * INVS[e];
+        }
+    }
+
+    let mut v = FIArrayI64::new(n);
+    for i in x..=len {
+        v.arr[i - 1] = v.arr[i - 2] + a.arr[i - 1];
+    }
+
+    let mut ret = v.clone();
+    for e in &mut ret.arr {
+        *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
+    }
+
+    let mut v_2 = mult_i64(&v, &v);
+    for i in x..=len {
+        ret.arr[i - 1] += v_2.arr[i - 1] * 3 * INVS[1];
+    }
+    {
+        //v_2 = mult_sparse(&v, &v_2);
+        v.arr[rt..].fill(0);
+        for i in x..=rt {
+            let y = v.arr[i - 1] - v.arr[i - 2];
+            if y != 0 {
+                for j in 1..=rt / i {
+                    v.arr[len - j] += y * v_2.arr[len - i * j];
+                }
+            }
+        }
+        v.arr[..rt].fill(0);
+        core::mem::swap(&mut v_2, &mut v);
+    }
+
+    for i in 1..=len {
+        ret.arr[i - 1] += v_2.arr[i - 1];
+        ret.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
+    }
+    let mut ret = DirichletFenwickI64::from(ret);
+    for i in (2..x).rev() {
+        let ai = a.arr[i - 1] / INVS[1];
+        if ai == 0 {
+            continue;
+        }
+        ret.sparse_mul_unlimited(i, ai);
+    }
+    ret.into()
+}
+
+// faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 4 before reducing
+/* #[must_use]
 pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     const fn inv_odd(mut k: i64) -> i64 {
         let mut exp = (1u64 << 63) - 1;
@@ -1517,7 +1890,7 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
         }
         r.overflowing_mul(k).0
     }
-    const INVS: [i64; 5] = [0, 4, 2, inv_odd(3) << 2, 1]; //inv_odd(5) << 2, inv_odd(3) << 1];
+    const INVS: [i64; 5] = [0, 4, 2, inv_odd(3) << 2, 1];
     let mut a = DirichletFenwickI64::from(a);
     let rt = a.isqrt;
     let n = a.x;
@@ -1586,6 +1959,133 @@ pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 
     }
     ret
 }
+ */
+#[must_use]
+pub fn inverse_pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
+    const fn inv_odd(mut k: i64) -> i64 {
+        let mut exp = (1u64 << 63) - 1;
+
+        let mut r: i64 = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0
+    }
+    const INVS: [i64; 7] = [
+        0,
+        4,
+        2,
+        inv_odd(3) << 2,
+        1,
+        inv_odd(5) << 2,
+        inv_odd(3) << 1,
+    ];
+    //let start = std::time::Instant::now();
+    let mut a = a;
+    let n = a.x;
+    let rt = a.isqrt;
+    let len = a.arr.len();
+
+    let mut ret = FIArrayI64::new(n);
+
+    let x = iroot::<7>(n) + 1;
+    // remove contributions of small primes
+    let keys = FIArrayI64::keys(n).collect_vec();
+    for i in 2..x {
+        let vi = a.arr[i - 1] - 1;
+        if vi == 0 {
+            continue;
+        }
+        ret.arr[i - 1] = vi;
+        for (j, &v) in keys.iter().enumerate().rev() {
+            if v < i {
+                break;
+            }
+            a.arr[j] -= vi * a[v / i];
+        }
+    }
+    for e in &mut a.arr {
+        *e -= 1;
+    }
+    let a = a;
+    //println!("Finished sieving: {:?}",start.elapsed());
+    // zeta now equals zeta_t - 1
+    // compute log(zeta_t) using log(x + 1) = x - x^2 / 2 + x^3 / 3 - x^4 / 4 + x^5 / 5 - x^6 / 6
+    // in order to not have to deal with rational numbers, we compute 4 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = a.arr[i - 1] * INVS[1];
+    }
+    //println!("started first mul: {:?}",start.elapsed());
+    let a_2 = mult_i64(&a, &a);
+    //println!("finished first mul: {:?}",start.elapsed());
+
+    let mut x_pow = x * x;
+
+    for i in ret.get_index(x_pow) + 1..=len {
+        ret.arr[i - 1] -= a_2.arr[i - 1] * INVS[2];
+    }
+    //println!("started second mul: {:?}",start.elapsed());
+    let mut a_3 = mult_i64(&a, &a_2);
+    //println!("finished second mul: {:?}",start.elapsed());
+
+    x_pow *= x;
+    for i in ret.get_index(x_pow) + 1..=len {
+        ret.arr[i - 1] += a_3.arr[i - 1] * INVS[3];
+    }
+    //println!("started third mul: {:?}",start.elapsed());
+    let a_4 = mult_i64(&a_2, &a_2);
+    //println!("finished third mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow) + 1..=len {
+        ret.arr[i - 1] -= a_4.arr[i - 1] * INVS[4];
+    }
+    //println!("started fourth mul: {:?}",start.elapsed());
+    let a_5 = mult_sparse_i64(&a, &a_4);
+    //println!("finished fourth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow) + 1..=len {
+        ret.arr[i - 1] += a_5.arr[i - 1] * INVS[5];
+    }
+    //println!("started fifth mul: {:?}",start.elapsed());
+    let a_6 = mult_sparse_i64(&a_2, &a_4);
+    //println!("finished fifth mul: {:?}",start.elapsed());
+    x_pow *= x;
+    for i in ret.get_index(x_pow) + 1..=len {
+        ret.arr[i - 1] -= a_6.arr[i - 1] * INVS[6];
+    }
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / INVS[1];
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut pv = v;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+            pv *= v;
+
+            ret[px] -= pv * INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= INVS[1];
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
 
 fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
     unsafe { core::hint::assert_unchecked(a.x == b.x) };
@@ -1622,18 +2122,18 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         while pb[l].0 <= x {
             l += 1;
         }
+
         let Nx = n / x;
-        while r > l && Nx / pb[r - 1].0 < r - 1 {
+        while r > l && Nx < pb[r - 1].0 * r - 1 {
             r -= 1;
         }
         if r < l {
             r = l;
         }
-
         for (y, fy) in &pb[l..r] {
             res[x * y] += fx * fy;
         }
-        if r != 0 && x * pb[r].0 <= n {
+        if r != 0 && pb[r].0 <= Nx {
             res[x * pb[r].0] -= fx * b.arr[pb[r - 1].0 - 1];
         }
     }
@@ -1658,9 +2158,6 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
             res[y * pa[r].0] -= fy * a.arr[pa[r - 1].0 - 1];
         }
     }
-    /* for i in 1..len {
-        res.arr[i] += res.arr[i - 1];
-    } */
     res.partial_sum();
     r = vb.len();
     l = 0;
@@ -1675,7 +2172,6 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
         if r < l {
             r = l;
         }
-
         for i in (1..=Nx / pb[r].0).rev() {
             res.arr[len - i] += fx * b[Nx / i];
         }
@@ -1696,6 +2192,74 @@ fn mult_simple_i64(a: &FIArrayI64, b: &FIArrayI64) -> FIArrayI64 {
 
         for i in (1..=Nx / pa[r].0).rev() {
             res.arr[len - i] += fy * a[Nx / i];
+        }
+    }
+
+    res
+}
+
+fn mult_simple(F: &FIArray, G: &FIArray) -> FIArray {
+    unsafe { core::hint::assert_unchecked(F.x == G.x) };
+    let R2 = F.isqrt;
+    let n = F.x;
+    let mut res = FIArray::new(n);
+
+    let len = res.arr.len();
+
+    let f = |i: usize| {
+        if i == 1 {
+            F.arr[0]
+        } else {
+            F.arr[i - 1] - F.arr[i - 2]
+        }
+    };
+    let g = |i: usize| {
+        if i == 1 {
+            G.arr[0]
+        } else {
+            G.arr[i - 1] - G.arr[i - 2]
+        }
+    };
+
+    for i in 1..=R2 {
+        res[i * i] += f(i) * g(i);
+    }
+    let mut r = R2;
+    for x in 1..=R2 {
+        let fx = f(x);
+        let gx = g(x);
+        let Nx = n / x;
+
+        while r > x && Nx / r < r - 1 {
+            r -= 1;
+        }
+        if r < x {
+            r = x;
+        }
+        for y in x + 1..=r {
+            res[x * y] += fx * g(y) + gx * f(y);
+        }
+        if r + 1 <= Nx {
+            res[x * (r + 1)] -= fx * G.arr[r - 1] + gx * F.arr[r - 1];
+        }
+    }
+
+    res.partial_sum();
+    r = R2;
+    for x in 1..=R2 {
+        let fx = f(x);
+        let gx = g(x);
+
+        let Nx = n / x;
+
+        while r > x && Nx / r < r - 1 {
+            r -= 1;
+        }
+        if r < x {
+            r = x;
+        }
+        for y in 1..=Nx / (r + 1) {
+            res.arr[len - y] += fx * G[Nx / y] + gx * F[Nx / y];
         }
     }
 

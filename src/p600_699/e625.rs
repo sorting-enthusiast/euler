@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::utils::{
-    FIArray::{DirichletFenwickI128, FIArrayI128},
+    FIArray::{DirichletFenwickI128, FIArrayI64, FIArrayI128},
     math::iroot,
     multiplicative_function_summation::{sum_n_i64, sum_n_i128, totient_sum},
 };
@@ -32,7 +32,7 @@ pub fn main() {
 }
 // 131.5644394s
 pub fn solve_ext() {
-    const N: usize = 1 << 54; // 3812934143065599435357584102851032
+    const N: usize = 1 << 49; // 3812934143065599435357584102851032
 
     let start = std::time::Instant::now();
     let mut id = DirichletFenwickI128::from(FIArrayI128::id::<0>(N));
@@ -91,7 +91,7 @@ pub fn solve_ext() {
     println!("res = {res}, took {end:?}");
 }
 pub fn solve_ext_no_fenwick() {
-    const N: usize = 1 << 54; // 3812934143065599435357584102851032
+    const N: usize = 1 << 49; // 3812934143065599435357584102851032
 
     let start = std::time::Instant::now();
     let mut id = (FIArrayI128::id::<0>(N));
@@ -117,7 +117,7 @@ pub fn solve_ext_no_fenwick() {
             id.arr[i] -= p as i128 * id[v / p];
         }
     }
-    let mut id_lim = id; // FIArrayI128::from(id);
+    let id_lim = id;
     drop(keys);
     println!(
         "Finished removal of primes < {lim}, started convolution: {:?}",
@@ -128,10 +128,8 @@ pub fn solve_ext_no_fenwick() {
         "finished convolution, started removing primes < {lim}: {:?}",
         start.elapsed()
     );
-    for (i, v) in FIArrayI128::keys(N).enumerate() {
-        id_lim.arr[i] = v as i128;
-    }
-    let mut zeta = id_lim;
+    drop(id_lim);
+    let mut zeta = FIArrayI64::unit(N);
     let keys = FIArrayI128::keys(N).collect_vec();
 
     for &p in &primes {
@@ -148,7 +146,7 @@ pub fn solve_ext_no_fenwick() {
         "Finished removal of primes < {lim}, started division: {:?}",
         start.elapsed()
     );
-    let mut approx = div_i128(&id2_lim, &zeta_lim);
+    let mut approx = div_i128_i64(&id2_lim, &zeta_lim);
     drop(id2_lim);
     drop(zeta_lim);
     println!(
@@ -174,7 +172,7 @@ pub fn solve_ext_no_fenwick() {
 }
 
 pub fn solve_ext_alt() {
-    const N: usize = 1 << 54; // 3812934143065599435357584102851032
+    const N: usize = 1 << 49; // 3812934143065599435357584102851032
 
     let start = std::time::Instant::now();
     let mut id = DirichletFenwickI128::from(FIArrayI128::id::<0>(N));
@@ -225,12 +223,13 @@ pub fn solve_ext_alt() {
     println!("res = {res}, took {end:?}");
 }
 
+// 3812934143065599435357584102851032
 pub fn solve_ext_alt_no_fenwick() {
-    const N: usize = 1 << 54; // 3812934143065599435357584102851032
+    const N: usize = 1 << 49;
 
     let start = std::time::Instant::now();
     let mut id = FIArrayI128::id::<0>(N);
-    let mut zeta = FIArrayI128::unit(N);
+    let mut zeta = FIArrayI64::unit(N);
     let lim = iroot::<7>(N) + 1;
     let mut primes = vec![];
     println!("started removal of primes < {lim}: {:?}", start.elapsed());
@@ -252,16 +251,14 @@ pub fn solve_ext_alt_no_fenwick() {
         }
     }
     drop(keys);
-    let id_lim = id;
-    let zeta_lim = zeta;
 
     println!(
         "Finished removal of primes < {lim}, started division: {:?}",
         start.elapsed()
     );
-    let mut approx = div_i128(&id_lim, &zeta_lim);
-    drop(id_lim);
-    drop(zeta_lim);
+    let mut approx = div_i128_i64(&id, &zeta);
+    drop(id);
+    drop(zeta);
     println!(
         "Finished division, started adding back primes < {lim}: {:?}",
         start.elapsed()
@@ -272,9 +269,7 @@ pub fn solve_ext_alt_no_fenwick() {
         for (i, &v) in keys.iter().enumerate().skip(p - 1) {
             approx.arr[i] += (p as i128 - 1) * approx[v / p];
         }
-        //approx.sparse_mul_unlimited(p, p as i128 - 1);
     }
-    let approx = approx;
     println!(
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()
@@ -290,6 +285,172 @@ pub fn solve_ext_alt_no_fenwick() {
     }
     let end = start.elapsed();
     println!("res = {res}, took {end:?}");
+}
+
+#[must_use]
+pub fn div_i128_i64(a: &FIArrayI128, b: &FIArrayI64) -> FIArrayI128 {
+    unsafe { core::hint::assert_unchecked(a.x == b.x) };
+    let R2 = a.isqrt;
+    let n = a.x;
+    let mut res = FIArrayI128::new(n);
+
+    let s1 = |ds: &FIArrayI64| {
+        let mut vec = vec![];
+        if ds.arr[0] != 0 {
+            vec.push((1, ds.arr[0]));
+        }
+        for i in 1..R2 {
+            if ds.arr[i] != ds.arr[i - 1] {
+                vec.push((i + 1, ds.arr[i] - ds.arr[i - 1]));
+            }
+        }
+        vec.push((R2 + 1, 0));
+        vec
+    };
+    let len = res.arr.len();
+
+    let mut pa = vec![];
+    let pb = s1(b);
+    let vb = &pb[..pb.len() - 1];
+    res.arr[0] = a.arr[0];
+    for i in 1..R2 {
+        res.arr[i] = a.arr[i] - a.arr[i - 1];
+    }
+    let mut sum = 0;
+    for i in 1..=R2 {
+        let val = res.arr[i - 1];
+        sum += val;
+        res.arr[i - 1] = sum;
+        if val == 0 {
+            continue;
+        }
+        pa.push((i, val));
+        for &(y, fy) in &vb[1..] {
+            if y * i > R2 {
+                break;
+            }
+            res.arr[i * y - 1] -= val * fy as i128;
+        }
+    }
+    pa.push((R2 + 1, 0));
+    let va = &pa[..pa.len() - 1];
+
+    let mut r = vb.len();
+    let mut l0 = r;
+    let mut l = 0;
+    for &(x, fx) in va {
+        while pb[l].0 <= x {
+            l += 1;
+        }
+        let Nx = n / x;
+        let X = R2 / x;
+
+        while l0 > l && X < pb[l0 - 1].0 {
+            l0 -= 1;
+        }
+        while r > l && Nx < (r - 1) * pb[r - 1].0 {
+            r -= 1;
+        }
+
+        if l.max(l0) < r {
+            for &(y, fy) in &pb[l.max(l0)..r] {
+                res.arr[len - Nx / y] += fx * fy as i128;
+            }
+        }
+        r = r.max(l);
+
+        if r > 0 && pb[r].0 <= Nx {
+            res.arr[len - Nx / pb[r].0] -= fx * b.arr[pb[r - 1].0 - 1] as i128;
+        }
+    }
+    r = va.len();
+    l0 = r;
+    l = 0;
+    let mut bound_z = n / (R2 + 1);
+    for &(y, fy) in vb {
+        while pa[l].0 < y {
+            l += 1;
+        }
+        let Ny = n / y;
+        let bound_y = Ny / (bound_z + 1);
+        while l0 > l && R2 < y * pa[l0 - 1].0 {
+            l0 -= 1;
+        }
+        while r > l && pa[r - 1].0 > bound_y && Ny < (r - 1) * pa[r - 1].0 {
+            r -= 1;
+        }
+        if l.max(l0) < r {
+            for (x, fx) in &va[l.max(l0)..r] {
+                res.arr[len - Ny / x] += fy as i128 * fx;
+            }
+        }
+
+        r = r.max(l);
+
+        if r > 0 && pa[r].0 <= Ny {
+            res.arr[len - Ny / pa[r].0] -= fy as i128 * res.arr[pa[r - 1].0 - 1];
+        }
+        bound_z = Ny / pa[r].0;
+    }
+
+    res.arr[R2] += a.arr[R2 - 1];
+    for i in R2 + 1..len {
+        res.arr[i] += res.arr[i - 1];
+    }
+    l = 0;
+    r = vb.len();
+    for &(x, fx) in va {
+        while pb[l].0 <= x {
+            l += 1;
+        }
+        let Nx = n / x;
+        while r > l && Nx < (r - 1) * pb[r - 1].0 {
+            r -= 1;
+        }
+        //assert!(r >= l);
+        //mul_sparse_large(x, Nx, fx, pairs2[std::max(l, r)].first, block2, block_out);
+        if r < l {
+            r = l;
+        }
+
+        let mut i = Nx / pb[r].0;
+        let X = R2 / x;
+        while i > X {
+            res.arr[len - i] += fx * b.arr[Nx / i - 1] as i128;
+            i -= 1;
+        }
+        while i > 0 {
+            res.arr[len - i] += fx * b.arr[len - x * i] as i128;
+            i -= 1;
+        }
+    }
+    let mut c_y = 0;
+    l = 0;
+    r = va.len();
+    bound_z = n / (R2 + 1);
+    for i in (1..=bound_z).rev() {
+        while bound_z >= i {
+            c_y += 1;
+            let y = pb[c_y].0;
+            while pa[l].0 < y {
+                l += 1;
+            }
+            let Ny = n / y;
+            let bound_y = Ny / (bound_z + 1);
+            while r > l && pa[r - 1].0 > bound_y && (r - 1) * (pa[r - 1].0) > Ny {
+                r -= 1;
+            }
+            r = r.max(l);
+            bound_z = Ny / pa[r].0;
+        }
+        let Nz = n / i;
+        let mut ans = a.arr[len - i] - res.arr[len - i];
+        for &(y, fy) in &pb[1..c_y] {
+            ans -= fy as i128 * res[Nz / y];
+        }
+        res.arr[len - i] = ans;
+    }
+    res
 }
 
 #[must_use]

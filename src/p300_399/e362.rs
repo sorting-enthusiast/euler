@@ -44,11 +44,23 @@ pub fn main() {
 // Instead of only excluding values up to n^1/6, and adding their contributions back the naive way in O(n^2/3) time,
 // we can exclude all values up to n^1/4, and add their contributions back using a fenwick tree in O(n^5/8 logn) time
 // Therefore, we only need to deal with fractions up to 1/3, instead of 1/5, and factorials up to 3!, instead of 5!,
-// reducing the constant used for computing exp from 120*60^5 = 933120 to 6*6^3 = 1296, allowing us to compute much larger values
+// reducing the constant used for computing exp from 122880 to 48, allowing us to compute much larger values
 // without encountering 64-bit overflow
 fn dense_pseudo_euler_transform_based() {
     const x: usize = 1 + SQRT_N.isqrt();
-    const INVS: [usize; 4] = [0, 6, 3, 2];
+    const fn inv_odd(mut k: usize) -> usize {
+        let mut exp = (1u64 << 63) - 1;
+
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0
+    }
+
+    const INVS: [usize; 4] = [0, 2, 1, inv_odd(3) << 1];
     const { assert!(x.pow(4) > N) };
 
     let start = std::time::Instant::now();
