@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    mult_correction, mult_i64, mult_sparse_i64,
+    mult_correction_i64, mult_i64, mult_sparse_i64,
     p300_399::e362::mult,
     utils::{
         FIArray::{
@@ -233,7 +233,7 @@ pub fn divisor_summatory(x: usize) -> FIArrayI64 {
         zeta_2.sparse_mul_unlimited(p, 2);
     }
     let approx = FIArrayI64::from(zeta_2);
-    mult_correction(&approx, &primes, |_, _, e| i64::from(e) + 1)
+    mult_correction_i64(&approx, &primes, |_, _, e| i64::from(e) + 1)
 }
 
 /// O(n^\frac12 \log n \log \log n) time, O(n^\frac12) space

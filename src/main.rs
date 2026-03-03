@@ -14,10 +14,10 @@ use itertools::Itertools;
 
 use crate::{
     fenwick_holes_test::{log_zeta_3, log_zeta_3_odd},
-    p300_399::e362::mult,
+    p300_399::e362::{mult, mult_sparse},
     utils::{
-        FIArray::{DirichletFenwickI64, FIArray, FIArrayI64},
-        fast_divisor_sums::{self},
+        FIArray::{DirichletFenwick, DirichletFenwickI64, FIArray, FIArrayI64},
+        fast_divisor_sums::{self, divisor_summatory},
         math::iroot,
         multiplicative_function_summation::{
             count_squarefree, divisor_sieve, mertens, sqf, sqf_icy,
@@ -57,7 +57,6 @@ pub fn main() {
     //test2::main();
     //p400_499::e433::main();
     //aebp::main();
-    //fenwick_holes_test::main();
     //p700_799::e715::main();
     //p300_399::e339::main();
     //p700_799::e738::main();
@@ -123,13 +122,15 @@ pub fn main() {
     } */
     println!(); */
     dbg!((10usize ^ 7 ^ 3).count_ones());
-    p900_999::e953::main();
+    //p900_999::e953::main();
     /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
            &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
            &[1, 0, 0, 1]
        ));
     */
 
+    p300_399::e362::main();
+    p500_599::e556::main();
     assert_eq!(
         mult_simple(&FIArray::unit(10000), &FIArray::unit(10000)),
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
@@ -138,9 +139,20 @@ pub fn main() {
         icy_mult(&FIArray::unit(10000), &FIArray::unit(10000)),
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
     );
+    //1.8656068s - 2^40, 61.5886751s - 2^48
+    const N: usize = 1e16 as _;
+    //assert_eq!(log_zeta_3_odd(N), lucy_fenwick(N));
+    let start = std::time::Instant::now();
+    let p = log_zeta_fast(N)[N];
+    let end = start.elapsed();
+    println!("\"fast\" prime counting output for {N}: {p} | {end:?}");
 
-    const N: usize = 1e12 as _;
-    assert_eq!(log_zeta_3_odd(N), lucy_fenwick(N));
+    let start = std::time::Instant::now();
+    let p = log_zeta_fast_alt(N)[N];
+    let end = start.elapsed();
+    println!("\"fast\" prime counting output for {N}: {p} | {end:?}");
+    fenwick_holes_test::main();
+
     /* assert_eq!(
         inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N)),
         inverse_pseudo_euler_transform_i64(FIArrayI64::unit(N))
@@ -166,9 +178,6 @@ pub fn main() {
     let end = start.elapsed();
     dbg!(end, s2[N]);
     assert_eq!(s1, s2);
-
-    p300_399::e362::main();
-    p500_599::e556::main();
 
     /* {
            let start = std::time::Instant::now();
@@ -299,7 +308,7 @@ pub fn main() {
         *e *= -1;
     }
 
-    let s1 = mult_correction(
+    let s1 = mult_correction_i64(
         &pseudo_euler_transform_fraction_i64(pi),
         &primes,
         |_pp, _p, e| -i64::from(e < 2),
@@ -444,7 +453,7 @@ pub fn main() {
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()
     );
-    let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+    let accurate = mult_correction_i64(&approx, &primes, |_, _, e| e as i64 + 1);
     let end = start.elapsed();
     dbg!(end, accurate[N]); // 1e16: 185.5163734s, 1e15: 43.4229948s, 1e14: 9.991973s
 
@@ -488,7 +497,7 @@ pub fn main() {
         "Finished adding back primes < {lim}, started correction: {:?}",
         start.elapsed()
     );
-    let accurate = mult_correction(&approx, &primes, |_, _, e| e as i64 + 1);
+    let accurate = mult_correction_i64(&approx, &primes, |_, _, e| e as i64 + 1);
     let end = start.elapsed();
     dbg!(end, accurate[N]);
 
@@ -645,7 +654,7 @@ pub fn main() {
         pi.arr[i] *= 2;
     }
 
-    let s2 = mult_correction(
+    let s2 = mult_correction_i64(
         &pseudo_euler_transform_fraction_i64(pi),
         &primes,
         |_, _, e| e as i64 + 1,
@@ -668,17 +677,365 @@ pub fn main() {
     let s1 = icy_mult(&u, &u); // 1e11 168.5048ms, 1e12 872.4128ms, 1e15 149.5834006s
     let end = start.elapsed();
     dbg!(end, s1[N]);
-
-    let start = std::time::Instant::now();
-    let u = FIArray::unit(N);
-    let s1 = mult_simple(&u, &u);
-    let end = start.elapsed();
-    dbg!(end, s1[N]);
     println!("hello and goodbye");
     //utils::primes::prime_sieves::main();
     //utils::primes::primecount::main();
     println!("Finished running at: {} ", Local::now().time());
 }
+pub fn divisor_sums(n: usize) -> FIArray {
+    let mut ret = FIArray::new(n);
+    let sqrt = ret.isqrt;
+    //let start = std::time::Instant::now();
+    // Guard tiny n to avoid ln(0/1), step_by(0), sqrt-1 underflow, etc.
+    if n <= 1 {
+        if n == 1 {
+            ret.arr[0] = 1; // sum_{m<=1} tau(m) = 1
+        }
+        return ret;
+    }
+
+    let mut c = ((n as f64).powf(3.0 / 5.0)) as usize;
+    //dbg!(c, n, sqrt);
+    // Keep c in a sane range; the algorithm expects c >= sqrt+1 to do any block work.
+    if c <= sqrt {
+        c = sqrt + 1;
+    }
+    if c > n {
+        c = n;
+    }
+
+    let mut keys = FIArray::keys(n).enumerate().skip(sqrt);
+
+    // exact tau(m) for m <= sqrt
+    ret.arr[..sqrt].fill(1);
+    for i in 2..=sqrt {
+        for m in (i..=sqrt).step_by(i) {
+            ret.arr[m - 1] += 1;
+        }
+    }
+    ret.partial_sum();
+    let mut acc = ret.arr[sqrt - 1];
+    //dbg!(start.elapsed());
+    // ---- FIXED BLOCK SIEVE PART ----
+    let mut block_len = c.isqrt();
+    if block_len == 0 {
+        block_len = 1;
+    }
+    //dbg!(block_len);
+    let mut block = vec![0usize; block_len];
+
+    let mut iv = keys.next();
+
+    // We compute tau(m) for m in [sqrt+1, c) (c is excluded, matching your original range).
+    // Important: last block may be shorter than block_len.
+    for b in (sqrt + 1..c).step_by(block_len) {
+        let len = (c - b).min(block_len);
+        block[..len].fill(0);
+
+        let end = b + len - 1;
+        let dmax = end.isqrt(); // only need d up to sqrt(end)
+
+        for d in 1..=dmax {
+            let Some(dd) = d.checked_mul(d) else { break };
+
+            // First multiple of d in [b, end]
+            let mut m = b.next_multiple_of(d);
+
+            // Enforce m >= d*d so we only count each divisor-pair once.
+            if m < dd {
+                m = dd;
+            }
+            if m > end {
+                continue;
+            }
+
+            for mm in (m..=end).step_by(d) {
+                // count d and mm/d (two divisors) unless it's a square
+                block[mm - b] += 1 + usize::from(dd != mm);
+            }
+        }
+
+        // turn tau(m) into prefix sums and write out requested keys
+        for i in 0..len {
+            acc += block[i];
+            block[i] = acc;
+
+            // your original “match exact v” logic, but safe for multiple keys at same v
+            while let Some((ind, v)) = iv
+                && v == b + i
+            {
+                ret.arr[ind] = acc;
+                iv = keys.next();
+            }
+        }
+    }
+    // ---- END FIXED BLOCK SIEVE PART ----
+    //dbg!(start.elapsed());
+
+    // Remaining keys (v >= c) via divisor_summatory
+    if let Some((i, v)) = iv {
+        ret.arr[i] = divisor_summatory(v);
+        for (i, v) in keys {
+            ret.arr[i] = divisor_summatory(v);
+        }
+    }
+    //dbg!(start.elapsed());
+
+    ret
+}
+
+fn log_zeta_fast(n: usize) -> FIArray {
+    const INVS: [usize; 4] = [0, 6, 3, 2];
+    let start = std::time::Instant::now();
+    let mut zeta = DirichletFenwick::zeta(n);
+    let mut zeta_2 = DirichletFenwick::from(divisor_sums(n));
+    dbg!(start.elapsed());
+    let rt = zeta.isqrt;
+    let len = zeta.bit.0.len();
+
+    let mut ret = FIArray::new(n);
+
+    let x = iroot::<4>(n) + 1;
+    // remove contributions of small primes
+    for p in 2..x {
+        if zeta.bit.sum(p - 1) == 1 {
+            //not prime
+            continue;
+        }
+        ret.arr[p - 1] = 1;
+        zeta.sparse_mul_at_most_one(p, 1);
+        zeta_2.sparse_mul_at_most_one(p, 1);
+        zeta_2.sparse_mul_at_most_one(p, 1);
+    }
+    zeta.bit.dec(0);
+    let mut zeta = FIArray::from(zeta);
+    let mut zeta_2 = FIArray::from(zeta_2);
+    for i in 0..len {
+        zeta_2.arr[i] -= 2 * zeta.arr[i] + 1;
+    }
+    dbg!(start.elapsed());
+    // zeta now equals zeta_t - 1, and zeta_2 (zeta_t - 1)^2
+    // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
+    // in order to not have to deal with rational numbers, we compute 6 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+
+    let pa = {
+        let mut vec = vec![];
+        for i in x..=rt {
+            if zeta.arr[i - 1] != zeta.arr[i - 2] {
+                vec.push(i);
+            }
+        }
+        vec.push(rt + 1);
+        vec
+    };
+    let va = &pa[..pa.len() - 1];
+
+    /* let ind = zeta_2.get_index(x.pow(2));
+    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
+    dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
+
+    for i in rt + 1..=len {
+        ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
+    }
+
+    //pow_zeta = mult_sparse(&zeta, &pow_zeta);
+
+    zeta.arr[rt..].fill(0);
+    for &i in va {
+        for j in 1..=rt / i {
+            //zeta[n / j] += pow_zeta[n / (i * j)];
+            zeta.arr[len - j] += zeta_2.arr[len - i * j];
+        }
+    }
+    //zeta.arr[..rt].fill(0);
+    let zeta_3 = zeta;
+
+    let ind = zeta_3.get_index(x.pow(3));
+    //dbg!(ind, len, len - ind);
+    //assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
+    for i in ind + 1..=len {
+        ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
+    }
+    dbg!(start.elapsed());
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / 6;
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+
+            ret[px] -= INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= 6;
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+
+fn log_zeta_fast_alt(n: usize) -> FIArray {
+    fn mult_correction(d: &FIArray, primes: &[usize]) -> FIArray {
+        struct Correction(FIArray, usize);
+        impl Correction {
+            fn fill(&mut self, primes: &[usize], lim: usize, x: usize, y: usize) {
+                self.0[x] += y;
+                self.1 += 1;
+                for (i, &p) in primes.iter().enumerate() {
+                    if p > lim / p {
+                        break;
+                    }
+                    let mut pp = p * p;
+                    let mut new_lim = lim / pp;
+                    for e in 2.. {
+                        let hp = 1 << (e - 2);
+                        if hp != 0 {
+                            self.fill(&primes[i + 1..], new_lim, x * pp, y * hp);
+                        }
+                        if p > new_lim {
+                            break;
+                        }
+                        pp *= p;
+                        new_lim /= p;
+                    }
+                }
+            }
+        }
+        let mut correction = Correction(FIArray::new(d.x), 0);
+        correction.fill(primes, d.x, 1, 1);
+        for i in 1..correction.0.arr.len() {
+            correction.0.arr[i] += correction.0.arr[i - 1];
+        }
+        dbg!(correction.1);
+        mult_sparse(d, &correction.0)
+    }
+    const INVS: [usize; 4] = [0, 6, 3, 2];
+    let start = std::time::Instant::now();
+    let mut zeta = DirichletFenwick::zeta(n);
+    let mut zeta_2 = DirichletFenwick::from(divisor_sums(n));
+    dbg!(start.elapsed());
+    let rt = zeta.isqrt;
+    let len = zeta.bit.0.len();
+
+    let mut ret = FIArray::new(n);
+
+    let mut primes = vec![];
+    let x = iroot::<4>(n) + 1;
+    // remove contributions of small primes
+    for p in 2..x {
+        if zeta.bit.sum(p - 1) == 1 {
+            //not prime
+            continue;
+        }
+        primes.push(p);
+        ret.arr[p - 1] = 1;
+        zeta.sparse_mul_at_most_one(p, 1);
+        zeta_2.sparse_mul_at_most_one(p, 2);
+    }
+    zeta.bit.dec(0);
+    let mut zeta = FIArray::from(zeta);
+    let mut zeta_2 = FIArray::from(zeta_2);
+    dbg!(start.elapsed());
+
+    zeta_2 = mult_correction(&zeta_2, &primes);
+    for i in 0..len {
+        zeta_2.arr[i] -= 2 * zeta.arr[i] + 1;
+    }
+    dbg!(start.elapsed());
+    // zeta now equals zeta_t - 1, and zeta_2 (zeta_t - 1)^2
+    // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
+    // in order to not have to deal with rational numbers, we compute 6 * log(zeta_t)
+    // and adjust later
+
+    for i in x..=len {
+        ret.arr[i - 1] = zeta.arr[i - 1] * INVS[1];
+    }
+
+    let pa = {
+        let mut vec = vec![];
+        for i in x..=rt {
+            if zeta.arr[i - 1] != zeta.arr[i - 2] {
+                vec.push(i);
+            }
+        }
+        vec.push(rt + 1);
+        vec
+    };
+    let va = &pa[..pa.len() - 1];
+
+    /* let ind = zeta_2.get_index(x.pow(2));
+    assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0));
+    dbg!(ind, x.pow(2), rt - 1, len, len - ind); */
+
+    for i in rt + 1..=len {
+        ret.arr[i - 1] -= zeta_2.arr[i - 1] * INVS[2];
+    }
+
+    //pow_zeta = mult_sparse(&zeta, &pow_zeta);
+
+    zeta.arr[rt..].fill(0);
+    for &i in va {
+        for j in 1..=rt / i {
+            //zeta[n / j] += pow_zeta[n / (i * j)];
+            zeta.arr[len - j] += zeta_2.arr[len - i * j];
+        }
+    }
+    //zeta.arr[..rt].fill(0);
+    let zeta_3 = zeta;
+
+    let ind = zeta_3.get_index(x.pow(3));
+    //dbg!(ind, len, len - ind);
+    //assert!(pow_zeta.arr[..ind].iter().all(|&e| e == 0)); */
+    for i in ind + 1..=len {
+        ret.arr[i - 1] += zeta_3.arr[i - 1] * INVS[3];
+    }
+    dbg!(start.elapsed());
+    // correction phase: get rid of contributions of prime powers
+    for i in (x..len).rev() {
+        ret.arr[i] -= ret.arr[i - 1];
+    }
+
+    for x in x..=rt {
+        let v = ret.arr[x - 1] / 6;
+        if v == 0 {
+            continue;
+        }
+        let mut e = 1;
+        let mut px = x;
+        while px <= n / x {
+            e += 1;
+            px *= x;
+
+            ret[px] -= INVS[e];
+        }
+    }
+    for i in 1..x - 1 {
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    for i in x - 1..len {
+        ret.arr[i] /= 6;
+        ret.arr[i] += ret.arr[i - 1];
+    }
+    ret
+}
+
 fn icy_mult(F: &FIArray, G: &FIArray) -> FIArray {
     unsafe { core::hint::assert_unchecked(F.x == G.x) };
     unsafe { core::hint::assert_unchecked(F.isqrt == G.isqrt) };
@@ -801,7 +1158,7 @@ pub fn inverse_pseudo_euler_transform_i64(a: FIArrayI64) -> FIArrayI64 {
 }
 
 #[must_use]
-pub fn mult_correction_single(
+pub fn mult_correction_single_i64(
     d: &FIArrayI64,
     primes: &[usize],
     f: impl Fn(usize, usize, u8) -> i64,
@@ -845,6 +1202,58 @@ pub fn mult_correction_single(
 
 #[must_use]
 pub fn mult_correction(
+    d: &FIArray,
+    primes: &[usize],
+    f: impl Fn(usize, usize, u8) -> usize,
+) -> FIArray {
+    struct Correction(FIArray, usize);
+    impl Correction {
+        fn fill(
+            &mut self,
+            primes: &[usize],
+            lim: usize,
+            x: usize,
+            y: usize,
+            f: &impl Fn(usize, usize, u8) -> usize,
+        ) {
+            self.0[x] += y;
+            self.1 += 1;
+            for (i, &p) in primes.iter().enumerate() {
+                if p > lim / p {
+                    break;
+                }
+                let fp = f(p, p, 1);
+                let mut prev = fp;
+                let mut pp = p * p;
+                let mut new_lim = lim / pp;
+                for e in 2.. {
+                    let cur = f(pp, p, e);
+                    let hp = cur - fp * prev;
+                    dbg!((p, e, hp));
+                    if hp != 0 {
+                        self.fill(&primes[i + 1..], new_lim, x * pp, y * hp, f);
+                    }
+                    prev = cur;
+                    if p > new_lim {
+                        break;
+                    }
+                    pp *= p;
+                    new_lim /= p;
+                }
+            }
+        }
+    }
+    let mut correction = Correction(FIArray::new(d.x), 0);
+    correction.fill(primes, d.x, 1, 1, &f);
+    for i in 1..correction.0.arr.len() {
+        correction.0.arr[i] += correction.0.arr[i - 1];
+    }
+    dbg!(correction.1);
+    mult_sparse(d, &correction.0)
+}
+
+#[must_use]
+pub fn mult_correction_i64(
     d: &FIArrayI64,
     primes: &[usize],
     f: impl Fn(usize, usize, u8) -> i64,

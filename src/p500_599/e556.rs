@@ -1,5 +1,5 @@
 use crate::{
-    inverse_pseudo_euler_transform_fraction_i64, mult_correction_single,
+    inverse_pseudo_euler_transform_fraction_i64, mult_correction_single_i64,
     pseudo_euler_transform_fraction_i64, utils::FIArray::FIArrayI64,
 };
 
@@ -40,7 +40,7 @@ fn original_approach() {
     let approx = pseudo_euler_transform_fraction_i64(sum_over_primes);
 
     println!("Started correction: {:?}", start.elapsed());
-    let res = mult_correction_single(&approx, &primes, |_, p, e| {
+    let res = mult_correction_single_i64(&approx, &primes, |_, p, e| {
         if e > 2 {
             return 0;
         }
