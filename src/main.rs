@@ -50,7 +50,7 @@ const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
 // TODO: understand convex hull based lattice point counting, adapt https://github.com/dengtesla/acm/blob/master/acm%E6%A8%A1%E6%9D%BF/min25_new.cpp
-// optimize forward p.e.t. to exploit inverses of odd numbers mod 2^n
+// port icy's lattice point summer, implement O(n^3/5) FIArray construction for the divisor function and then O(n^5/8) prime counting
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
@@ -664,7 +664,7 @@ pub fn main() {
     }
     let start = std::time::Instant::now();
     let u = FIArray::unit(N);
-    let s1 = icy_mult(&u, &u);
+    let s1 = icy_mult(&u, &u); // 1e11 168.5048ms, 1e12 872.4128ms, 1e15 149.5834006s
     let end = start.elapsed();
     dbg!(end, s1[N]);
 
@@ -709,7 +709,7 @@ fn icy_mult(F: &FIArray, G: &FIArray) -> FIArray {
         for y in x + 1..=max_y {
             H[x * y] += fx * g(y) + gx * f(y);
         }
-        H.arr[len - max_y] -= f(x) * G.arr[max_y - 1] + g(x) * F.arr[max_y - 1];
+        H.arr[len - max_y] -= fx * G.arr[max_y - 1] + gx * F.arr[max_y - 1];
     }
     H.arr[len - c_N] += F.arr[c_N - 1] * G.arr[c_N - 1];
     H.partial_sum();
