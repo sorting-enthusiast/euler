@@ -186,7 +186,7 @@ pub fn mertens(x: usize) -> FIArrayI64 {
     let y = if x > 1023 {
         (1e9 as usize).min((x as f64).powf(2. / 3.) as usize >> 2)
     } else {
-        x as usize
+        x
     };
     let mut small_m = mobius_sieve_i16(y + 1);
     for i in 2..=y {
@@ -195,8 +195,8 @@ pub fn mertens(x: usize) -> FIArrayI64 {
     let mut M = FIArrayI64::new(x);
 
     for (i, v) in FIArrayI64::keys(x).enumerate() {
-        if v as usize <= y {
-            M.arr[i] = i64::from(small_m[v as usize]);
+        if v <= y {
+            M.arr[i] = i64::from(small_m[v]);
             continue;
         }
         let vsqrt = v.isqrt();
@@ -205,7 +205,7 @@ pub fn mertens(x: usize) -> FIArrayI64 {
         mu_v -= v as i64;
 
         for i in 2..=vsqrt {
-            mu_v -= (M.arr[i as usize - 1] - M.arr[i as usize - 2]) * (v / i) as i64;
+            mu_v -= (M.arr[i - 1] - M.arr[i - 2]) * (v / i) as i64;
             mu_v -= M[v / i];
         }
         mu_v += vsqrt as i64 * M[vsqrt];

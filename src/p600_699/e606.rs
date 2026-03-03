@@ -19,6 +19,7 @@ const N: i64 = 1e12 as i64;
 // to sum all possible n, we iterate over p <= 10^6, adding p^3 * the sum of cubes of
 // all primes between p + 1 and floor(10^12 / p)
 // sums are calculated using lucy's algorithm.
+// TODO: switch to inverse-pseudo-euler-transform based summation
 pub fn main() {
     let start = std::time::Instant::now();
 

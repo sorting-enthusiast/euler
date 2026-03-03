@@ -123,6 +123,7 @@ pub fn main() {
     } */
     println!(); */
     dbg!((10usize ^ 7 ^ 3).count_ones());
+    p900_999::e953::main();
     /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
            &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
            &[1, 0, 0, 1]
@@ -138,7 +139,7 @@ pub fn main() {
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
     );
 
-    const N: usize = 1e15 as _;
+    const N: usize = 1e12 as _;
     assert_eq!(log_zeta_3_odd(N), lucy_fenwick(N));
     /* assert_eq!(
         inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N)),
