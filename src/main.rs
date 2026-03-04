@@ -13,7 +13,7 @@ use chrono::Local;
 use itertools::Itertools;
 
 use crate::{
-    fenwick_holes_test::{log_zeta_3, log_zeta_3_odd},
+    fenwick_holes_test::{log_zeta_3, log_zeta_3_odd, log_zeta_fast_alt_2},
     p300_399::e362::{mult, mult_sparse},
     utils::{
         FIArray::{DirichletFenwick, DirichletFenwickI64, FIArray, FIArrayI64},
@@ -32,6 +32,7 @@ use crate::{
 };
 pub mod aebp;
 pub mod fenwick_holes_test;
+pub mod incremental_flattening;
 pub mod p0_99;
 pub mod p100_199;
 pub mod p200_299;
@@ -128,9 +129,8 @@ pub fn main() {
            &[1, 0, 0, 1]
        ));
     */
-
-    p300_399::e362::main();
-    p500_599::e556::main();
+    //p300_399::e362::main();
+    //p500_599::e556::main();
     assert_eq!(
         mult_simple(&FIArray::unit(10000), &FIArray::unit(10000)),
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
@@ -140,8 +140,10 @@ pub fn main() {
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
     );
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e16 as _;
-    //assert_eq!(log_zeta_3_odd(N), lucy_fenwick(N));
+    const N: usize = 1e17 as _;
+    fenwick_holes_test::main();
+    incremental_flattening::main();
+
     let start = std::time::Instant::now();
     let p = log_zeta_fast(N)[N];
     let end = start.elapsed();
@@ -151,7 +153,7 @@ pub fn main() {
     let p = log_zeta_fast_alt(N)[N];
     let end = start.elapsed();
     println!("\"fast\" prime counting output for {N}: {p} | {end:?}");
-    fenwick_holes_test::main();
+    assert_eq!(log_zeta_fast_alt_2(N), log_zeta_2(N));
 
     /* assert_eq!(
         inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N)),

@@ -382,7 +382,8 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
 
     let mut s = DirichletFenwickHole::from(s);
     let mut sp = s.get_bucket_prefix(7 - 2);
-
+    let mut cnt_query = 1;
+    let mut cnt_modify = 0;
     let cutoff = xsqrt
         .isqrt()
         .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
@@ -390,6 +391,7 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
     //dbg!(cutoff, iroot::<3>(x) | 1);
     for p in (7..=cutoff).step_by(2) {
         let sp1 = s.get_bucket_prefix(p - 1);
+        cnt_query += 1;
         if sp1 == sp {
             continue;
         }
@@ -397,23 +399,29 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
         let lim = x / p;
         let mut j = 1;
         let mut cur = s.get_prefix(lim);
+        cnt_query += 1;
         while (j + 1) <= lim / (j + 1) {
             let next = s.get_prefix(lim / (j + 1));
+            cnt_query += 1;
             if next != cur {
                 s.bit.sub(len - j, cur - next);
+                cnt_modify += 1;
                 cur = next;
             }
             j += 1;
         }
         for i in (p..=lim / j).rev() {
             let next = s.bit.sum(i - 2);
+            cnt_query += 1;
             if next != cur {
                 s.bit.sub(s.get_index(p * i), cur - next);
+                cnt_modify += 1;
                 cur = next;
             }
         }
         sp = sp1;
     }
+    dbg!(cnt_modify,cnt_query);
     let mut s = FIArray::from(s);
     for p in (cutoff + 2..=xsqrt).step_by(2) {
         let sp1 = s.arr[p - 1];
@@ -441,7 +449,7 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
 // res = 2623557157654233, took 1295.5591953s
 // res = 2623557157654233, took 1212.7197351s
 pub fn main() {
-    const N: usize = 1e16 as _;
+    const N: usize = 1e17 as _;
     let start = Instant::now();
     let count = log_zeta_2(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
@@ -762,7 +770,9 @@ fn log_zeta_fast_alt(n: usize) -> FIArray {
     ret
 }
 
-fn log_zeta_fast_alt_2(n: usize) -> FIArray {
+// 1e17: res = 2623557157654233, took 2534.5070687s
+// 1e16: res = 279238341033925, took 550.2544082s
+pub fn log_zeta_fast_alt_2(n: usize) -> FIArray {
     fn mult_correction(d: &FIArray, primes: &[usize]) -> FIArray {
         struct Correction(FIArray, usize);
         impl Correction {
@@ -806,11 +816,15 @@ fn log_zeta_fast_alt_2(n: usize) -> FIArray {
     let len = zeta.bit.len;
 
     let mut ret = FIArray::new(n);
-
+    let mut cnt_query = 0;
+    let mut cnt_modify = 0;
+    let mut cnt_query_2 = 0;
+    let mut cnt_modify_2 = 0;
     let mut primes = vec![];
     let x = iroot::<4>(n) + 1;
     // remove contributions of small primes
     for p in 2..x {
+        cnt_query += 1;
         if zeta.bit.sum(p - 1) == 1 {
             //not prime
             continue;
@@ -828,17 +842,23 @@ fn log_zeta_fast_alt_2(n: usize) -> FIArray {
             let ind = zeta.get_index(lim);
             let mut cur_zeta = zeta.get_bucket_prefix(ind);
             let mut cur_zeta_2 = zeta_2.get_bucket_prefix(ind);
+            cnt_query += 1;
+            cnt_query += 1;
 
             while (j + 1) <= lim / (j + 1) {
                 let ind = zeta.get_index(lim / (j + 1));
                 let next_zeta = zeta.get_bucket_prefix(ind);
                 let next_zeta_2 = zeta_2.get_bucket_prefix(ind);
+                cnt_query += 1;
+                cnt_query_2 += 1;
                 if next_zeta != cur_zeta {
                     zeta.bit.sub(len - j, cur_zeta - next_zeta);
+                    cnt_modify += 1;
                     cur_zeta = next_zeta;
                 }
                 if next_zeta_2 != cur_zeta_2 {
                     zeta_2.bit.sub(len - j, 2 * (cur_zeta_2 - next_zeta_2));
+                    cnt_modify_2 += 1;
                     cur_zeta_2 = next_zeta_2;
                 }
                 j += 1;
@@ -846,26 +866,35 @@ fn log_zeta_fast_alt_2(n: usize) -> FIArray {
             for i in (2..=lim / j).rev() {
                 let next_zeta = zeta.get_bucket_prefix(i - 2);
                 let next_zeta_2 = zeta_2.get_bucket_prefix(i - 2);
-                
+                cnt_query += 1;
+                cnt_query_2 += 1;
                 let ind = zeta.get_index(p * i);
                 if next_zeta != cur_zeta {
                     zeta.bit.sub(ind, cur_zeta - next_zeta);
+                    cnt_modify += 1;
                     cur_zeta = next_zeta;
                 }
                 if next_zeta_2 != cur_zeta_2 {
                     zeta_2.bit.sub(ind, 2 * (cur_zeta_2 - next_zeta_2));
+                    cnt_modify_2 += 1;
                     cur_zeta_2 = next_zeta_2;
                 }
             }
             if cur_zeta != 0 {
-                zeta.bit.sub(p-1, cur_zeta);
+                zeta.bit.sub(p - 1, cur_zeta);
+                cnt_modify += 1;
             }
             if cur_zeta_2 != 0 {
-                zeta_2.bit.sub(p-1, 2 * cur_zeta_2);
+                zeta_2.bit.sub(p - 1, 2 * cur_zeta_2);
+                cnt_modify_2 += 1;
             }
         }
     }
     zeta.bit.dec(0);
+    cnt_modify += 1;
+    dbg!(cnt_modify,cnt_query);
+    dbg!(cnt_modify_2,cnt_query_2);
+
     let mut zeta = FIArray::from(zeta);
     let mut zeta_2 = FIArray::from(zeta_2);
 
