@@ -380,7 +380,7 @@ pub fn inverse_pseudo_euler_transform(a: FIArray) -> FIArray {
     r
 }
 
-// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 48 before reducing
+// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 16 before reducing
 #[must_use]
 pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
     const fn inv_odd(mut k: usize) -> usize {
@@ -431,12 +431,12 @@ pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
 
     let mut ret = v.clone();
     for e in &mut ret.arr {
-        *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
+        *e = (*e + INVS[1]) * 2 * INVS[1].pow(2);
     }
 
     let mut v_2 = mult(&v, &v);
     for i in x..=len {
-        ret.arr[i - 1] += v_2.arr[i - 1] * 3 * INVS[1];
+        ret.arr[i - 1] += v_2.arr[i - 1] * INVS[1];
     }
     {
         //v_2 = mult_sparse(&v, &v_2);
@@ -454,8 +454,8 @@ pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
     }
 
     for i in 1..=len {
-        ret.arr[i - 1] += v_2.arr[i - 1];
-        ret.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
+        ret.arr[i - 1] += v_2.arr[i - 1] * const { inv_odd(3) };
+        ret.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
     let mut ret = DirichletFenwick::from(ret);
     for i in (2..x).rev() {
