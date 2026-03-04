@@ -140,9 +140,9 @@ pub fn main() {
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
     );
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e17 as _;
-    fenwick_holes_test::main();
+    const N: usize = 1e16 as _;
     incremental_flattening::main();
+    fenwick_holes_test::main();
 
     let start = std::time::Instant::now();
     let p = log_zeta_fast(N)[N];

@@ -449,7 +449,7 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
 // res = 2623557157654233, took 1295.5591953s
 // res = 2623557157654233, took 1212.7197351s
 pub fn main() {
-    const N: usize = 1e17 as _;
+    const N: usize = 1e16 as _;
     let start = Instant::now();
     let count = log_zeta_2(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();

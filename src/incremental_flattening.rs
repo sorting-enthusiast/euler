@@ -35,9 +35,6 @@ impl DynamicPrefixSum {
     #[must_use]
     pub fn sum(&self, i: usize) -> usize {
         let k = self.1;
-        if i < k {
-            return self.0[i];
-        }
         let mut i = i + 1;
         let mut sum = 0;
         while i > k {
@@ -207,7 +204,7 @@ pub fn testing(x: usize) -> FIArray {
 }
 
 pub fn main() {
-    const N: usize = 1e17 as _;
+    const N: usize = 1e16 as _;
 
     let start = std::time::Instant::now();
     let s1 = lucy_fenwick_simple(N);
