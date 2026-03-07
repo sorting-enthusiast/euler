@@ -36,7 +36,7 @@ fn legendre(x: usize) -> usize {
     }
     s[x] + primes.len() - 1
 }
-fn legendre_fenwick(x: usize) -> usize {
+pub fn legendre_fenwick(x: usize) -> usize {
     let mut s = DirichletFenwick::zeta(x);
     let primes = sift(s.isqrt as u64);
     for &p in &primes {

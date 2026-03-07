@@ -1,6 +1,10 @@
 use crate::{
+    incremental_flattening::{
+        inverse_pseudo_euler_transform_lucy_i64, pseudo_euler_transform_lucy_i64,
+    },
     inverse_pseudo_euler_transform_fraction_i64, mult_correction_single_i64,
-    pseudo_euler_transform_fraction_i64, utils::FIArray::FIArrayI64,
+    pseudo_euler_transform_fraction_i64,
+    utils::FIArray::FIArrayI64,
 };
 
 const N: usize = 1e14 as _;
@@ -9,6 +13,7 @@ const N: usize = 1e14 as _;
 // can easily be done in \tilde{O}(\sqrt n) time, just need to implement a linear sieve for the dirichlet inverse of u * \chi_4
 pub fn main() {
     original_approach();
+    original_approach_lucy();
 }
 fn original_approach() {
     let start = std::time::Instant::now();
@@ -38,6 +43,50 @@ fn original_approach() {
 
     println!("Started transform: {:?}", start.elapsed());
     let approx = pseudo_euler_transform_fraction_i64(sum_over_primes);
+
+    println!("Started correction: {:?}", start.elapsed());
+    let res = mult_correction_single_i64(&approx, &primes, |_, p, e| {
+        if e > 2 {
+            return 0;
+        }
+        match p & 3 {
+            1 => 1 + i64::from(e == 1),
+            2 => i64::from(e == 1),
+            3 => i64::from(e == 2),
+            _ => unsafe { core::hint::unreachable_unchecked() },
+        }
+    });
+
+    println!("res = {res}, took {:?}", start.elapsed());
+}
+fn original_approach_lucy() {
+    let start = std::time::Instant::now();
+
+    let mut chi4 = FIArrayI64::new(N);
+    for (i, v) in FIArrayI64::keys(N).enumerate() {
+        chi4.arr[i] = [0, 1, 1, 0][v & 3];
+    }
+
+    println!("Started first inverse transform: {:?}", start.elapsed());
+    let chi4_p = inverse_pseudo_euler_transform_lucy_i64(chi4);
+
+    println!("Started second inverse transform: {:?}", start.elapsed());
+    let pi = inverse_pseudo_euler_transform_lucy_i64(FIArrayI64::unit(N));
+
+    let mut primes = vec![];
+    for p in 2..=pi.isqrt {
+        if pi.arr[p - 1] != pi.arr[p - 2] {
+            primes.push(p);
+        }
+    }
+
+    let mut sum_over_primes = pi;
+    for i in 0..sum_over_primes.arr.len() {
+        sum_over_primes.arr[i] += chi4_p.arr[i];
+    }
+
+    println!("Started transform: {:?}", start.elapsed());
+    let approx = pseudo_euler_transform_lucy_i64(sum_over_primes);
 
     println!("Started correction: {:?}", start.elapsed());
     let res = mult_correction_single_i64(&approx, &primes, |_, p, e| {

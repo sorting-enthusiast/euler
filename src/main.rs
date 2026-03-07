@@ -122,15 +122,18 @@ pub fn main() {
         print!("{i}:{},", res[1 << i]);
     } */
     println!(); */
-    dbg!((10usize ^ 7 ^ 3).count_ones());
+    //dbg!((10usize ^ 7 ^ 3).count_ones());
     //p900_999::e953::main();
     /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
            &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
            &[1, 0, 0, 1]
        ));
     */
-    //p300_399::e362::main();
-    //p500_599::e556::main();
+    p700_799::e738::solve_ext();
+    p700_799::e738::solve_ext_lucy();
+
+    p300_399::e362::main();
+    p500_599::e556::main();
     assert_eq!(
         mult_simple(&FIArray::unit(10000), &FIArray::unit(10000)),
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
@@ -140,7 +143,7 @@ pub fn main() {
         mult(&FIArray::unit(10000), &FIArray::unit(10000))
     );
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e16 as _;
+    const N: usize = 1e15 as _;
     incremental_flattening::main();
     fenwick_holes_test::main();
 
@@ -2200,7 +2203,7 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     ret.into()
 }
  */
-// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 48 before reducing
+// faster by a log factor, but much more susceptible to overflow - multiplies input by a factor of 16 before reducing
 #[must_use]
 pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     const fn inv_odd(mut k: i64) -> i64 {
@@ -2251,12 +2254,12 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
 
     let mut ret = v.clone();
     for e in &mut ret.arr {
-        *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
+        *e = (*e + INVS[1]) * 2 * INVS[1].pow(2);
     }
 
     let mut v_2 = mult_i64(&v, &v);
     for i in x..=len {
-        ret.arr[i - 1] += v_2.arr[i - 1] * 3 * INVS[1];
+        ret.arr[i - 1] += v_2.arr[i - 1] * INVS[1];
     }
     {
         //v_2 = mult_sparse(&v, &v_2);
@@ -2274,8 +2277,8 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
     }
 
     for i in 1..=len {
-        ret.arr[i - 1] += v_2.arr[i - 1];
-        ret.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
+        ret.arr[i - 1] += v_2.arr[i - 1] * const { inv_odd(3) };
+        ret.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
     let mut ret = DirichletFenwickI64::from(ret);
     for i in (2..x).rev() {

@@ -1,9 +1,13 @@
 use itertools::Itertools;
 
-use crate::utils::{
-    FIArray::{DirichletFenwick, FIArray},
-    multiplicative_function_summation::{
-        count_squarefree, pseudo_euler_transform, pseudo_euler_transform_fraction,
+use crate::{
+    incremental_flattening::DynamicPrefixSumUsize,
+    utils::{
+        FIArray::{DirichletFenwick, FIArray},
+        math::iroot,
+        multiplicative_function_summation::{
+            count_squarefree, pseudo_euler_transform, pseudo_euler_transform_fraction,
+        },
     },
 };
 // 1e16: 2465164852430507540, 1336.4470363s
@@ -13,30 +17,45 @@ use crate::utils::{
 // 1e12: 83365737381734, 2.0323739s
 // 1e11: 6213486362445, 391.9852ms
 // 1e10: 457895958010, 79.9067ms
-const N: usize = 1e13 as _;
+const N: usize = 1e15 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
 pub fn main() {
-    let start = std::time::Instant::now();
-    let sqf = count_squarefree(N);
-    println!(
-        "Finished counting squarefree integers: {:?}",
-        start.elapsed()
-    );
-    let fsf = pseudo_euler_transform_fraction(sqf);
-    let res = fsf[N] - 1;
-    println!("res = {res}, took {:?}", start.elapsed());
+    {
+        let start = std::time::Instant::now();
+        let sqf = count_squarefree(N);
+        println!(
+            "Finished counting squarefree integers: {:?}",
+            start.elapsed()
+        );
+        let fsf = pseudo_euler_transform_fraction(sqf);
+        let res = fsf[N] - 1;
+        println!("res = {res}, took {:?}", start.elapsed());
+    }
     dense_pseudo_euler_transform_based();
-    let start = std::time::Instant::now();
-    let sqf = count_squarefree(N);
-    println!(
-        "Finished counting squarefree integers: {:?}",
-        start.elapsed()
-    );
-    let fsf = pseudo_euler_transform(sqf);
-    let res = fsf[N] - 1;
-    println!("res = {res}, took {:?}", start.elapsed());
+    {
+        let start = std::time::Instant::now();
+        let sqf = count_squarefree(N);
+        println!(
+            "Finished counting squarefree integers: {:?}",
+            start.elapsed()
+        );
+        let fsf = pseudo_euler_transform_lucy_dense(sqf);
+        let res = fsf[N] - 1;
+        println!("lucy: res = {res}, took {:?}", start.elapsed());
+    }
+    /* {
+        let start = std::time::Instant::now();
+        let sqf = count_squarefree(N);
+        println!(
+            "Finished counting squarefree integers: {:?}",
+            start.elapsed()
+        );
+        let fsf = pseudo_euler_transform(sqf);
+        let res = fsf[N] - 1;
+        println!("res = {res}, took {:?}", start.elapsed());
+    } */
     //initial_approach_fenwick();
     //initial_approach();
 }
@@ -103,18 +122,18 @@ fn dense_pseudo_euler_transform_based() {
 
     let mut fsf = v.clone();
     for e in &mut fsf.arr {
-        *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
+        *e = (*e + INVS[1]) * 2 * INVS[1].pow(2);
     }
 
     let mut r = mult(&v, &v); //dirichlet_mul_zero_prefix(&v, &v, N, x, x);
     for i in x..=len {
-        fsf.arr[i - 1] += r.arr[i - 1] * 3 * INVS[1];
+        fsf.arr[i - 1] += r.arr[i - 1] * INVS[1];
     }
     r = mult_sparse(&v, &r); //dirichlet_mul_zero_prefix(&v, &r, N, x, SQRT_N);
 
     for i in 1..=len {
-        fsf.arr[i - 1] += r.arr[i - 1];
-        fsf.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
+        fsf.arr[i - 1] += r.arr[i - 1] * const { inv_odd(3) };
+        fsf.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
     println!("Finished computing exp(v): {:?}", start.elapsed());
     let mut fsf = DirichletFenwick::from(fsf);
@@ -478,4 +497,80 @@ pub fn mult(a: &FIArray, b: &FIArray) -> FIArray {
         }
     }
     res
+}
+
+#[must_use]
+pub fn pseudo_euler_transform_lucy_dense(mut a: FIArray) -> FIArray {
+    let x = a.x;
+    let xsqrt = a.isqrt;
+    let len = a.arr.len();
+    let cutoff = xsqrt
+        .isqrt()
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)));
+    let mut sp = a.arr[xsqrt - 1];
+
+    for p in (cutoff + 1..=xsqrt).rev() {
+        let sp1 = a.arr[p - 2];
+        if sp1 == sp {
+            continue;
+        }
+        let w = sp - sp1;
+        //let mut ip = 0;
+        for i in (1..=(x / p) / p).rev() {
+            a.arr[len - i] += w
+                * (if i * p <= xsqrt {
+                    a.arr[len - i * p]
+                } else {
+                    a.arr[(x / (i * p)) - 1]
+                } - sp1);
+        }
+        sp = sp1;
+    }
+
+    let mut a_fenwick = DynamicPrefixSumUsize(a.arr, len);
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    for p in (2..=cutoff).rev() {
+        let sp1 = a_fenwick.sum(p - 2);
+        if sp1 == sp {
+            continue;
+        }
+
+        a_fenwick.shrink_flattened_prefix(1 + get_index(p * p));
+
+        let w = sp - sp1;
+        let lim = x / p;
+        let mut prev = sp1;
+        let mut i = p;
+        while i <= lim / i {
+            let cur = a_fenwick.sum(i - 1);
+            if cur != prev {
+                a_fenwick.add(get_index(i * p), w * (cur - prev));
+                prev = cur;
+            }
+            i += 1;
+        }
+        for j in (1..=lim / i).rev() {
+            let cur = a_fenwick.sum(get_index(lim / j));
+            if cur != prev {
+                a_fenwick.add(len - j, w * (cur - prev));
+                prev = cur;
+            }
+        }
+        sp = sp1;
+    }
+    a_fenwick.shrink_flattened_prefix(1);
+    if a_fenwick.sum(0) == 0 {
+        a_fenwick.inc(0);
+    }
+    a.arr = a_fenwick.flatten();
+
+    a
 }

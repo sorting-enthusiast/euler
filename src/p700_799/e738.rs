@@ -1,7 +1,10 @@
-use crate::utils::{
-    FIArray::{DirichletFenwickU64Mod, DirichletFenwickU128, FIArrayU64, FIArrayU128},
-    math::iroot,
-    multiplicative_function_summation::{dirichlet_mul_single_u64, dirichlet_mul_single_u128},
+use crate::{
+    incremental_flattening::DynamicPrefixSumU128,
+    utils::{
+        FIArray::{DirichletFenwickU64Mod, DirichletFenwickU128, FIArrayU64, FIArrayU128},
+        math::iroot,
+        multiplicative_function_summation::{dirichlet_mul_single_u64, dirichlet_mul_single_u128},
+    },
 };
 
 const N: usize = 1e15 as _;
@@ -15,25 +18,25 @@ pub fn main() {
         *e %= MOD;
     }
     let f1s = pseudo_euler_transform_mod(u);
-    let mut correction = FIArrayU64::unit(N);
-    correction.adjacent_difference();
-    correction.arr[0] = 0;
+    let mut log_deriv = FIArrayU64::unit(N);
+    log_deriv.adjacent_difference();
+    log_deriv.arr[0] = 0;
     for n in 2..=N.isqrt() {
         let mut nn = n;
         while nn <= N / n {
             nn *= n;
-            correction[nn] += 1;
+            log_deriv[nn] += 1;
         }
     }
-    for i in 1..correction.arr.len() {
-        correction.arr[i] %= MOD;
-        correction.arr[i] += correction.arr[i - 1];
-        if correction.arr[i] >= MOD {
-            correction.arr[i] -= MOD;
+    for i in 1..log_deriv.arr.len() {
+        log_deriv.arr[i] %= MOD;
+        log_deriv.arr[i] += log_deriv.arr[i - 1];
+        if log_deriv.arr[i] >= MOD {
+            log_deriv.arr[i] -= MOD;
         }
     }
 
-    let deriv = dirichlet_mul_single_u64(&f1s, &correction) % MOD;
+    let deriv = dirichlet_mul_single_u64(&f1s, &log_deriv) % MOD;
 
     let res = (((N_MOD + 1) * f1s[N] as u64) % MOD + MOD - (1 + deriv) % MOD) % MOD;
     println!("res = {res}, took {:?}", start.elapsed());
@@ -44,25 +47,25 @@ pub fn main() {
         *e %= MOD;
     }
     let f1s = pseudo_euler_transform_mod_alt(u);
-    let mut correction = FIArrayU64::unit(N);
-    correction.adjacent_difference();
-    correction.arr[0] = 0;
+    let mut log_deriv = FIArrayU64::unit(N);
+    log_deriv.adjacent_difference();
+    log_deriv.arr[0] = 0;
     for n in 2..=N.isqrt() {
         let mut nn = n;
         while nn <= N / n {
             nn *= n;
-            correction[nn] += 1;
+            log_deriv[nn] += 1;
         }
     }
-    for i in 1..correction.arr.len() {
-        correction.arr[i] %= MOD;
-        correction.arr[i] += correction.arr[i - 1];
-        if correction.arr[i] >= MOD {
-            correction.arr[i] -= MOD;
+    for i in 1..log_deriv.arr.len() {
+        log_deriv.arr[i] %= MOD;
+        log_deriv.arr[i] += log_deriv.arr[i - 1];
+        if log_deriv.arr[i] >= MOD {
+            log_deriv.arr[i] -= MOD;
         }
     }
 
-    let deriv = dirichlet_mul_single_u64(&f1s, &correction) % MOD;
+    let deriv = dirichlet_mul_single_u64(&f1s, &log_deriv) % MOD;
 
     let res = (((N_MOD + 1) * f1s[N] as u64) % MOD + MOD - (1 + deriv) % MOD) % MOD;
     println!("res = {res}, took {:?}", start.elapsed());
@@ -73,25 +76,25 @@ pub fn main() {
         *e %= MOD;
     }
     let f1s = pseudo_euler_transform_mod_alt2(u);
-    let mut correction = FIArrayU64::unit(N);
-    correction.adjacent_difference();
-    correction.arr[0] = 0;
+    let mut log_deriv = FIArrayU64::unit(N);
+    log_deriv.adjacent_difference();
+    log_deriv.arr[0] = 0;
     for n in 2..=N.isqrt() {
         let mut nn = n;
         while nn <= N / n {
             nn *= n;
-            correction[nn] += 1;
+            log_deriv[nn] += 1;
         }
     }
-    for i in 1..correction.arr.len() {
-        correction.arr[i] %= MOD;
-        correction.arr[i] += correction.arr[i - 1];
-        if correction.arr[i] >= MOD {
-            correction.arr[i] -= MOD;
+    for i in 1..log_deriv.arr.len() {
+        log_deriv.arr[i] %= MOD;
+        log_deriv.arr[i] += log_deriv.arr[i - 1];
+        if log_deriv.arr[i] >= MOD {
+            log_deriv.arr[i] -= MOD;
         }
     }
 
-    let deriv = dirichlet_mul_single_u64(&f1s, &correction) % MOD;
+    let deriv = dirichlet_mul_single_u64(&f1s, &log_deriv) % MOD;
 
     let res = (((N_MOD + 1) * f1s[N] as u64) % MOD + MOD - (1 + deriv) % MOD) % MOD;
     println!("res = {res}, took {:?}", start.elapsed());
@@ -602,31 +605,67 @@ pub fn solve_ext() {
     // 10^13: res = 89833349988159904198204902249, took 30.8048768s
     // 10^14: res = 12963259897153673037053993566833, took 146.3552248s
     // 10^15: res = 1849270757707706829637849882798748, took 742.6764167s
-    // 2^50: res = 2386818655053411238089407138215904, took 843.2601867s
-    // 2^53: res = 208557046825781087145648840805722969, took 3377.3351333s
+
+    // 2^47: res = 27085375706684935393819763517531, took 200.979673s
+    // 2^50: res = 2386818655053411238089407138215904, took 791.7089829s
+    // 2^53: res = 208557046825781087145648840805722969, took 3347.7084533s
     // 2^54: res = 923832323918027518930451439968932656, took 5598.1159512s
-    const N: usize = 1e15 as _; // 1 << 50;
+    const N: usize = 1 << 45;
     let start = std::time::Instant::now();
     let f1s = pseudo_euler_transform_fraction_u128(FIArrayU128::unit(N));
-    let mut c = FIArrayU128::unit(N);
-    c.adjacent_difference();
-    c.arr[0] = 0;
-    for n in 2..=c.isqrt {
+    let mut log_deriv = FIArrayU128::unit(N);
+    log_deriv.adjacent_difference();
+    log_deriv.arr[0] = 0;
+    for n in 2..=log_deriv.isqrt {
         let mut nn = n;
         while nn <= N / n {
             nn *= n;
-            c[nn] += 1;
+            log_deriv[nn] += 1;
         }
     }
-    c.partial_sum();
+    log_deriv.partial_sum();
 
-    let deriv = dirichlet_mul_single_u128(&f1s, &c);
+    let deriv = dirichlet_mul_single_u128(&f1s, &log_deriv);
 
     let res = (N + 1) as u128 * f1s[N] - deriv - 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
+pub fn solve_ext_lucy() {
+    const N: usize = 1 << 45;
+    let start = std::time::Instant::now();
+    let f1s = pseudo_euler_transform_lucy_dense_u128(FIArrayU128::unit(N));
+    let mut log_deriv = FIArrayU128::unit(N);
+    log_deriv.adjacent_difference();
+    log_deriv.arr[0] = 0;
+    for n in 2..=log_deriv.isqrt {
+        let mut nn = n;
+        while nn <= N / n {
+            nn *= n;
+            log_deriv[nn] += 1;
+        }
+    }
+    log_deriv.partial_sum();
+
+    let deriv = dirichlet_mul_single_u128(&f1s, &log_deriv);
+
+    let res = (N + 1) as u128 * f1s[N] - deriv - 1;
+    println!("res = {res}, took {:?}", start.elapsed());
+}
+
 fn pseudo_euler_transform_fraction_u128(a: FIArrayU128) -> FIArrayU128 {
-    const INVS: [u128; 4] = [0, 6, 3, 2];
+    const fn inv_odd(mut k: u128) -> u128 {
+        let mut exp = (1u128 << 127) - 1;
+
+        let mut r = 1u128;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0
+    }
+
+    const INVS: [u128; 4] = [0, 2, 1, inv_odd(3) << 1];
     let start = std::time::Instant::now();
     let mut a = a;
     let len = a.arr.len();
@@ -662,13 +701,13 @@ fn pseudo_euler_transform_fraction_u128(a: FIArrayU128) -> FIArrayU128 {
 
     let mut ret = v.clone();
     for e in &mut ret.arr {
-        *e = (*e + INVS[1]) * 6 * INVS[1].pow(2);
+        *e = (*e + INVS[1]) * 2 * INVS[1].pow(2);
     }
     println!("Started convolution: {:?}", start.elapsed());
     let mut v_2 = mult_u128(&v, &v);
     println!("Finished convolution: {:?}", start.elapsed());
     for i in x..=len {
-        ret.arr[i - 1] += v_2.arr[i - 1] * 3 * INVS[1];
+        ret.arr[i - 1] += v_2.arr[i - 1] * INVS[1];
     }
     {
         //v_2 = mult_sparse(&v, &v_2);
@@ -686,8 +725,8 @@ fn pseudo_euler_transform_fraction_u128(a: FIArrayU128) -> FIArrayU128 {
     }
 
     for i in 1..=len {
-        ret.arr[i - 1] += v_2.arr[i - 1];
-        ret.arr[i - 1] /= const { 6 * INVS[1].pow(3) };
+        ret.arr[i - 1] += v_2.arr[i - 1] * const { inv_odd(3) };
+        ret.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
     println!("Started appending small values: {:?}", start.elapsed());
     let mut ret = DirichletFenwickU128::from(ret);
@@ -905,4 +944,79 @@ fn mult_u128(a: &FIArrayU128, b: &FIArrayU128) -> FIArrayU128 {
         }
     }
     res
+}
+#[must_use]
+pub fn pseudo_euler_transform_lucy_dense_u128(mut a: FIArrayU128) -> FIArrayU128 {
+    let x = a.x;
+    let xsqrt = a.isqrt;
+    let len = a.arr.len();
+    let cutoff = xsqrt
+        .isqrt()
+        .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)));
+    let mut sp = a.arr[xsqrt - 1];
+
+    for p in (cutoff + 1..=xsqrt).rev() {
+        let sp1 = a.arr[p - 2];
+        if sp1 == sp {
+            continue;
+        }
+        let w = sp - sp1;
+        //let mut ip = 0;
+        for i in (1..=(x / p) / p).rev() {
+            a.arr[len - i] += w
+                * (if i * p <= xsqrt {
+                    a.arr[len - i * p]
+                } else {
+                    a.arr[(x / (i * p)) - 1]
+                } - sp1);
+        }
+        sp = sp1;
+    }
+
+    let mut a_fenwick = DynamicPrefixSumU128(a.arr, len);
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    for p in (2..=cutoff).rev() {
+        let sp1 = a_fenwick.sum(p - 2);
+        if sp1 == sp {
+            continue;
+        }
+
+        a_fenwick.shrink_flattened_prefix(1 + get_index(p * p));
+
+        let w = sp - sp1;
+        let lim = x / p;
+        let mut prev = sp1;
+        let mut i = p;
+        while i <= lim / i {
+            let cur = a_fenwick.sum(i - 1);
+            if cur != prev {
+                a_fenwick.add(get_index(i * p), w * (cur - prev));
+                prev = cur;
+            }
+            i += 1;
+        }
+        for j in (1..=lim / i).rev() {
+            let cur = a_fenwick.sum(get_index(lim / j));
+            if cur != prev {
+                a_fenwick.add(len - j, w * (cur - prev));
+                prev = cur;
+            }
+        }
+        sp = sp1;
+    }
+    a_fenwick.shrink_flattened_prefix(1);
+    if a_fenwick.sum(0) == 0 {
+        a_fenwick.inc(0);
+    }
+    a.arr = a_fenwick.flatten();
+
+    a
 }
