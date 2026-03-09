@@ -610,7 +610,7 @@ pub fn solve_ext() {
     // 2^50: res = 2386818655053411238089407138215904, took 791.7089829s
     // 2^53: res = 208557046825781087145648840805722969, took 3347.7084533s
     // 2^54: res = 923832323918027518930451439968932656, took 5598.1159512s
-    const N: usize = 1 << 45;
+    const N: usize = 1 << 50;
     let start = std::time::Instant::now();
     let f1s = pseudo_euler_transform_fraction_u128(FIArrayU128::unit(N));
     let mut log_deriv = FIArrayU128::unit(N);
@@ -631,7 +631,7 @@ pub fn solve_ext() {
     println!("res = {res}, took {:?}", start.elapsed());
 }
 pub fn solve_ext_lucy() {
-    const N: usize = 1 << 45;
+    const N: usize = 1 << 50;
     let start = std::time::Instant::now();
     let f1s = pseudo_euler_transform_lucy_dense_u128(FIArrayU128::unit(N));
     let mut log_deriv = FIArrayU128::unit(N);
@@ -729,17 +729,68 @@ fn pseudo_euler_transform_fraction_u128(a: FIArrayU128) -> FIArrayU128 {
         ret.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
     println!("Started appending small values: {:?}", start.elapsed());
-    let mut ret = DirichletFenwickU128::from(ret);
+    /* let mut ret = DirichletFenwickU128::from(ret);
     for i in (2..x).rev() {
         let ai = a.arr[i - 1] / INVS[1];
         if ai == 0 {
             continue;
         }
         ret.sparse_mul_unlimited(i, ai);
+    } */
+    ret.adjacent_difference();
+    ret.arr[0] = 0;
+    for i in 2..x {
+        ret.arr[i - 1] = a.arr[i - 1] >> 1;
     }
+    ret.partial_sum();
+    let mut ret_fenwick = DynamicPrefixSumU128(ret.arr, len);
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= rt {
+            v - 1
+        } else {
+            len - (n / v)
+        }
+    };
+    let mut sp = ret_fenwick.sum(x - 2);
+    for p in (2..x).rev() {
+        let sp1 = ret_fenwick.sum(p - 2);
+        if sp1 == sp {
+            continue;
+        }
+
+        ret_fenwick.shrink_flattened_prefix(1 + get_index(p * p));
+        let w = sp - sp1;
+
+        let lim = n / p;
+        let mut prev = sp1;
+        let mut i = p;
+        while i <= lim / i {
+            let cur = ret_fenwick.sum(i - 1);
+            if cur != prev {
+                ret_fenwick.add(get_index(i * p), w * (cur - prev));
+                prev = cur;
+            }
+            i += 1;
+        }
+        for j in (1..=lim / i).rev() {
+            let cur = ret_fenwick.sum(get_index(lim / j));
+            if cur != prev {
+                ret_fenwick.add(len - j, w * (cur - prev));
+                prev = cur;
+            }
+        }
+        sp = sp1;
+    }
+
+    ret_fenwick.shrink_flattened_prefix(1);
+    ret_fenwick.inc(0);
+
+    ret.arr = ret_fenwick.flatten();
     println!("Finished appending small values: {:?}", start.elapsed());
 
-    ret.into()
+    ret //.into()
 }
 fn mult_u128(a: &FIArrayU128, b: &FIArrayU128) -> FIArrayU128 {
     unsafe { core::hint::assert_unchecked(a.x == b.x) };

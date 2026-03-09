@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    incremental_flattening::DynamicPrefixSumUsize,
+    incremental_flattening::{DynamicPrefixSumUsize, lucy_pet_slow},
     utils::{
         FIArray::{DirichletFenwick, FIArray},
         math::iroot,
@@ -17,7 +17,7 @@ use crate::{
 // 1e12: 83365737381734, 2.0323739s
 // 1e11: 6213486362445, 391.9852ms
 // 1e10: 457895958010, 79.9067ms
-const N: usize = 1e15 as _;
+const N: usize = 1e10 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -42,6 +42,17 @@ pub fn main() {
             start.elapsed()
         );
         let fsf = pseudo_euler_transform_lucy_dense(sqf);
+        let res = fsf[N] - 1;
+        println!("lucy: res = {res}, took {:?}", start.elapsed());
+    }
+    {
+        let start = std::time::Instant::now();
+        let sqf = count_squarefree(N);
+        println!(
+            "Finished counting squarefree integers: {:?}",
+            start.elapsed()
+        );
+        let fsf = lucy_pet_slow(sqf);
         let res = fsf[N] - 1;
         println!("lucy: res = {res}, took {:?}", start.elapsed());
     }
@@ -262,9 +273,7 @@ pub fn mult_sparse_with_buffer(a: &FIArray, b: &FIArray, res: &mut FIArray) {
     for &(x, y) in va {
         res.arr[len - R2 / x] -= y * b.arr[R2 - 1];
     }
-    for i in 1..len {
-        res.arr[i] += res.arr[i - 1];
-    }
+    res.partial_sum();
     let mut r = va.len();
     for &(x, y) in vb {
         let Nx = n / x;

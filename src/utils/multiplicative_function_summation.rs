@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
+    incremental_flattening::DynamicPrefixSumUsize,
     mult_correction_i64, mult_i64, mult_sparse_i64,
     p300_399::e362::mult,
     utils::{
@@ -457,7 +458,7 @@ pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
         ret.arr[i - 1] += v_2.arr[i - 1] * const { inv_odd(3) };
         ret.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
-    let mut ret = DirichletFenwick::from(ret);
+    /* let mut ret = DirichletFenwick::from(ret);
     for i in (2..x).rev() {
         let ai = a.arr[i - 1] / INVS[1];
         if ai == 0 {
@@ -465,7 +466,59 @@ pub fn pseudo_euler_transform_fraction(a: FIArray) -> FIArray {
         }
         ret.sparse_mul_unlimited(i, ai);
     }
-    ret.into()
+    ret.into() */
+    ret.adjacent_difference();
+    ret.arr[0] = 0;
+    for i in 2..x {
+        ret.arr[i - 1] = a.arr[i - 1] >> 1;
+    }
+    ret.partial_sum();
+    let mut ret_fenwick = DynamicPrefixSumUsize(ret.arr, len);
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= rt {
+            v - 1
+        } else {
+            len - (n / v)
+        }
+    };
+    let mut sp = ret_fenwick.sum(x - 2);
+    for p in (2..x).rev() {
+        let sp1 = ret_fenwick.sum(p - 2);
+        if sp1 == sp {
+            continue;
+        }
+
+        ret_fenwick.shrink_flattened_prefix(1 + get_index(p * p));
+        let w = sp - sp1;
+
+        let lim = n / p;
+        let mut prev = sp1;
+        let mut i = p;
+        while i <= lim / i {
+            let cur = ret_fenwick.sum(i - 1);
+            if cur != prev {
+                ret_fenwick.add(get_index(i * p), w * (cur - prev));
+                prev = cur;
+            }
+            i += 1;
+        }
+        for j in (1..=lim / i).rev() {
+            let cur = ret_fenwick.sum(get_index(lim / j));
+            if cur != prev {
+                ret_fenwick.add(len - j, w * (cur - prev));
+                prev = cur;
+            }
+        }
+        sp = sp1;
+    }
+
+    ret_fenwick.shrink_flattened_prefix(1);
+    ret_fenwick.inc(0);
+
+    ret.arr = ret_fenwick.flatten();
+    ret
 }
 // faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 6 before reducing
 #[must_use]

@@ -14,6 +14,7 @@ use itertools::Itertools;
 
 use crate::{
     fenwick_holes_test::{log_zeta_3, log_zeta_3_odd, log_zeta_fast_alt_2},
+    incremental_flattening::DynamicPrefixSumI64,
     p300_399::e362::{mult, mult_sparse},
     utils::{
         FIArray::{DirichletFenwick, DirichletFenwickI64, FIArray, FIArrayI64},
@@ -129,21 +130,14 @@ pub fn main() {
            &[1, 0, 0, 1]
        ));
     */
-    p700_799::e738::solve_ext();
-    p700_799::e738::solve_ext_lucy();
+    //p500_599::e556::main();
+    //p300_399::e362::main();
 
-    p300_399::e362::main();
-    p500_599::e556::main();
-    assert_eq!(
-        mult_simple(&FIArray::unit(10000), &FIArray::unit(10000)),
-        mult(&FIArray::unit(10000), &FIArray::unit(10000))
-    );
-    assert_eq!(
-        icy_mult(&FIArray::unit(10000), &FIArray::unit(10000)),
-        mult(&FIArray::unit(10000), &FIArray::unit(10000))
-    );
+    //p700_799::e738::solve_ext_lucy();
+    //p700_799::e738::solve_ext();
+
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e15 as _;
+    const N: usize = 1e16 as _;
     incremental_flattening::main();
     fenwick_holes_test::main();
 
@@ -157,17 +151,6 @@ pub fn main() {
     let end = start.elapsed();
     println!("\"fast\" prime counting output for {N}: {p} | {end:?}");
     assert_eq!(log_zeta_fast_alt_2(N), log_zeta_2(N));
-
-    /* assert_eq!(
-        inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N)),
-        inverse_pseudo_euler_transform_i64(FIArrayI64::unit(N))
-    ); */
-    /* assert_eq!(
-        pseudo_euler_transform_fraction_i64_test(inverse_pseudo_euler_transform_fraction_i64(
-            FIArrayI64::unit(N)
-        )),
-        FIArrayI64::unit(N)
-    ); */
 
     println!("counting sqf");
     let start = std::time::Instant::now();
@@ -184,28 +167,6 @@ pub fn main() {
     dbg!(end, s2[N]);
     assert_eq!(s1, s2);
 
-    /* {
-           let start = std::time::Instant::now();
-           let mut pi = inverse_pseudo_euler_transform_fraction_i64(FIArrayI64::unit(N));
-           let mut primes = vec![];
-           for p in 2..=pi.isqrt {
-               if pi.arr[p - 1] != pi.arr[p - 2] {
-                   primes.push(p);
-               }
-           }
-           for i in 0..pi.arr.len() {
-               pi.arr[i] *= 3;
-           }
-
-           let s2 = mult_correction(
-               &pseudo_euler_transform_fraction_i64(pi),
-               &primes,
-               |pp, p, e| 2 * e as i64 + 1,
-           );
-           let res = (s2[N] + N as i64) >> 1;
-           println!("res = {res}, took {:?}", start.elapsed());
-       }
-    */
     println!("summing mobius");
     let start = std::time::Instant::now();
     let s1 = mertens(N);
@@ -2280,7 +2241,7 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
         ret.arr[i - 1] += v_2.arr[i - 1] * const { inv_odd(3) };
         ret.arr[i - 1] /= const { 2 * INVS[1].pow(3) };
     }
-    let mut ret = DirichletFenwickI64::from(ret);
+    /* let mut ret = DirichletFenwickI64::from(ret);
     for i in (2..x).rev() {
         let ai = a.arr[i - 1] / INVS[1];
         if ai == 0 {
@@ -2288,7 +2249,59 @@ pub fn pseudo_euler_transform_fraction_i64(a: FIArrayI64) -> FIArrayI64 {
         }
         ret.sparse_mul_unlimited(i, ai);
     }
-    ret.into()
+    ret.into() */
+    ret.adjacent_difference();
+    ret.arr[0] = 0;
+    for i in 2..x {
+        ret.arr[i - 1] = a.arr[i - 1] / INVS[1];
+    }
+    ret.partial_sum();
+    let mut ret_fenwick = DynamicPrefixSumI64(ret.arr, len);
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= rt {
+            v - 1
+        } else {
+            len - (n / v)
+        }
+    };
+    let mut sp = ret_fenwick.sum(x - 2);
+    for p in (2..x).rev() {
+        let sp1 = ret_fenwick.sum(p - 2);
+        if sp1 == sp {
+            continue;
+        }
+
+        ret_fenwick.shrink_flattened_prefix(1 + get_index(p * p));
+        let w = sp - sp1;
+
+        let lim = n / p;
+        let mut prev = sp1;
+        let mut i = p;
+        while i <= lim / i {
+            let cur = ret_fenwick.sum(i - 1);
+            if cur != prev {
+                ret_fenwick.add(get_index(i * p), w * (cur - prev));
+                prev = cur;
+            }
+            i += 1;
+        }
+        for j in (1..=lim / i).rev() {
+            let cur = ret_fenwick.sum(get_index(lim / j));
+            if cur != prev {
+                ret_fenwick.add(len - j, w * (cur - prev));
+                prev = cur;
+            }
+        }
+        sp = sp1;
+    }
+
+    ret_fenwick.shrink_flattened_prefix(1);
+    ret_fenwick.inc(0);
+
+    ret.arr = ret_fenwick.flatten();
+    ret
 }
 
 // faster by a log factor, but more susceptible to overflow - multiplies input by a factor of 4 before reducing

@@ -382,8 +382,8 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
 
     let mut s = DirichletFenwickHole::from(s);
     let mut sp = s.get_bucket_prefix(7 - 2);
-    let mut cnt_query = 1;
-    let mut cnt_modify = 0;
+    let mut cnt_query: usize = 1;
+    let mut cnt_modify: usize = 0;
     let cutoff = xsqrt
         .isqrt()
         .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
@@ -449,7 +449,7 @@ pub fn lucy_fenwick_hole(x: usize) -> FIArray {
 // res = 2623557157654233, took 1295.5591953s
 // res = 2623557157654233, took 1212.7197351s
 pub fn main() {
-    const N: usize = 1e15 as _;
+    const N: usize = 1e16 as _;
     let start = Instant::now();
     let count = log_zeta_2(N)[N]; // n^(2/3) / \log n
     let end = start.elapsed();
@@ -816,10 +816,10 @@ pub fn log_zeta_fast_alt_2(n: usize) -> FIArray {
     let len = zeta.bit.len;
 
     let mut ret = FIArray::new(n);
-    let mut cnt_query = 0;
-    let mut cnt_modify = 0;
-    let mut cnt_query_2 = 0;
-    let mut cnt_modify_2 = 0;
+    let mut cnt_query = 0usize;
+    let mut cnt_modify = 0usize;
+    let mut cnt_query_2 = 0usize;
+    let mut cnt_modify_2 = 0usize;
     let mut primes = vec![];
     let x = iroot::<4>(n) + 1;
     // remove contributions of small primes
