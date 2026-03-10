@@ -52,7 +52,8 @@ const fn is_target_little_endian() -> bool {
     u16::from_ne_bytes([1, 0]) == 1
 }
 // TODO: understand convex hull based lattice point counting, adapt https://github.com/dengtesla/acm/blob/master/acm%E6%A8%A1%E6%9D%BF/min25_new.cpp
-// port icy's lattice point summer, implement O(n^3/5) FIArray construction for the divisor function and then O(n^5/8) prime counting
+// port icy's lattice point summer, optimize O(n^3/5) FIArray construction for the divisor function and O(n^5/8) prime counting
+// Refactor utilities related to prime counting / multiplicative function summation / PET & IPET, + figure out exactly why/how current impl's of mult/mult_powerful work
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
