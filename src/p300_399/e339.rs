@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+// TODO: finish
 pub fn main() {
     const N: i32 = 5;
     let mut cache = HashMap::new();

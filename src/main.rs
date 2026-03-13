@@ -131,14 +131,14 @@ pub fn main() {
            &[1, 0, 0, 1]
        ));
     */
-    //p500_599::e556::main();
-    //p300_399::e362::main();
+    p500_599::e556::main();
+    p300_399::e362::main();
 
     //p700_799::e738::solve_ext_lucy();
     //p700_799::e738::solve_ext();
 
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e16 as _;
+    const N: usize = 1e14 as _;
     incremental_flattening::main();
     fenwick_holes_test::main();
 
