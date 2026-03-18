@@ -20,7 +20,19 @@ use crate::{
 // 1e10: res = 455052511, took 23.8138ms
 #[must_use]
 pub fn log_zeta(n: usize) -> FIArray {
-    const INVS: [usize; 4] = [0, 6, 3, 2];
+    const fn inv_odd(mut k: usize) -> usize{
+        let mut exp = (1u64 << 63) - 1;
+        
+        let mut r: usize = 1;
+        while exp > 1 {
+            r = r.overflowing_mul(k).0;
+            k = k.overflowing_mul(k).0;
+            exp >>= 1;
+        }
+        r.overflowing_mul(k).0    
+    }
+    
+    const INVS: [usize; 4] = [0, 2, 1, inv_odd(3) << 1];
     let mut zeta = DirichletFenwick::zeta(n);
     let rt = zeta.isqrt;
     let len = zeta.bit.0.len();
@@ -42,7 +54,7 @@ pub fn log_zeta(n: usize) -> FIArray {
 
     // zeta now equals zeta_t - 1
     // compute log(zeta_t) using log(x + 1) = x^3 / 3 - x^2 / 2 + x
-    // in order to not have to deal with rational numbers, we compute 6 * log(zeta_t)
+    // in order to not have to deal with rational numbers, we compute 2 * log(zeta_t)
     // and adjust later
 
     for i in x..=len {
@@ -160,7 +172,7 @@ pub fn log_zeta(n: usize) -> FIArray {
     }
 
     for x in x..=rt {
-        let v = ret.arr[x - 1] / 6;
+        let v = ret.arr[x - 1] / INVS[1];
         if v == 0 {
             continue;
         }
@@ -177,7 +189,7 @@ pub fn log_zeta(n: usize) -> FIArray {
         ret.arr[i] += ret.arr[i - 1];
     }
     for i in x - 1..len {
-        ret.arr[i] /= 6;
+        ret.arr[i] /= INVS[1];
         ret.arr[i] += ret.arr[i - 1];
     }
     ret
