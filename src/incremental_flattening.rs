@@ -337,6 +337,7 @@ pub fn inverse_pseudo_euler_transform_lucy_i64(mut a: FIArrayI64) -> FIArrayI64 
             }
             j += 1;
         }
+        //assert_eq!(j, lim.isqrt());
         for i in (p..=lim / j).rev() {
             let next = a_fenwick.sum(i - 2);
             if next != cur {
@@ -545,6 +546,52 @@ fn legendre_test(x: usize) -> usize {
     s_fenwick.sum(len - 1) + primes.len() - 1
 }
 
+#[must_use]
+pub fn count_squarefree_partial_flatten(x: usize) -> FIArray {
+    let mut s = FIArray::unit(x);
+    let xsqrt = s.isqrt;
+    let len = s.arr.len();
+    let mut s_fenwick = DynamicPrefixSumUsize(s.arr, len);
+    s_fenwick.shrink_flattened_prefix(1);
+
+    let get_index = |v| -> usize {
+        if v == 0 {
+            unsafe { core::hint::unreachable_unchecked() };
+        } else if v <= xsqrt {
+            v - 1
+        } else {
+            len - (x / v)
+        }
+    };
+    for p in wheel_sieve(xsqrt as u64) {
+        let p = p as usize;
+        let pp = p * p;
+        s_fenwick.extend_flattened_prefix(1 + get_index(pp));
+        let lim = x / pp;
+        let mut j = 1;
+        let mut cur = s_fenwick.sum(get_index(lim));
+        while (j + 1) <= lim / (j + 1) {
+            let next = s_fenwick.sum(get_index(lim / (j + 1)));
+            if next != cur {
+                s_fenwick.sub(len - j, cur - next);
+                cur = next;
+            }
+            j += 1;
+        }
+        for i in (2..=lim / j).rev() {
+            let next = s_fenwick.sum(i - 2);
+            if next != cur {
+                s_fenwick.sub(get_index(pp * i), cur - next);
+                cur = next;
+            }
+        }
+        if cur != 0 {
+            s_fenwick.sub(get_index(pp), cur);
+        }
+    }
+    s.arr = s_fenwick.flatten();
+    s
+}
 #[must_use]
 pub fn lucy_ipet_slow(mut s: FIArray) -> FIArray {
     s.adjacent_difference();

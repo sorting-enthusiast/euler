@@ -17,7 +17,7 @@ use crate::{
 // 1e12: 83365737381734, 2.0323739s
 // 1e11: 6213486362445, 391.9852ms
 // 1e10: 457895958010, 79.9067ms
-const N: usize = 1e13 as _;
+const N: usize = 1e10 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -67,16 +67,10 @@ pub fn main() {
         let res = fsf[N] - 1;
         println!("res = {res}, took {:?}", start.elapsed());
     } */
-    //initial_approach_fenwick();
-    //initial_approach();
+    initial_approach_fenwick();
+    initial_approach();
 }
 
-// Also O(n^2/3) time, but makes fewer expensive calls to dirichlet_mul, and has no overflow issues.
-// Instead of only excluding values up to n^1/6, and adding their contributions back the naive way in O(n^2/3) time,
-// we can exclude all values up to n^1/4, and add their contributions back using a fenwick tree in O(n^5/8 logn) time
-// Therefore, we only need to deal with fractions up to 1/3, instead of 1/5, and factorials up to 3!, instead of 5!,
-// reducing the constant used for computing exp from 122880 to 48, allowing us to compute much larger values
-// without encountering 64-bit overflow
 fn dense_pseudo_euler_transform_based() {
     const x: usize = 1 + SQRT_N.isqrt();
     const fn inv_odd(mut k: usize) -> usize {
@@ -161,66 +155,48 @@ fn dense_pseudo_euler_transform_based() {
 // can optimize using fenwick trees to around O(n^3/4 logn)
 fn initial_approach() {
     let start = std::time::Instant::now();
-    let sqf = count_squarefree(N);
-    let mut fsf = FIArray::eps(N);
+    let mut sqf = count_squarefree(N);
+    let mut fsf = FIArray::new(N);
+    sqf.adjacent_difference();
+    fsf.arr[0] = 1;
+    fsf.arr[SQRT_N..].copy_from_slice(&sqf.arr[SQRT_N..]);
+    fsf.partial_sum();
+    let sqf = sqf;
     let keys = FIArray::keys(N).collect_vec().into_boxed_slice();
     let len = keys.len();
 
-    let mut res = 0;
     for q in 2..=SQRT_N {
-        if sqf.arr[q - 1] == sqf.arr[q - 2] {
+        if sqf.arr[q - 1] == 0 {
             continue;
         }
         for (i, &v) in keys[q - 1..=len - q].iter().enumerate() {
             fsf.arr[i + q - 1] += fsf[v / q];
         }
-        res += fsf[N / q];
+        fsf.arr[len - 1] += fsf.arr[len - q];
     }
 
-    /*for q in SQRT_N + 1..=N {
-        if squarefree[q as usize] == 0 {
-            continue;
-        }
-        fsf[N] += fsf[N / q];
-    }*/
-    let mut q = SQRT_N + 1;
-    while q <= N {
-        let k = N / q;
-        let q_max = N / k;
-
-        let cnt = sqf[q_max] - sqf[q - 1];
-
-        res += cnt * fsf[k];
-
-        q = q_max + 1;
-    }
+    let res = fsf.arr[len - 1] - 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
 // O(n^3/4 logn) time
 fn initial_approach_fenwick() {
     let start = std::time::Instant::now();
-    let sqf = count_squarefree(N);
-    let mut fsf = DirichletFenwick::eps(N);
 
-    for q in 2..=SQRT_N {
-        if sqf.arr[q - 1] != sqf.arr[q - 2] {
+    let mut sqf = count_squarefree(N);
+    let mut fsf = FIArray::new(N);
+    sqf.adjacent_difference();
+    fsf.arr[0] = 1;
+    fsf.arr[SQRT_N..].copy_from_slice(&sqf.arr[SQRT_N..]);
+    fsf.partial_sum();
+    let sqf = sqf;
+    let mut fsf = DirichletFenwick::from(fsf);
+
+    for q in (2..=SQRT_N).rev() {
+        if sqf.arr[q - 1] != 0 {
             fsf.sparse_mul_unlimited(q, 1);
         }
     }
-    let fsf = FIArray::from(fsf);
-    let mut res = fsf[N] - 1;
-
-    let mut q = SQRT_N + 1;
-    while q <= N {
-        let k = N / q;
-        let q_max = N / k;
-
-        let cnt = sqf[q_max] - sqf[q - 1];
-
-        res += cnt * fsf[k];
-
-        q = q_max + 1;
-    }
+    let res = fsf.get_prefix(N) - 1;
     println!("res = {res}, took {:?}", start.elapsed());
 }
 
