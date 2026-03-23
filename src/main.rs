@@ -57,73 +57,6 @@ const fn is_target_little_endian() -> bool {
 pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
-    //test2::main();
-    //p400_499::e433::main();
-    //aebp::main();
-    //p700_799::e715::main();
-    //p300_399::e339::main();
-    //p700_799::e738::main();
-    //p700_799::e738::solve_ext();
-    /* p600_699::e625::solve_ext_no_fenwick();
-    p600_699::e625::solve_ext_alt_no_fenwick();
-    p600_699::e625::solve_ext();
-    p600_699::e625::solve_ext_alt(); */
-
-    /*
-    let start = std::time::Instant::now();
-    let id = FIArrayI128::id::<0>(1 << 50);
-    let tot = div_i128(&id, &FIArrayI128::unit(1 << 50));
-    let res = dirichlet_mul_single_i128(&id, &tot);
-    println!("res = {res}, took {:?}", start.elapsed());
-
-    const LIM: usize = 1 << 54;
-    let start = std::time::Instant::now();
-    let mut id = DirichletFenwickI128::from(FIArrayI128::id::<0>(LIM));
-    let mut zeta = DirichletFenwickI128::zeta(LIM);
-    let lim = iroot::<8>(2 * LIM) + 1;
-    let mut primes = vec![];
-    println!("started removal of primes < {lim}: {:?}", start.elapsed());
-    for p in 2..lim {
-        if zeta.get_bucket_prefix(p - 1) == 1 {
-            continue;
-        }
-        primes.push(p);
-        id.sparse_mul_at_most_one(p, p as _);
-        zeta.sparse_mul_at_most_one(p, 1);
-    }
-    let id_lim = FIArrayI128::from(id);
-    let zeta_lim = FIArrayI128::from(zeta);
-    println!(
-        "Finished removal of primes < {lim}, started division: {:?}",
-        start.elapsed()
-    );
-    let mut approx = DirichletFenwickI128::from(div_i128(&id_lim, &zeta_lim));
-    drop(id_lim);
-    drop(zeta_lim);
-    println!(
-        "Finished division, started adding back primes < {lim}: {:?}",
-        start.elapsed()
-    );
-    for &p in primes.iter().rev() {
-        approx.sparse_mul_unlimited(p, p as i128 - 1);
-    }
-    let approx = FIArrayI128::from(approx);
-    println!(
-        "Finished adding back primes < {lim}, started correction: {:?}",
-        start.elapsed()
-    );
-    let mut res = crate::p600_699::e625::mult_correction_single(&approx, &primes, |pp, p, e| {
-        pp as i128 - (pp / p) as i128
-    });
-    /* for e in &mut res.arr {
-        *e -= 1;
-    } */
-    let end = start.elapsed();
-    dbg!(end, res - 1);
-    /* for i in 1..=52 {
-        print!("{i}:{},", res[1 << i]);
-    } */
-    println!(); */
     //dbg!((10usize ^ 7 ^ 3).count_ones());
     //p900_999::e953::main();
     /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
@@ -131,16 +64,11 @@ pub fn main() {
            &[1, 0, 0, 1]
        ));
     */
-    //aebp::main();
-    p900_999::e989::main();
     p500_599::e556::main();
     p300_399::e362::main();
 
-    //p700_799::e738::solve_ext_lucy();
-    //p700_799::e738::solve_ext();
-
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e16 as _;
+    const N: usize = 1e13 as _;
     /* incremental_flattening::main();
     fenwick_holes_test::main();
 

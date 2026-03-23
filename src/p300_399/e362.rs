@@ -1,12 +1,14 @@
 use itertools::Itertools;
 
 use crate::{
-    incremental_flattening::{DynamicPrefixSumUsize, lucy_pet_slow},
+    incremental_flattening::{
+        DynamicPrefixSumUsize, count_squarefree_partial_flatten as count_squarefree, lucy_pet_slow,
+    },
     utils::{
         FIArray::{DirichletFenwick, FIArray},
         math::iroot,
         multiplicative_function_summation::{
-            count_squarefree, pseudo_euler_transform, pseudo_euler_transform_fraction,
+            pseudo_euler_transform, pseudo_euler_transform_fraction,
         },
     },
 };
@@ -17,7 +19,7 @@ use crate::{
 // 1e12: 83365737381734, 2.0323739s
 // 1e11: 6213486362445, 391.9852ms
 // 1e10: 457895958010, 79.9067ms
-const N: usize = 1e10 as _;
+const N: usize = 1e14 as _;
 const SQRT_N: usize = N.isqrt();
 // fsf is just the pseudo-euler transform of sqf
 // one of my favorite problems
@@ -68,7 +70,7 @@ pub fn main() {
         println!("res = {res}, took {:?}", start.elapsed());
     } */
     initial_approach_fenwick();
-    initial_approach();
+    //initial_approach();
 }
 
 fn dense_pseudo_euler_transform_based() {
