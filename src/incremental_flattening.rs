@@ -267,7 +267,7 @@ pub fn testing_basic(x: usize) -> FIArray {
             j += 1;
         }
         for i in (p..=lim / j).rev() {
-            let next = s_fenwick.sum(i - 2);
+            let next = s_fenwick.sum(i - 2); // if i is p-1 - rough
             if next != cur {
                 s_fenwick.sub(get_index(p * i), cur - next);
                 cur = next;
