@@ -28,6 +28,7 @@ pub fn main() {
     let mut tmp = vec![];
     while N != BigUint::ZERO {
         let lsb = usize::from(N.bit(0));
+        // q(x) = q(x) * (1 + x);
         q.push(unsafe { *q.last().unwrap_unchecked() });
         for i in (1..q.len() - 1).rev() {
             q[i] += q[i - 1];
@@ -39,6 +40,7 @@ pub fn main() {
         conv(&p, &q, &mut tmp);
         p.clear();
         p.extend(tmp[lsb..].iter().step_by(2));
+        //dbg!((q.len(), p.len()));
         N >>= 1;
     }
     println!("res = {}, took {:?}", p[0], start.elapsed());

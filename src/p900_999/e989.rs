@@ -1,7 +1,6 @@
-use crate::utils::multiplicative_function_summation::mobius_sieve;
+use crate::utils::{math::sum_geometric_mod, multiplicative_function_summation::mobius_sieve};
 const N: usize = 1e14 as _;
 const SQRT_N: usize = N.isqrt();
-
 const MOD: u64 = 1e9 as u64 + 9;
 const SQRT_5: u64 = 383_008_016;
 const PHI_PLUS: u64 = (((MOD + 1) >> 1) * (1 + SQRT_5)) % MOD;
@@ -33,11 +32,76 @@ pub fn main() {
     res %= MOD;
     println!("res = {res}, took {:?}", start.elapsed());
 }
-// assumes k != 1
-const fn sum_geometric(k: u64, n: u64) -> u64 {
-    ((modinv(k - 1) * (powmod(k, n) + MOD - 1)) % MOD * k) % MOD
-}
 fn sum_chi_zeta(k: u64, n: usize) -> u64 {
+    // coefficient extraction from \frac{kx(1-kx)^2(1+kx)}{(1-x)(1-(kx)^5)}
+    const fn sum_chi_x_alt(k: u64, mut n: usize) -> u64 {
+        let mut p = [0; 6];
+        let mut i = 1;
+        let mut kk = k;
+        while i < 5 {
+            p[i] = kk;
+            kk *= k;
+            kk %= MOD;
+            i += 1;
+        }
+        p[2] = MOD - p[2];
+        p[3] = MOD - p[3];
+        while n > 0 {
+            if n & 1 == 0 {
+                let mut p0p1 = p[0] + p[1];
+                if p0p1 >= MOD {
+                    p0p1 -= MOD;
+                }
+                let mut p2p3 = p[2] + p[3];
+                if p2p3 >= MOD {
+                    p2p3 -= MOD;
+                }
+                let mut p4p5 = p[4] + p[5];
+                if p4p5 >= MOD {
+                    p4p5 -= MOD;
+                }
+                p[1] += p[2];
+                if p[1] >= MOD {
+                    p[1] -= MOD;
+                }
+                p[2] = p[3] + p[4];
+                if p[2] >= MOD {
+                    p[2] -= MOD;
+                }
+                p[3] = (p[5] + kk * p0p1) % MOD;
+                p[4] = (p2p3 * kk) % MOD;
+                p[5] = (p4p5 * kk) % MOD;
+            } else {
+                let mut p1p2 = p[1] + p[2];
+                if p1p2 >= MOD {
+                    p1p2 -= MOD;
+                }
+                let mut p3p4 = p[3] + p[4];
+                if p3p4 >= MOD {
+                    p3p4 -= MOD;
+                }
+                let p0kk = (p[0] * kk) % MOD;
+                p[0] += p[1];
+                if p[0] >= MOD {
+                    p[0] -= MOD;
+                }
+                p[1] = p[2] + p[3];
+                if p[1] >= MOD {
+                    p[1] -= MOD;
+                }
+                p[2] = (p[4] + p[5] + p0kk) % MOD;
+                p[3] = (p1p2 * kk) % MOD;
+                p[4] = (p3p4 * kk) % MOD;
+                p[5] *= kk;
+                p[5] %= MOD;
+            }
+            kk *= kk;
+            kk %= MOD;
+            n >>= 1;
+        }
+        p[0]
+    }
+    // decomposition of the sum into full periods and one partial period
     const fn sum_chi_x(k: u64, n: usize) -> u64 {
         let (q, r) = (n / 5, n % 5);
         if k == 1 {
@@ -69,11 +133,17 @@ fn sum_chi_zeta(k: u64, n: usize) -> u64 {
 
         kk *= k;
         kk %= MOD;
+        ret *= if q > 0 {
+            sum_geometric_mod::<MOD>(kk, q - 1)
+        } else {
+            0
+        };
+        ret %= MOD;
         let k5q = powmod(kk, q as _);
-        ret *= MOD + 1 - k5q;
+        /* ret *= k5q + MOD - 1;
         ret %= MOD;
-        ret *= modinv(MOD + 1 - kk);
-        ret %= MOD;
+        ret *= modinv(kk + MOD - 1);
+        ret %= MOD; */
 
         ret += (k5q * p[r]) % MOD;
         if ret >= MOD {
@@ -84,23 +154,52 @@ fn sum_chi_zeta(k: u64, n: usize) -> u64 {
     let mut ret = 0;
     let mut pow_k = 1;
     let sqrt = n.isqrt();
+    let k_sqrt = powmod(k, sqrt as u64 + 1);
+    let mut pow_k_sqrt = 1;
     for i in 1..=sqrt {
         let chi5 = [0, 1, MOD - 1, MOD - 1, 1][i % 5];
         pow_k *= k;
         pow_k %= MOD;
-        let mut coeff = sum_geometric(pow_k, (n / i) as _) + MOD - sum_geometric(pow_k, sqrt as _);
-        if coeff >= MOD {
-            coeff -= MOD;
+        pow_k_sqrt *= k_sqrt;
+        pow_k_sqrt %= MOD;
+
+        if n / i != sqrt {
+            /* let mut coeff = sum_geometric_mod::<MOD>(pow_k, n / i) + MOD
+                - sum_geometric_mod::<MOD>(pow_k, sqrt);
+            if coeff >= MOD {
+                coeff -= MOD;
+            } */
+            let coeff = (pow_k_sqrt * sum_geometric_mod::<MOD>(pow_k, (n / i) - sqrt - 1)) % MOD;
+            ret += chi5 * coeff;
+            ret %= MOD;
         }
-        ret += chi5 * coeff;
-        ret %= MOD;
-        ret += sum_chi_x(pow_k, n / i);
+        ret += sum_chi_x_alt(pow_k, n / i);
         if ret >= MOD {
             ret -= MOD;
         }
     }
     ret
 }
+const fn powmod(mut x: u64, mut exp: u64) -> u64 {
+    exp %= MOD - 1;
+    if exp == 0 {
+        return 1;
+    }
+    let mut r = 1;
+    x %= MOD;
+    while exp > 1 {
+        if exp & 1 == 1 {
+            r = (r * x) % MOD;
+        }
+        x = (x * x) % MOD;
+        exp >>= 1;
+    }
+    (r * x) % MOD
+}
+const fn modinv(x: u64) -> u64 {
+    powmod(x, MOD - 2)
+}
+
 fn dfs2(omega: u64, acc: u64, lim: u64, primes: &[u64]) -> u64 {
     let mut sum = (omega * fib(acc)) % MOD;
     let mut new_omega = omega;
@@ -173,22 +272,4 @@ const fn fib(mut n: u64) -> u64 {
         n >>= 1;
     }
     (b + a * c) % MOD
-}
-const fn powmod(mut x: u64, mut exp: u64) -> u64 {
-    if exp == 0 {
-        return 1;
-    }
-    let mut r = 1;
-    x %= MOD;
-    while exp > 1 {
-        if exp & 1 == 1 {
-            r = (r * x) % MOD;
-        }
-        x = (x * x) % MOD;
-        exp >>= 1;
-    }
-    (r * x) % MOD
-}
-const fn modinv(x: u64) -> u64 {
-    powmod(x, MOD - 2)
 }

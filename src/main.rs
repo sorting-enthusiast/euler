@@ -19,7 +19,7 @@ use crate::{
     utils::{
         FIArray::{DirichletFenwick, DirichletFenwickI64, FIArray, FIArrayI64},
         fast_divisor_sums::{self, divisor_summatory},
-        math::iroot,
+        math::{iroot, sum_geometric_mod},
         multiplicative_function_summation::{
             count_squarefree, divisor_sieve, mertens, sqf, sqf_icy,
         },
@@ -60,12 +60,12 @@ pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //dbg!((10usize ^ 7 ^ 3).count_ones());
-    //p900_999::e953::main();
     /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
            &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
            &[1, 0, 0, 1]
        ));
     */
+    p900_999::e989::main();
     p500_599::e556::main();
     p300_399::e362::main();
 

@@ -88,3 +88,28 @@ pub const fn mult(x: u64, y: u64) -> u64 {
     }
     res
 }
+
+// based on extracting coefficient from rational functions
+#[must_use]
+pub const fn sum_geometric_mod<const MOD: u64>(mut a: u64, mut n: usize) -> u64 {
+    let [mut p0, mut p1] = [1, 0];
+    while n > 0 {
+        if n & 1 == 0 {
+            p1 += (p0 + p1) * a;
+            p1 %= MOD;
+        } else {
+            p0 *= a + 1;
+            p0 %= MOD;
+            p0 += p1;
+            if p0 >= MOD {
+                p0 -= MOD;
+            }
+            p1 *= a;
+            p1 %= MOD;
+        }
+        a *= a;
+        a %= MOD;
+        n >>= 1;
+    }
+    p0
+}
