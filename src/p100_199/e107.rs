@@ -4,9 +4,8 @@ impl<const LEN: usize> DSU<LEN> {
         Self([-1; LEN])
     }
     fn find(&mut self, mut a: i32) -> i32 {
-        const MASK: i32 = 1 << 31;
         let mut rep = a;
-        while (self.0[rep as usize] & MASK) == 0 {
+        while self.0[rep as usize] >= 0 {
             rep = self.0[rep as usize];
         }
         while a != rep {
@@ -22,7 +21,7 @@ impl<const LEN: usize> DSU<LEN> {
         if a == b {
             return 0;
         }
-        if self.0[a as usize] < self.0[b as usize] {
+        if self.0[a as usize] > self.0[b as usize] {
             core::mem::swap(&mut a, &mut b);
         }
         self.0[b as usize] += self.0[a as usize];
@@ -62,10 +61,9 @@ pub fn main() {
     for (u, v) in edges {
         let w = adjacency_matrix[u][v];
         let (u, v) = (u as i32, v as i32);
-        if dsu.find(u) != dsu.find(v) {
+        if dsu.merge(u, v) != 0 {
             cost += w;
             res.push((u, v));
-            dsu.merge(u, v);
         }
         if res.len() == 40 - 1 {
             break;

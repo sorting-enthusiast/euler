@@ -1,6 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(long_running_const_eval)]
 #![allow(dead_code)]
+#![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::inline_always)]
@@ -65,6 +66,7 @@ pub fn main() {
            &[1, 0, 0, 1]
        ));
     */
+    p500_599::e537::main();
     p900_999::e989::main();
     p500_599::e556::main();
     p300_399::e362::main();
