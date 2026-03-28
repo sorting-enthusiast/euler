@@ -1,12 +1,12 @@
 use crate::utils::{polymul::NTT, primes::wheel_sieve};
 const MOD: i64 = 1_004_535_809; // (497 << 21) + 1
 type FFT = NTT<MOD, 702_606_812, 22>;
-const N: usize = 1_000_000;
+const N: usize = 20_000 as _;
 const LEN: usize = (2 * N + 1).next_power_of_two();
 // A-restricted composition - https://en.wikipedia.org/wiki/Composition_(combinatorics)
 pub fn main() {
     let start = std::time::Instant::now();
-    let primes = wheel_sieve(/* 12 */ 25 * N as u64);
+    let primes = wheel_sieve(12 * N as u64);
     let mut x = vec![0; LEN].into_boxed_slice();
     x[0] = 1;
     for i in 1..=N {
