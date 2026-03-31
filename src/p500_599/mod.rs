@@ -6,6 +6,7 @@ pub mod e521;
 pub mod e530;
 pub mod e537;
 pub mod e540;
+pub mod e544;
 pub mod e545;
 pub mod e546;
 pub mod e548;

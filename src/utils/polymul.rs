@@ -1,4 +1,5 @@
 use itertools::Itertools;
+// TODO: optimize - https://piskareviv.github.io/blog_aux_ntt_1/
 // change according to usecase
 //3221225473 = (3<<30)+1
 // (7<<26)+1

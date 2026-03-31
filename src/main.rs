@@ -61,14 +61,9 @@ pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //dbg!((10usize ^ 7 ^ 3).count_ones());
-    /* dbg!(NTT::<{ (7 << 26) + 1 }, 2187, 27>::multiply(
-           &[1, 1, 0, 1, 0, 0, 0, 0, 0, 1],
-           &[1, 0, 0, 1]
-       ));
-    */
-    p500_599::e537::main();
-    p900_999::e989::main();
+    p200_299::e297::main();
     p500_599::e556::main();
+    p900_999::e989::main();
     p300_399::e362::main();
 
     //1.8656068s - 2^40, 61.5886751s - 2^48
