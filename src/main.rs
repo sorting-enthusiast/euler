@@ -34,6 +34,7 @@ use crate::{
 };
 pub mod aebp;
 pub mod fenwick_holes_test;
+mod fib;
 pub mod incremental_flattening;
 pub mod p0_99;
 pub mod p100_199;

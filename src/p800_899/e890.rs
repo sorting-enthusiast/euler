@@ -40,7 +40,6 @@ pub fn main() {
         conv(&p, &q, &mut tmp);
         p.clear();
         p.extend(tmp[lsb..].iter().step_by(2));
-        //dbg!((q.len(), p.len()));
         N >>= 1;
     }
     println!("res = {}, took {:?}", p[0], start.elapsed());
