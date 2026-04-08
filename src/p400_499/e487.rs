@@ -38,6 +38,7 @@ pub fn main() {
     println!("res = {sum}, took {:?}", start.elapsed());
 }
 
+// https://codeforces.com/blog/entry/82953
 fn interpolate_evaluate(y: &[usize], x_eval: usize, p: usize) -> usize {
     let n = y.len() - 1;
     let x_mod = x_eval % p;
@@ -95,7 +96,6 @@ fn interpolate_evaluate(y: &[usize], x_eval: usize, p: usize) -> usize {
 
     result
 }
-
 fn powmod(mut x: usize, mut exp: usize, p: usize) -> usize {
     if exp == 0 {
         return 1;
@@ -111,7 +111,6 @@ fn powmod(mut x: usize, mut exp: usize, p: usize) -> usize {
     }
     (r * x) % p
 }
-
 fn modinv(n: usize, p: usize) -> usize {
     powmod(n, p - 2, p)
 }

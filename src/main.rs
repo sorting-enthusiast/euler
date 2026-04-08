@@ -20,11 +20,10 @@ use crate::{
     utils::{
         FIArray::{DirichletFenwick, DirichletFenwickI64, FIArray, FIArrayI64},
         fast_divisor_sums::{self, divisor_summatory},
-        math::{iroot, sum_geometric_mod},
+        math::iroot,
         multiplicative_function_summation::{
             count_squarefree, divisor_sieve, mertens, sqf, sqf_icy,
         },
-        polymul::NTT,
         primes::{
             log_zeta::log_zeta_2,
             primecount::{lucy_fenwick, mertens_min25},
