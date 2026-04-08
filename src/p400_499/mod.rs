@@ -9,3 +9,4 @@ pub mod e452;
 pub mod e454;
 pub mod e464;
 pub mod e484;
+pub mod e487;

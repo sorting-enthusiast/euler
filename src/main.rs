@@ -62,14 +62,14 @@ pub fn main() {
     const { assert!(is_target_little_endian()) }; // some code relies on this
     println!("Started running at: {} ", Local::now().time());
     //dbg!((10usize ^ 7 ^ 3).count_ones());
-
+    p400_499::e487::main();
     p500_599::e556::main();
     p900_999::e989::main();
     p300_399::e362::main();
 
     //1.8656068s - 2^40, 61.5886751s - 2^48
     const N: usize = 1e13 as _;
-    /* incremental_flattening::main();
+    incremental_flattening::main();
     fenwick_holes_test::main();
 
     let start = std::time::Instant::now();
@@ -81,7 +81,7 @@ pub fn main() {
     let p = log_zeta_fast_alt(N)[N];
     let end = start.elapsed();
     println!("\"fast\" prime counting output for {N}: {p} | {end:?}");
-    assert_eq!(log_zeta_fast_alt_2(N), log_zeta_2(N)); */
+    assert_eq!(log_zeta_fast_alt_2(N), log_zeta_2(N));
 
     println!("counting sqf");
     let start = std::time::Instant::now();
