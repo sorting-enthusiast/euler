@@ -1,4 +1,4 @@
-use rug::{Complete, Integer};
+/*use rug::{Complete, Integer};
 pub fn main() {
     const N: usize = u32::MAX as _;
     println!("{N}");
@@ -42,7 +42,7 @@ fn fib_bostan_mori(mut n: usize) -> Integer {
         n >>= 1;
     }
     b + a * c
-}
+}*/
 /* // copied from https://www.reddit.com/r/algorithms/comments/1im1kc5/20000000th_fibonacci_number_in_1_second/s
 fn fib_luc(mut n: isize) -> (Integer, Integer) {
     if n == 0 {
