@@ -158,7 +158,8 @@ pub fn testing(x: usize) -> FIArray {
         }
     };
     let mut sp = 3; //0;
-    let cutoff = xsqrt.isqrt().max(iroot::<3>(x / x.ilog2() as usize)) | 1; /* xsqrt
+    let cutoff = xsqrt.isqrt().max(iroot::<3>(x / x.ilog2() as usize)) | 1; 
+    /* xsqrt
     .isqrt()
     .max(2 * iroot::<3>((xsqrt / x.ilog2() as usize).pow(2)))
     | 1;*/

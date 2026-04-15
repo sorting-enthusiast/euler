@@ -486,6 +486,7 @@ pub fn mult(a: &FIArray, b: &FIArray) -> FIArray {
     res
 }
 
+// O((n \log n)^\frac23)
 #[must_use]
 pub fn pseudo_euler_transform_lucy_dense(mut a: FIArray) -> FIArray {
     let x = a.x;
