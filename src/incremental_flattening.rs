@@ -5,8 +5,7 @@ use crate::{
         FIArray::{FIArray, FIArrayI64},
         math::iroot,
         primes::{
-            primecount::{lucy_fenwick, lucy_fenwick_simple},
-            wheel_sieve,
+            primality::is_prime, primecount::{lucy, lucy_fenwick, lucy_fenwick_simple}, wheel_sieve
         },
     }
 };
@@ -445,7 +444,7 @@ pub fn pseudo_euler_transform_lucy_i64(mut a: FIArrayI64) -> FIArrayI64 {
 }
 
 pub fn main() {
-    const N: usize = 1e14 as _;
+    const N: usize = 1e15 as _;
     println!("Entering {} main", file!());
 
     let start = std::time::Instant::now();
@@ -473,13 +472,13 @@ pub fn main() {
     let start = std::time::Instant::now();
     let s2 = log_zeta_partial_flatten(N);
     println!("{} | {:?}", s2[N], start.elapsed());
-    /* let start = std::time::Instant::now();
+    let start = std::time::Instant::now();
     let s = legendre_test(N);
     println!("{} | {:?}", s, start.elapsed()); // 2^40: 1.6238139s, 2^49: 114.6576979s
 
     let start = std::time::Instant::now();
     let s = lucy(N)[N];
-    println!("{} | {:?}", s, start.elapsed()); */
+    println!("{} | {:?}", s, start.elapsed()); 
 
     /* let mut chi4 = FIArrayI64::new(N);
     for (i, v) in FIArrayI64::keys(N).enumerate() {
@@ -517,11 +516,14 @@ fn legendre_test(x: usize) -> usize {
             len - (x / v)
         }
     };
-    let primes = wheel_sieve(s.isqrt as u64);
-    for &p in &primes {
-        let p = p as usize;
-        //s.sparse_mul_at_most_one(p as _, 1);
+    let mut pi_sqrt = 0;
+    for p in 2..=xsqrt {
         s_fenwick.extend_flattened_prefix(p);
+        if s_fenwick.sum(p - 1) == 1 {
+            continue;
+        }
+        pi_sqrt += 1;
+
         let lim = x / p;
         let mut j = 1;
         let mut cur = s_fenwick.sum(get_index(lim));
@@ -544,7 +546,7 @@ fn legendre_test(x: usize) -> usize {
             s_fenwick.sub(p - 1, cur);
         }
     }
-    s_fenwick.sum(len - 1) + primes.len() - 1
+    s_fenwick.sum(len - 1) + pi_sqrt - 1
 }
 
 #[must_use]

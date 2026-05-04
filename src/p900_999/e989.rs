@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::utils::{math::sum_geometric_mod, multiplicative_function_summation::mobius_sieve};
 const N: usize = 1e14 as _;
 const SQRT_N: usize = N.isqrt();
@@ -212,4 +214,165 @@ const fn powmod(mut x: u64, mut exp: u64) -> u64 {
 }
 const fn modinv(x: u64) -> u64 {
     powmod(x, MOD - 2)
+}
+
+// TODO: impl montgomery batch inversion based approach
+fn solve_alt() {
+    todo!();
+    const TOTIENT_MOD: usize = MOD as usize - 1;
+    const B: usize = TOTIENT_MOD.isqrt();
+    let start = std::time::Instant::now();
+
+    let mut small_plus = vec![0; B];
+    let mut small_minus = vec![0; B];
+    let mut big_plus = vec![0; B + 1];
+    let mut big_minus = vec![0; B + 1];
+
+    small_plus[0] = 1;
+    small_minus[0] = 1;
+    big_plus[0] = 1;
+    big_minus[0] = 1;
+
+    for j in 1..B {
+        small_plus[j] = (small_plus[j - 1] * PHI_PLUS) % MOD;
+        small_minus[j] = (small_minus[j - 1] * PHI_MINUS) % MOD;
+    }
+    let step_plus = (small_plus[B - 1] * PHI_PLUS) % MOD;
+    let step_minus = (small_minus[B - 1] * PHI_MINUS) % MOD;
+
+    for i in 1..=B {
+        big_plus[i] = (big_plus[i - 1] * step_plus) % MOD;
+        big_minus[i] = (big_minus[i - 1] * step_minus) % MOD;
+    }
+    let pow_phi_plus_at = |mut e: usize| {
+        e %= TOTIENT_MOD;
+        (big_plus[e / B] * small_plus[e % B]) % MOD
+    };
+    let pow_phi_minus_at = |mut e: usize| {
+        e %= TOTIENT_MOD;
+        (big_minus[e / B] * small_minus[e % B]) % MOD
+    };
+    let sum_chi_zeta = |k: u64, n: usize| -> u64 {
+        // decomposition of the sum into full periods and one partial period
+        const fn sum_chi_x(k: u64, n: usize) -> u64 {
+            let (q, r) = (n / 5, n % 5);
+            if k == 1 {
+                return [0, 1, 0, MOD - 1, 0][r];
+            }
+            let mut p = [0; 5];
+            p[1] = k;
+            let mut ret = k;
+            let mut kk = (k * k) % MOD;
+            ret += MOD - kk;
+            if ret >= MOD {
+                ret -= MOD;
+            }
+            p[2] = ret;
+            kk *= k;
+            kk %= MOD;
+            ret += MOD - kk;
+            if ret >= MOD {
+                ret -= MOD;
+            }
+            p[3] = ret;
+            kk *= k;
+            kk %= MOD;
+            ret += kk;
+            if ret >= MOD {
+                ret -= MOD;
+            }
+            p[4] = ret;
+
+            kk *= k;
+            kk %= MOD;
+            ret *= if q > 0 {
+                sum_geometric_mod::<MOD>(kk, q - 1)
+            } else {
+                0
+            };
+            ret %= MOD;
+            let k5q = powmod(kk, q as _);
+            /* ret *= k5q + MOD - 1;
+            ret %= MOD;
+            ret *= modinv(kk + MOD - 1);
+            ret %= MOD; */
+
+            ret += (k5q * p[r]) % MOD;
+            if ret >= MOD {
+                ret -= MOD;
+            }
+            ret
+        }
+        let mut ret = 0;
+        let k_5 = powmod(k, 5);
+        let sqrt = n.isqrt();
+        let mut pow_k = k;
+        let mut pow_k_5 = k_5;
+
+        let mut to_invert_geo = vec![(pow_k + MOD - 1) % MOD];
+        let mut to_invert_chi = vec![(pow_k_5 + MOD - 1) % MOD];
+        for i in 2..=sqrt {
+            pow_k *= k;
+            pow_k %= MOD;
+            pow_k_5 *= k_5;
+            pow_k_5 %= MOD;
+
+            to_invert_geo.push((to_invert_geo[i - 2] * (pow_k + MOD - 1)) % MOD);
+            to_invert_chi.push((to_invert_chi[i - 2] * (pow_k_5 + MOD - 1)) % MOD);
+        }
+        let mut batch_inv_geo = modinv(to_invert_geo.pop().unwrap());
+        let mut batch_inv_chi = modinv(to_invert_geo.pop().unwrap());
+
+        for i in (1..=sqrt).rev() {
+            let chi5 = [0, 1, MOD - 1, MOD - 1, 1][i % 5];
+            pow_k *= k;
+            pow_k %= MOD;
+
+            let coeff = (sum_geometric_mod::<MOD>(pow_k, n / i) + MOD
+                - sum_geometric_mod::<MOD>(pow_k, sqrt))
+                % MOD;
+            ret += chi5 * coeff;
+            ret %= MOD;
+
+            ret += sum_chi_x(pow_k, n / i);
+            if ret >= MOD {
+                ret -= MOD;
+            }
+        }
+        ret
+    };
+
+    let mu = mobius_sieve(SQRT_N + 1);
+    let mut res = 0;
+    let mut p_phi_plus = PHI_PLUS;
+    let mut p_phi_minus = PHI_MINUS;
+    let mut pp_phi_plus = 1;
+    let mut pp_phi_minus = 1;
+
+    for a in 1..=SQRT_N {
+        pp_phi_plus *= p_phi_plus;
+        pp_phi_minus *= p_phi_minus;
+        p_phi_plus *= PHI_PLUS_2;
+        p_phi_minus *= PHI_MINUS_2;
+        pp_phi_plus %= MOD;
+        pp_phi_minus %= MOD;
+        p_phi_plus %= MOD;
+        p_phi_minus %= MOD;
+
+        if mu[a] == 0 {
+            continue;
+        }
+        let naa = N / a / a;
+        let mut coeff = sum_chi_zeta(pp_phi_plus, naa) + MOD - sum_chi_zeta(pp_phi_minus, naa);
+        if coeff >= MOD {
+            coeff -= MOD;
+        }
+        res += if mu[a] == 1 { coeff } else { MOD - coeff };
+        if res >= MOD {
+            res -= MOD;
+        }
+    }
+    res *= const { modinv(SQRT_5) };
+    res %= MOD;
+    println!("res = {res}, took {:?}", start.elapsed());
 }
