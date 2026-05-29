@@ -9,5 +9,6 @@ pub mod e355;
 pub mod e362;
 pub mod e370;
 pub mod e379;
+pub mod e381;
 pub mod e386;
 pub mod e388;
