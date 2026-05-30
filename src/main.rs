@@ -32,6 +32,7 @@ use crate::{
     },
 };
 pub mod aebp;
+mod experiments;
 pub mod fenwick_holes_test;
 mod fib;
 pub mod incremental_flattening;
@@ -69,7 +70,7 @@ pub fn main() {
     //p300_399::e362::main();
 
     //1.8656068s - 2^40, 61.5886751s - 2^48
-    const N: usize = 1e12 as _;
+    const N: usize = 1e13 as _;
     incremental_flattening::main();
     fenwick_holes_test::main();
 

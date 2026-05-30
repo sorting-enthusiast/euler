@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    divisor_sums, inverse_pseudo_euler_transform_fraction_i64, p300_399::e362::{mult, mult_sparse}, pseudo_euler_transform_fraction_i64, utils::{
+    divisor_sums, experiments::log_zeta_fast_partial_flatten_v2, inverse_pseudo_euler_transform_fraction_i64, p300_399::e362::{mult, mult_sparse}, pseudo_euler_transform_fraction_i64, utils::{
         FIArray::{FIArray, FIArrayI64},
         math::iroot,
         primes::{
@@ -10,17 +10,16 @@ use crate::{
     }
 };
 
-use paste::paste;
 macro_rules! DynamicPrefixSum_impl_for {
     ($($type:ty),+) => { $(
-        paste!{
+        paste::paste!{
             #[derive(Debug, Clone, PartialEq, Eq)]
             pub struct [<DynamicPrefixSum $type:camel>](pub Box<[$type]>, pub usize); // 1: len of flat prefix
             impl [<DynamicPrefixSum $type:camel>] {
                 #[must_use]
                 pub fn new(len: usize, init: $type) -> Self {
                     let mut ret = Self(vec![init; len].into_boxed_slice(), 1);
-                    if init != 0 {
+                    if init != $type::default() {
                         ret.construct();
                     }
                     ret
@@ -36,7 +35,7 @@ macro_rules! DynamicPrefixSum_impl_for {
                 }
                 #[must_use]
                 pub fn new_with(len: usize, init: impl FnMut(usize) -> $type) -> Self {
-                    let mut ret = Self((0..len).map(init).collect_vec().into_boxed_slice(), 1);
+                    let mut ret = Self((0..len).map(init).collect::<Vec<_>>().into_boxed_slice(), 1);
                     ret.construct();
                     ret
                 }
@@ -44,7 +43,7 @@ macro_rules! DynamicPrefixSum_impl_for {
                 pub fn sum(&self, i: usize) -> $type {
                     let k = self.1;
                     let mut i = i + 1;
-                    let mut sum = 0;
+                    let mut sum = $type::default();
                     while i > k {
                         sum += self.0[i - 1];
                         i &= i - 1;
@@ -117,6 +116,7 @@ macro_rules! DynamicPrefixSum_impl_for {
         }
     )+ };
 }
+pub(crate) use DynamicPrefixSum_impl_for;
 DynamicPrefixSum_impl_for!(i64, u64, usize, isize, u128, i128);
 pub type DynamicPrefixSum = DynamicPrefixSumUsize;
 #[must_use]
@@ -444,9 +444,15 @@ pub fn pseudo_euler_transform_lucy_i64(mut a: FIArrayI64) -> FIArrayI64 {
 }
 
 pub fn main() {
-    const N: usize = 1e15 as _;
+    const N: usize = 1e17 as _;
     println!("Entering {} main", file!());
 
+    
+    let start = std::time::Instant::now();
+    let s2 = log_zeta_fast_partial_flatten_v2(N);
+    println!("{} | {:?}", s2[N], start.elapsed());
+    //assert_eq!(s1, s2,);
+    
     let start = std::time::Instant::now();
     let s1 = lucy_fenwick_simple(N);
     println!("{} | {:?}", s1[N], start.elapsed());
@@ -464,7 +470,7 @@ pub fn main() {
     let s2 = log_zeta_fast_partial_flatten(N);
     println!("{} | {:?}", s2[N], start.elapsed());
     //assert_eq!(s1, s2,);
-    
+
     let start = std::time::Instant::now();
     let s2 = log_zeta_2_partial_flatten(N);
     println!("{} | {:?}", s2[N], start.elapsed());
@@ -1132,7 +1138,7 @@ fn log_zeta_fast_partial_flatten(n: usize) -> FIArray {
     zeta_2.adjacent_difference();
     zeta_2.arr[..x - 1].fill(0);
     zeta_2.partial_sum();
-    for i in 0..len {
+    for i in x..len {
         zeta_2.arr[i] -= 2 * zeta.arr[i];
     }
     dbg!(start.elapsed());
