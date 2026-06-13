@@ -113,3 +113,17 @@ pub const fn sum_geometric_mod<const MOD: u64>(mut a: u64, mut n: usize) -> u64 
     }
     p0
 }
+
+pub const fn extended_gcd(mut a: i64, mut b: i64) -> (i64, i64, i64) {
+    let mut x = 1;
+    let mut y = 0;
+    let mut x1 = 0;
+    let mut y1 = 1;
+    while b != 0 {
+        let q = a / b;
+        (x, x1) = (x1, x - q * x1);
+        (y, y1) = (y1, y - q * y1);
+        (a, b) = (b, a - q * b);
+    }
+    (a, x, y)
+}

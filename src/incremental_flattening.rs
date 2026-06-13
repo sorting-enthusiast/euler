@@ -444,7 +444,7 @@ pub fn pseudo_euler_transform_lucy_i64(mut a: FIArrayI64) -> FIArrayI64 {
 }
 
 pub fn main() {
-    const N: usize = 1e17 as _;
+    const N: usize = 1e13 as _;
     println!("Entering {} main", file!());
 
     
