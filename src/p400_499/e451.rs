@@ -26,9 +26,12 @@ pub fn main() {
             if 2 % g != 0 {
                 continue;
             }
+            // dx+(n/d)y = g
+            // dx(-2/g) + (n/d)y(-2/g) = -2
+            // (n/d)y(-2/g)=dx(-2/g) + 2
+
             x *= -2 / g;
-            // -dx+(n/d)y = 2
-            // (n/d)y=dx+2
+
             let mut root = (d * x + 1) % n;
             if root < 0 {
                 root += n;

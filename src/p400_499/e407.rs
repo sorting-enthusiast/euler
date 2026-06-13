@@ -27,7 +27,8 @@ pub fn main() {
             if g != 1 {
                 continue;
             }
-
+            // dx + (n/d)y = 1
+            // dx - 1 = -y(n/d)
             let mut root = (d * x) % n;
             if root < 0 {
                 root += n;
