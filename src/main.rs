@@ -64,6 +64,7 @@ pub fn main() {
     //dbg!((10usize ^ 7 ^ 3).count_ones());
     //p700_799::e759::main();
 
+    p700_799::e722::main();
     p400_499::e451::main();
     p400_499::e407::main();
 
